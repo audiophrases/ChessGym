@@ -57,7 +57,9 @@ const App = {
     pendingOpponentTimer: null,
     lastHintSquare: null,
     analysisFen: null,
-    analysisActive: false
+    analysisActive: false,
+    lastCoachComment: "",
+    hintActive: false
   },
   chess: null,
   board: null,
@@ -358,6 +360,7 @@ const App = {
     this.state.hadLapse = false;
     this.state.completed = false;
     this.state.inBook = false;
+    this.state.hintActive = false;
     this.state.bookLineMoves = [];
     this.state.bookPlyIndex = 0;
     this.state.bookMaxPlies = 0;
@@ -869,24 +872,32 @@ const App = {
     if (!row) {
       return;
     }
+    if (this.state.hintActive) {
+      this.clearHintHighlight();
+      this.setComment(this.state.lastCoachComment || "Keep going.");
+      this.state.hintActive = false;
+      return;
+    }
     if (this.state.mode === "learning") {
       const targetSquare = row.move_uci ? row.move_uci.slice(0, 2) : "";
       this.setHintHighlight(targetSquare);
-      this.setComment("Hint: the next piece to move is highlighted.");
+      this.setComment("Hint: the next piece to move is highlighted.", { isHint: true });
+      this.state.hintActive = true;
       return;
     }
     if (this.state.mode !== "practice") {
       return;
     }
     if (this.state.hintLevel === 0 && row.practice_hint) {
-      this.setComment(`Hint: ${row.practice_hint}`);
+      this.setComment(`Hint: ${row.practice_hint}`, { isHint: true });
       this.state.hintLevel = 1;
     } else if (this.state.hintLevel === 1 && row.practice_deep_hint) {
-      this.setComment(`Deep hint: ${row.practice_deep_hint}`);
+      this.setComment(`Deep hint: ${row.practice_deep_hint}`, { isHint: true });
       this.state.hintLevel = 2;
     } else {
-      this.setComment("Keep trying. Make a few attempts to unlock more hints.");
+      this.setComment("Keep trying. Make a few attempts to unlock more hints.", { isHint: true });
     }
+    this.state.hintActive = true;
   },
   handleRevealMove() {
     if (this.state.mode !== "practice") {
@@ -1005,7 +1016,7 @@ const App = {
     for (let i = 0; i < history.length; i += 2) {
       const whiteMove = history[i];
       const blackMove = history[i + 1];
-      const moveText = `${Math.floor(i / 2) + 1}. ${whiteMove ? whiteMove.san : ""} ${blackMove ? blackMove.san : ""}`;
+      const moveText = `${whiteMove ? whiteMove.san : ""} ${blackMove ? blackMove.san : ""}`;
       this.$moveList.append($("<li>").text(moveText.trim()));
     }
     this.updateNavigationControls();
@@ -1029,8 +1040,12 @@ const App = {
   setStatus(text) {
     this.$status.text(text);
   },
-  setComment(html) {
+  setComment(html, options = {}) {
     this.$comment.html(html);
+    if (!options.isHint) {
+      this.state.lastCoachComment = html;
+      this.state.hintActive = false;
+    }
   },
   setLineStatus(line) {
     if (!line) {
@@ -1324,6 +1339,7 @@ function needsPromotion(from, to, chess) {
 }
 
 const SR_STORAGE_KEY = "sr_data_v1";
+let srMemoryStore = {};
 
 function getLineKey(openingId, lineId) {
   return `sr_${openingId}_${lineId}`;
@@ -1333,16 +1349,21 @@ function loadSR() {
   try {
     const raw = localStorage.getItem(SR_STORAGE_KEY);
     if (!raw) {
-      return {};
+      return srMemoryStore;
     }
-    return JSON.parse(raw) || {};
+    return JSON.parse(raw) || srMemoryStore;
   } catch (error) {
-    return {};
+    return srMemoryStore;
   }
 }
 
 function saveSR(data) {
-  localStorage.setItem(SR_STORAGE_KEY, JSON.stringify(data));
+  srMemoryStore = data;
+  try {
+    localStorage.setItem(SR_STORAGE_KEY, JSON.stringify(data));
+  } catch (error) {
+    // Fallback to in-memory storage when localStorage is unavailable.
+  }
 }
 
 function ensureSRDefaults(sr) {
