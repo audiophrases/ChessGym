@@ -91,12 +91,16 @@ body {
 .main {
   display: grid;
   grid-template-columns: minmax(320px, 520px) 1fr;
+  grid-template-areas:
+    "board coach"
+    "board info";
   gap: 24px;
   padding: 24px;
   flex: 1;
 }
 
 .board-panel {
+  grid-area: board;
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 16px;
@@ -122,9 +126,14 @@ body {
 }
 
 .info-panel {
+  grid-area: info;
   display: flex;
   flex-direction: column;
   gap: 20px;
+}
+
+.coach-panel {
+  grid-area: coach;
 }
 
 .info-card {
@@ -207,6 +216,10 @@ body {
 @media (max-width: 960px) {
   .main {
     grid-template-columns: 1fr;
+    grid-template-areas:
+      "board"
+      "coach"
+      "info";
   }
   .actions {
     width: 100%;
