@@ -472,7 +472,7 @@ const App = {
         this.clearSelection();
         return "snapback";
       }
-      return;
+      return "snapback";
     }
     const promotion = needsPromotion(source, target, this.chess) ? "q" : undefined;
     const uci = `${source}${target}${promotion || ""}`;
