@@ -298,6 +298,23 @@ body {
   .eval-gauge {
     max-width: none;
   }
+
+  .coach-panel,
+  .info-panel {
+    align-items: center;
+  }
+
+  .coach-panel {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .coach-panel .info-card,
+  .info-panel .info-card {
+    width: 100%;
+    max-width: 420px;
+    text-align: center;
+  }
 }
 
 @media (max-width: 960px) {
