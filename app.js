@@ -11,6 +11,8 @@ const LINES_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQNmZYrVE9U7B
 const MOVES_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQNmZYrVE9U7BynLzoijjgIVSd6Mm2zP_blPqogiQ8zcmvFz4LJi7ADUiM6vdbyc1HZ9oHMBhUR4AHT/pub?gid=1261107814&single=true&output=csv";
 const MISTAKE_TEMPLATES_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQNmZYrVE9U7BynLzoijjgIVSd6Mm2zP_blPqogiQ8zcmvFz4LJi7ADUiM6vdbyc1HZ9oHMBhUR4AHT/pub?gid=1251282566&single=true&output=csv";
 
+const OPPONENT_DELAY_MS = 500;
+
 const App = {
   data: {
     openings: [],
@@ -53,7 +55,9 @@ const App = {
     sessionActive: false,
     pendingAutoPlayTimer: null,
     pendingOpponentTimer: null,
-    lastHintSquare: null
+    lastHintSquare: null,
+    analysisFen: null,
+    analysisActive: false
   },
   chess: null,
   board: null,
@@ -72,8 +76,6 @@ const App = {
     this.$mode = $("#modeSelect");
     this.$side = $("#sideSelect");
     this.$strength = $("#strengthSelect");
-    this.$start = $("#startBtn");
-    this.$reset = $("#resetBtn");
     this.$prev = $("#prevBtn");
     this.$next = $("#nextBtn");
     this.$status = $("#statusText");
@@ -96,8 +98,6 @@ const App = {
     this.$mode.on("change", () => this.onModeChange());
     this.$side.on("change", () => this.onSideChange());
     this.$strength.on("change", () => this.onStrengthChange());
-    this.$start.on("click", () => this.startSession());
-    this.$reset.on("click", () => this.resetSession(true));
     this.$prev.on("click", () => this.stepMove(-1));
     this.$next.on("click", () => this.stepMove(1));
     this.$hint.on("click", () => this.handleHint());
@@ -309,7 +309,7 @@ const App = {
     this.$reveal.prop("disabled", this.state.mode !== "practice");
     this.$dueBtn.toggle(this.state.mode === "practice");
     this.$dueBtn.text(this.state.studyDueOnly ? "Study All Lines" : "Study Due Lines");
-    this.setComment("Choose Start to begin.");
+    this.setComment("Session ready.");
     this.prepareSession();
   },
   onSideChange() {
@@ -344,7 +344,7 @@ const App = {
     this.resetSession(true, { autoPlay: true, setActive: true });
   },
   prepareSession() {
-    this.resetSession(false, { autoPlay: false, setActive: false });
+    this.resetSession(true, { autoPlay: true, setActive: true });
   },
   resetSession(forceStart, options = {}) {
     const { autoPlay = true, setActive = true } = options;
@@ -389,6 +389,7 @@ const App = {
       this.chess.load(fen);
     }
     this.board.position(this.chess.fen());
+    this.startLiveAnalysis();
 
     if (this.state.mode === "learning" || this.state.mode === "practice") {
       if (!line && !forceStart) {
@@ -401,8 +402,8 @@ const App = {
         this.maybeAutoPlay();
         this.showLearningPrompt();
       } else {
-        this.setStatus("Press Start to begin.");
-        this.setComment("Ready when you are. Press Start to begin.");
+        this.setStatus("Session ready.");
+        this.setComment("Ready when you are.");
       }
       this.updateProgress();
     } else {
@@ -410,8 +411,8 @@ const App = {
         this.prepareGameMode(line);
       } else {
         this.setLineStatus(line);
-        this.setStatus("Press Start to begin.");
-        this.setComment("Choose Start to begin game mode.");
+        this.setStatus("Session ready.");
+        this.setComment("Ready to begin game mode.");
       }
     }
   },
@@ -448,7 +449,7 @@ const App = {
       return;
     }
     if (!this.state.sessionActive) {
-      this.setStatus("Press Start to begin.");
+      this.setStatus("Session ready.");
       return;
     }
     if (!this.state.selectedSquare) {
@@ -492,6 +493,7 @@ const App = {
     }
     this.clearSelection();
     this.board.position(this.chess.fen());
+    this.startLiveAnalysis();
   },
   setSelection(square, pieceCode) {
     this.state.selectedSquare = square;
@@ -657,6 +659,8 @@ const App = {
     this.playMoveSound(move);
     this.recordMove(expected.move_uci, move);
     this.state.bookPlyIndex += 1;
+    this.board.position(this.chess.fen());
+    this.startLiveAnalysis();
     if (this.state.bookPlyIndex >= this.state.bookMaxPlies) {
       this.state.inBook = false;
     }
@@ -674,6 +678,7 @@ const App = {
       return;
     }
     this.state.engineBusy = true;
+    this.stopLiveAnalysis();
     const movetime = getEngineMoveTime(this.$strength.val());
     this.engine.getBestMove(this.chess.fen(), movetime, (bestmove) => {
       this.state.engineBusy = false;
@@ -688,6 +693,8 @@ const App = {
       }
       this.playMoveSound(move);
       this.recordMove(bestmove, move);
+      this.board.position(this.chess.fen());
+      this.startLiveAnalysis();
       this.updateMoveList();
       this.updateLastMoveHighlight();
       this.setStatus("Opponent move played.");
@@ -761,6 +768,8 @@ const App = {
     this.state.currentPlyIndex += 1;
     this.state.wrongAttemptsForPly = 0;
     this.state.revealStage = 0;
+    this.board.position(this.chess.fen());
+    this.startLiveAnalysis();
     this.updateMoveList();
     this.updateLastMoveHighlight();
     this.setLineStatus(this.getActiveLine());
@@ -774,14 +783,14 @@ const App = {
       this.state.pendingAutoPlayTimer = null;
       this.maybeAutoPlay();
       this.checkLineComplete();
-    }, 2000);
+    }, OPPONENT_DELAY_MS);
   },
   scheduleOpponentMove(callback) {
     this.stopPendingActions();
     this.state.pendingOpponentTimer = setTimeout(() => {
       this.state.pendingOpponentTimer = null;
       callback();
-    }, 2000);
+    }, OPPONENT_DELAY_MS);
   },
   recordMove(uci, move) {
     if (!move) {
@@ -831,6 +840,7 @@ const App = {
       }
     }
     this.board.position(this.chess.fen());
+    this.startLiveAnalysis();
     this.updateMoveList();
     this.updateLastMoveHighlight();
     this.clearHintHighlight();
@@ -1090,6 +1100,31 @@ const App = {
       sound.play().catch(() => {});
     }
   },
+  startLiveAnalysis() {
+    this.ensureEngine();
+    if (!this.engine) {
+      return;
+    }
+    const fen = this.chess.fen();
+    if (this.state.analysisActive && this.state.analysisFen === fen) {
+      return;
+    }
+    this.state.analysisFen = fen;
+    this.state.analysisActive = true;
+    this.engine.startAnalysis(fen, (evalText, evalData) => {
+      this.$engineEval.text(evalText);
+      if (evalData) {
+        this.updateWinProbabilityFromEval(evalData);
+      }
+    });
+  },
+  stopLiveAnalysis() {
+    if (this.engine) {
+      this.engine.stopAnalysis();
+    }
+    this.state.analysisActive = false;
+    this.state.analysisFen = null;
+  },
   ensureEngine() {
     if (this.engine) {
       return;
@@ -1104,6 +1139,7 @@ class StockfishEngine {
     this.ready = false;
     this.pending = [];
     this.listeners = [];
+    this.analysisListener = null;
     this.init(path);
   }
 
@@ -1133,7 +1169,33 @@ class StockfishEngine {
     }
   }
 
+  startAnalysis(fen, onInfo) {
+    this.stopAnalysis();
+    const listener = (text) => {
+      if (text.startsWith("info") && onInfo) {
+        const evalText = parseEval(text, fen);
+        if (evalText) {
+          const evalData = parseEvalData(text, fen);
+          onInfo(evalText, evalData);
+        }
+      }
+    };
+    this.analysisListener = listener;
+    this.listeners.push(listener);
+    this.send(`position fen ${fen}`);
+    this.send("go infinite");
+  }
+
+  stopAnalysis() {
+    if (this.analysisListener) {
+      this.listeners = this.listeners.filter((item) => item !== this.analysisListener);
+      this.analysisListener = null;
+    }
+    this.send("stop");
+  }
+
   getBestMove(fen, movetime, onBestmove, onInfo) {
+    this.stopAnalysis();
     const listener = (text) => {
       if (text.startsWith("info") && onInfo) {
         const evalText = parseEval(text, fen);
