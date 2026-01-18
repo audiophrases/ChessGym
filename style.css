@@ -331,6 +331,13 @@ body {
   }
 }
 
+@media (min-width: 961px) {
+  .coach-panel,
+  .info-panel {
+    align-self: center;
+  }
+}
+
 @media (max-width: 600px) {
   .top-bar {
     gap: 10px;
