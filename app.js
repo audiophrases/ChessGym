@@ -465,10 +465,14 @@ const App = {
     $("#board .square-55d63").removeClass("square-selected");
   },
   handleDrop(source, target) {
+    const wasDragging = this.state.isDragging;
     this.state.isDragging = false;
     if (source === target) {
-      this.clearSelection();
-      return "snapback";
+      if (wasDragging) {
+        this.clearSelection();
+        return "snapback";
+      }
+      return;
     }
     const promotion = needsPromotion(source, target, this.chess) ? "q" : undefined;
     const uci = `${source}${target}${promotion || ""}`;
