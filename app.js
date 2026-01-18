@@ -62,7 +62,6 @@ const App = {
   cacheElements() {
     this.$opening = $("#openingSelect");
     this.$line = $("#lineSelect");
-    this.$dueInfo = $("#dueInfo");
     this.$dueBtn = $("#dueBtn");
     this.$mode = $("#modeSelect");
     this.$side = $("#sideSelect");
@@ -723,7 +722,6 @@ const App = {
     const line = this.getActiveLine();
     if (!line) {
       this.$progress.text("");
-      this.$dueInfo.text("");
       return;
     }
     const key = getLineKey(this.state.openingId, line.line_id);
@@ -736,8 +734,6 @@ const App = {
     this.$progress.text(
       `Completed: ${stats.completed || 0} • Perfect: ${stats.perfect || 0} • Reps: ${reps} • Ease: ${ease}`
     );
-    const dueInfo = formatDueInfo(sr, today);
-    this.$dueInfo.text(dueInfo);
   },
   finalizePracticeSR() {
     const line = this.getActiveLine();
@@ -1194,24 +1190,6 @@ function addDays(date, days) {
 
 function toLocalISO(date) {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate()).toISOString();
-}
-
-function formatDueLabel(sr, today) {
-  if (!sr.dueISO) {
-    return "Today";
-  }
-  const dueDate = startOfDay(new Date(sr.dueISO));
-  const diff = Math.round((dueDate - today) / (24 * 60 * 60 * 1000));
-  if (diff <= 0) {
-    return "Today";
-  }
-  return `${diff} days`;
-}
-
-function formatDueInfo(sr, today) {
-  const dueLabel = formatDueLabel(sr, today);
-  const interval = sr.intervalDays || 0;
-  return `Due: ${dueLabel} • Interval: ${interval}d`;
 }
 
 function getEngineMoveTime(level) {
