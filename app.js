@@ -216,13 +216,22 @@ const App = {
     this.sounds.capture = new Audio("sounds/capture.mp3");
     this.sounds.error = new Audio("sounds/error.mp3");
 
-    $("#board").on("mouseup pointerup", (event) => {
-      const squareElement = $(event.target).closest(".square-55d63");
+    let lastTouchTime = 0;
+    const handleBoardSelect = (event) => {
+      if (event.type === "touchend") {
+        lastTouchTime = Date.now();
+      } else if (event.type === "click" && Date.now() - lastTouchTime < 500) {
+        return;
+      }
+      const squareElement = $(event.currentTarget);
       if (!squareElement.length) {
         return;
       }
       this.handleSquareClick(squareElement);
-    });
+    };
+
+    $("#board").on("click", ".square-55d63", handleBoardSelect);
+    $("#board").on("touchend", ".square-55d63", handleBoardSelect);
   },
   populateSelectors() {
     const openings = this.data.openings.filter((o) => isTrue(o.published));
