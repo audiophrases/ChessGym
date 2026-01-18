@@ -261,16 +261,14 @@ const App = {
       const label = line.line_name || line.line_id;
       this.$line.append($("<option>").val(line.line_id).text(label));
     });
-    const defaultLine = displayLines[0];
-    this.state.lineId = defaultLine ? defaultLine.line_id : null;
+    let nextSelection = "any";
     if (currentSelection && currentSelection !== "any" && displayLines.some((line) => line.line_id === currentSelection)) {
-      this.$line.val(currentSelection);
-      this.state.lineId = currentSelection;
-    } else if (this.state.lineId) {
-      this.$line.val(this.state.lineId);
-    } else {
-      this.$line.val("any");
+      nextSelection = currentSelection;
+    } else if (currentSelection === "any") {
+      nextSelection = "any";
     }
+    this.$line.val(nextSelection);
+    this.state.lineId = nextSelection;
     this.updateProgress();
     this.updateSideSelector();
   },
