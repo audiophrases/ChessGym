@@ -1,1 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ChessGym</title>
+  <link rel="stylesheet" href="libs/chessboard-1.0.0.min.css" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="app">
+    <header class="top-bar">
+      <div class="field">
+        <label for="openingSelect">Opening</label>
+        <select id="openingSelect"></select>
+      </div>
+      <div class="field">
+        <label for="lineSelect">Line</label>
+        <select id="lineSelect"></select>
+      </div>
+      <div class="field">
+        <label for="modeSelect">Mode</label>
+        <select id="modeSelect">
+          <option value="learning">Learning</option>
+          <option value="practice">Practice</option>
+          <option value="game">Game</option>
+        </select>
+      </div>
+      <div class="field" id="sideField">
+        <label for="sideSelect">Side</label>
+        <select id="sideSelect">
+          <option value="white">White</option>
+          <option value="black">Black</option>
+        </select>
+      </div>
+      <div class="field" id="strengthField">
+        <label for="strengthSelect">Engine</label>
+        <select id="strengthSelect">
+          <option value="beginner">Beginner</option>
+          <option value="intermediate">Intermediate</option>
+          <option value="strong">Strong</option>
+        </select>
+      </div>
+      <div class="actions">
+        <button id="startBtn">Start</button>
+        <button id="resetBtn">Reset</button>
+      </div>
+    </header>
 
+    <main class="main">
+      <section class="board-panel">
+        <div id="board"></div>
+        <div class="board-note">
+          <span id="statusText">Loading data…</span>
+        </div>
+      </section>
+
+      <aside class="info-panel">
+        <div class="info-card">
+          <h2>Line Status</h2>
+          <p id="lineStatus">Select a line to begin.</p>
+          <div class="progress" id="progressInfo"></div>
+        </div>
+        <div class="info-card">
+          <h2>Coach</h2>
+          <div id="commentBox" class="comment-box">Welcome to ChessGym.</div>
+          <button id="hintBtn" class="ghost">Hint</button>
+        </div>
+        <div class="info-card">
+          <h2>Moves</h2>
+          <div id="engineEval" class="engine-eval"></div>
+          <ol id="moveList" class="move-list"></ol>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <div id="loadingOverlay" class="overlay">
+    <div class="spinner">Loading…</div>
+  </div>
+
+  <script src="libs/jquery.min.js"></script>
+  <script src="libs/chess.min.js"></script>
+  <script src="libs/chessboard-1.0.0.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
