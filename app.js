@@ -45,7 +45,9 @@ const App = {
     engineReady: false,
     engineBusy: false,
     studyDueOnly: false,
-    sessionLineId: null
+    sessionLineId: null,
+    selectedSquare: null,
+    selectedPiece: null
   },
   chess: null,
   board: null,
@@ -217,6 +219,8 @@ const App = {
     this.sounds.move = new Audio("sounds/move.mp3");
     this.sounds.capture = new Audio("sounds/capture.mp3");
     this.sounds.error = new Audio("sounds/error.mp3");
+
+    $("#board").on("click", ".square-55d63", (event) => this.handleSquareClick(event));
   },
   populateSelectors() {
     const openings = this.data.openings.filter((o) => isTrue(o.published));
@@ -331,6 +335,7 @@ const App = {
     this.state.sessionLineId = null;
     this.$moveList.empty();
     this.$engineEval.text("");
+    this.clearSelection();
 
     const opening = this.getSelectedOpening();
     const line = this.resolveSessionLine(forceStart);
@@ -398,6 +403,54 @@ const App = {
       return false;
     }
     return true;
+  },
+  handleSquareClick(event) {
+    const square = $(event.currentTarget).data("square");
+    if (!square) {
+      return;
+    }
+    if (this.chess.game_over()) {
+      return;
+    }
+    if (!this.state.selectedSquare) {
+      const piece = this.chess.get(square);
+      if (!piece) {
+        return;
+      }
+      const pieceCode = `${piece.color}${piece.type.toUpperCase()}`;
+      if (!this.handleDragStart(square, pieceCode)) {
+        return;
+      }
+      this.setSelection(square, pieceCode);
+      return;
+    }
+    if (square === this.state.selectedSquare) {
+      this.clearSelection();
+      return;
+    }
+    const source = this.state.selectedSquare;
+    const target = square;
+    const promotion = needsPromotion(source, target, this.chess) ? "q" : undefined;
+    const uci = `${source}${target}${promotion || ""}`;
+
+    if (this.state.mode === "learning" || this.state.mode === "practice") {
+      this.handleTrainingMove(uci, promotion);
+    } else if (this.state.mode === "game") {
+      this.handleGameMove(uci, promotion);
+    }
+    this.clearSelection();
+    this.board.position(this.chess.fen());
+  },
+  setSelection(square, pieceCode) {
+    this.state.selectedSquare = square;
+    this.state.selectedPiece = pieceCode;
+    $("#board .square-55d63").removeClass("square-selected");
+    $(`#board .square-55d63[data-square='${square}']`).addClass("square-selected");
+  },
+  clearSelection() {
+    this.state.selectedSquare = null;
+    this.state.selectedPiece = null;
+    $("#board .square-55d63").removeClass("square-selected");
   },
   handleDrop(source, target) {
     const promotion = needsPromotion(source, target, this.chess) ? "q" : undefined;

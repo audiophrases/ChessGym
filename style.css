@@ -112,6 +112,10 @@ body {
   max-width: 480px;
 }
 
+.square-selected {
+  box-shadow: inset 0 0 0 3px #ffb703;
+}
+
 .board-note {
   font-size: 0.95rem;
   color: var(--muted);
