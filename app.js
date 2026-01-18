@@ -190,7 +190,21 @@ const App = {
   },
   initBoard() {
     this.chess = new Chess();
-    const pieceTheme = (piece) => `pieces/${piece}.png`;
+    const pieceNameByCode = {
+      wK: "white-king",
+      wQ: "white-queen",
+      wR: "white-rook",
+      wB: "white-bishop",
+      wN: "white-knight",
+      wP: "white-pawn",
+      bK: "black-king",
+      bQ: "black-queen",
+      bR: "black-rook",
+      bB: "black-bishop",
+      bN: "black-knight",
+      bP: "black-pawn"
+    };
+    const pieceTheme = (piece) => `pieces/${pieceNameByCode[piece]}.png`;
     this.board = Chessboard("board", {
       position: "start",
       draggable: true,
