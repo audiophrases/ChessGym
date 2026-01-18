@@ -47,8 +47,7 @@ const App = {
     studyDueOnly: false,
     sessionLineId: null,
     selectedSquare: null,
-    selectedPiece: null,
-    isDragging: false
+    selectedPiece: null
   },
   chess: null,
   board: null,
@@ -219,9 +218,6 @@ const App = {
     this.sounds.error = new Audio("sounds/error.mp3");
 
     $("#board").on("mouseup pointerup", (event) => {
-      if (this.state.isDragging) {
-        this.state.isDragging = false;
-      }
       const squareElement = $(event.target).closest(".square-55d63");
       if (!squareElement.length) {
         return;
@@ -387,29 +383,6 @@ const App = {
     this.setComment("Play through the opening book, then test yourself against Stockfish.");
     this.setLineStatus(selectedLine);
   },
-  handleDragStart(source, piece) {
-    if (this.chess.game_over()) {
-      return false;
-    }
-    const turn = this.chess.turn() === "w" ? "white" : "black";
-    if (turn !== this.state.userSide) {
-      return false;
-    }
-    if (this.state.mode !== "game" && this.state.mode !== "learning" && this.state.mode !== "practice") {
-      return false;
-    }
-    if (this.state.mode === "learning" || this.state.mode === "practice") {
-      const expected = this.getExpectedRow();
-      if (!expected) {
-        return false;
-      }
-    }
-    if ((turn === "white" && piece.startsWith("b")) || (turn === "black" && piece.startsWith("w"))) {
-      return false;
-    }
-    this.state.isDragging = true;
-    return true;
-  },
   handleSquareClick(squareElement) {
     const square = squareElement.data("square");
     if (!square) {
@@ -424,7 +397,20 @@ const App = {
         return;
       }
       const pieceCode = `${piece.color}${piece.type.toUpperCase()}`;
-      if (!this.handleDragStart(square, pieceCode)) {
+      const turn = this.chess.turn() === "w" ? "white" : "black";
+      if (turn !== this.state.userSide) {
+        return;
+      }
+      if (this.state.mode !== "game" && this.state.mode !== "learning" && this.state.mode !== "practice") {
+        return;
+      }
+      if (this.state.mode === "learning" || this.state.mode === "practice") {
+        const expected = this.getExpectedRow();
+        if (!expected) {
+          return;
+        }
+      }
+      if ((turn === "white" && pieceCode.startsWith("b")) || (turn === "black" && pieceCode.startsWith("w"))) {
         return;
       }
       this.setSelection(square, pieceCode);
@@ -457,29 +443,6 @@ const App = {
     this.state.selectedSquare = null;
     this.state.selectedPiece = null;
     $("#board .square-55d63").removeClass("square-selected");
-  },
-  handleDrop(source, target) {
-    const wasDragging = this.state.isDragging;
-    this.state.isDragging = false;
-    if (source === target) {
-      if (wasDragging) {
-        this.clearSelection();
-        return "snapback";
-      }
-      return "snapback";
-    }
-    const promotion = needsPromotion(source, target, this.chess) ? "q" : undefined;
-    const uci = `${source}${target}${promotion || ""}`;
-
-    if (this.state.mode === "learning" || this.state.mode === "practice") {
-      return this.handleTrainingMove(uci, promotion);
-    }
-
-    if (this.state.mode === "game") {
-      return this.handleGameMove(uci, promotion);
-    }
-
-    return "snapback";
   },
   handleTrainingMove(uci, promotion) {
     const expected = this.getExpectedRow();
