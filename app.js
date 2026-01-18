@@ -466,6 +466,10 @@ const App = {
   },
   handleDrop(source, target) {
     this.state.isDragging = false;
+    if (source === target) {
+      this.clearSelection();
+      return "snapback";
+    }
     const promotion = needsPromotion(source, target, this.chess) ? "q" : undefined;
     const uci = `${source}${target}${promotion || ""}`;
 
