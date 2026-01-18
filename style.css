@@ -226,3 +226,32 @@ body {
     justify-content: flex-start;
   }
 }
+
+@media (max-width: 600px) {
+  .top-bar {
+    gap: 10px;
+    padding: 12px 16px;
+  }
+
+  .main {
+    gap: 16px;
+    padding: 16px;
+  }
+
+  .board-panel {
+    border-radius: 8px;
+    padding: 12px;
+    gap: 12px;
+  }
+
+  .info-card {
+    border-radius: 8px;
+    padding: 12px 14px;
+  }
+
+  .comment-box,
+  .ghost,
+  .spinner {
+    border-radius: 6px;
+  }
+}
