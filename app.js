@@ -224,7 +224,16 @@ const App = {
     this.sounds.capture = new Audio("sounds/capture.mp3");
     this.sounds.error = new Audio("sounds/error.mp3");
 
-    $("#board").on("mouseup pointerup", (event) => this.handleSquareClick(event));
+    $("#board").on("mouseup pointerup", (event) => {
+      if (this.state.isDragging) {
+        this.state.isDragging = false;
+      }
+      const squareElement = $(event.target).closest(".square-55d63");
+      if (!squareElement.length) {
+        return;
+      }
+      this.handleSquareClick(squareElement);
+    });
   },
   populateSelectors() {
     const openings = this.data.openings.filter((o) => isTrue(o.published));
@@ -409,14 +418,7 @@ const App = {
     this.state.isDragging = true;
     return true;
   },
-  handleSquareClick(event) {
-    if (this.state.isDragging) {
-      return;
-    }
-    const squareElement = $(event.target).closest(".square-55d63");
-    if (!squareElement.length) {
-      return;
-    }
+  handleSquareClick(squareElement) {
     const square = squareElement.data("square");
     if (!square) {
       return;
