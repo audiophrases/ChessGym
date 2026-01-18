@@ -43,6 +43,8 @@
         </select>
       </div>
       <div class="actions">
+        <button id="prevBtn" class="ghost">Prev</button>
+        <button id="nextBtn" class="ghost">Next</button>
         <button id="startBtn">Start</button>
         <button id="resetBtn">Reset</button>
       </div>
@@ -50,6 +52,15 @@
 
     <main class="main">
       <section class="board-panel">
+        <div class="eval-gauge">
+          <div class="eval-label">
+            <span>Win probability</span>
+            <span id="winProbText">50%</span>
+          </div>
+          <div class="eval-bar">
+            <div id="winProbFill" class="eval-fill"></div>
+          </div>
+        </div>
         <div id="board"></div>
         <div class="board-note">
           <span id="statusText">Loading data…</span>
