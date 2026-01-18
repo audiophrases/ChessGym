@@ -32,6 +32,8 @@ const App = {
     userSide: "white",
     currentLineMoves: [],
     currentPlyIndex: 0,
+    moveHistory: [],
+    redoMoves: [],
     mistakes: 0,
     wrongAttemptsForPly: 0,
     hintLevel: 0,
@@ -47,7 +49,11 @@ const App = {
     studyDueOnly: false,
     sessionLineId: null,
     selectedSquare: null,
-    selectedPiece: null
+    selectedPiece: null,
+    sessionActive: false,
+    pendingAutoPlayTimer: null,
+    pendingOpponentTimer: null,
+    lastHintSquare: null
   },
   chess: null,
   board: null,
@@ -68,6 +74,8 @@ const App = {
     this.$strength = $("#strengthSelect");
     this.$start = $("#startBtn");
     this.$reset = $("#resetBtn");
+    this.$prev = $("#prevBtn");
+    this.$next = $("#nextBtn");
     this.$status = $("#statusText");
     this.$lineStatus = $("#lineStatus");
     this.$progress = $("#progressInfo");
@@ -78,6 +86,8 @@ const App = {
     this.$engineEval = $("#engineEval");
     this.$overlay = $("#loadingOverlay");
     this.$strengthField = $("#strengthField");
+    this.$winProbFill = $("#winProbFill");
+    this.$winProbText = $("#winProbText");
   },
   bindEvents() {
     this.$opening.on("change", () => this.onOpeningChange());
@@ -87,7 +97,9 @@ const App = {
     this.$side.on("change", () => this.onSideChange());
     this.$strength.on("change", () => this.onStrengthChange());
     this.$start.on("click", () => this.startSession());
-    this.$reset.on("click", () => this.resetSession());
+    this.$reset.on("click", () => this.resetSession(true));
+    this.$prev.on("click", () => this.stepMove(-1));
+    this.$next.on("click", () => this.stepMove(1));
     this.$hint.on("click", () => this.handleHint());
     this.$reveal.on("click", () => this.handleRevealMove());
   },
@@ -273,38 +285,41 @@ const App = {
   onOpeningChange() {
     this.state.openingId = this.$opening.val();
     this.populateLines();
+    this.prepareSession();
   },
   onLineChange() {
     this.state.lineId = this.$line.val();
     this.updateProgress();
     this.updateSideSelector();
+    this.prepareSession();
   },
   onStudyDueToggle() {
     this.state.studyDueOnly = !this.state.studyDueOnly;
     const label = this.state.studyDueOnly ? "Study All Lines" : "Study Due Lines";
     this.$dueBtn.text(label);
     this.populateLines();
+    this.prepareSession();
   },
   onModeChange() {
     this.state.mode = this.$mode.val();
     this.populateLines();
     this.updateSideSelector();
     this.$strengthField.toggle(this.state.mode === "game");
-    this.$hint.prop("disabled", this.state.mode !== "practice");
+    this.$hint.prop("disabled", this.state.mode === "game");
     this.$reveal.prop("disabled", this.state.mode !== "practice");
     this.$dueBtn.toggle(this.state.mode === "practice");
     this.$dueBtn.text(this.state.studyDueOnly ? "Study All Lines" : "Study Due Lines");
     this.setComment("Choose Start to begin.");
-    this.resetSession();
+    this.prepareSession();
   },
   onSideChange() {
     this.state.userSide = this.$side.val();
     this.board.orientation(this.state.userSide);
-    this.resetSession();
+    this.prepareSession();
   },
   onStrengthChange() {
     if (this.state.mode === "game") {
-      this.resetSession();
+      this.prepareSession();
     }
   },
   updateSideSelector() {
@@ -326,9 +341,15 @@ const App = {
     this.board.orientation(this.state.userSide);
   },
   startSession() {
-    this.resetSession(true);
+    this.resetSession(true, { autoPlay: true, setActive: true });
   },
-  resetSession(forceStart) {
+  prepareSession() {
+    this.resetSession(false, { autoPlay: false, setActive: false });
+  },
+  resetSession(forceStart, options = {}) {
+    const { autoPlay = true, setActive = true } = options;
+    this.stopPendingActions();
+    this.state.sessionActive = setActive;
     this.state.currentPlyIndex = 0;
     this.state.mistakes = 0;
     this.state.wrongAttemptsForPly = 0;
@@ -342,9 +363,15 @@ const App = {
     this.state.bookMaxPlies = 0;
     this.state.engineBusy = false;
     this.state.sessionLineId = null;
+    this.state.moveHistory = [];
+    this.state.redoMoves = [];
     this.$moveList.empty();
     this.$engineEval.text("");
     this.clearSelection();
+    this.clearHintHighlight();
+    this.clearLastMoveHighlight();
+    this.updateNavigationControls();
+    this.updateWinProbability(0.5);
 
     const opening = this.getSelectedOpening();
     const line = this.resolveSessionLine(forceStart);
@@ -370,11 +397,32 @@ const App = {
       }
       this.state.currentLineMoves = line ? (this.data.movesByLineId[line.line_id] || []) : [];
       this.setLineStatus(line);
-      this.maybeAutoPlay();
-      this.showLearningPrompt();
+      if (autoPlay) {
+        this.maybeAutoPlay();
+        this.showLearningPrompt();
+      } else {
+        this.setStatus("Press Start to begin.");
+        this.setComment("Ready when you are. Press Start to begin.");
+      }
       this.updateProgress();
     } else {
-      this.prepareGameMode(line);
+      if (autoPlay) {
+        this.prepareGameMode(line);
+      } else {
+        this.setLineStatus(line);
+        this.setStatus("Press Start to begin.");
+        this.setComment("Choose Start to begin game mode.");
+      }
+    }
+  },
+  stopPendingActions() {
+    if (this.state.pendingAutoPlayTimer) {
+      clearTimeout(this.state.pendingAutoPlayTimer);
+      this.state.pendingAutoPlayTimer = null;
+    }
+    if (this.state.pendingOpponentTimer) {
+      clearTimeout(this.state.pendingOpponentTimer);
+      this.state.pendingOpponentTimer = null;
     }
   },
   prepareGameMode(selectedLine) {
@@ -397,6 +445,10 @@ const App = {
       return;
     }
     if (this.chess.game_over()) {
+      return;
+    }
+    if (!this.state.sessionActive) {
+      this.setStatus("Press Start to begin.");
       return;
     }
     if (!this.state.selectedSquare) {
@@ -452,6 +504,34 @@ const App = {
     this.state.selectedPiece = null;
     $("#board .square-55d63").removeClass("square-selected");
   },
+  setHintHighlight(square) {
+    this.clearHintHighlight();
+    if (!square) {
+      return;
+    }
+    this.state.lastHintSquare = square;
+    $(`#board .square-55d63[data-square='${square}']`).addClass("hint-piece");
+  },
+  clearHintHighlight() {
+    if (this.state.lastHintSquare) {
+      $(`#board .square-55d63[data-square='${this.state.lastHintSquare}']`).removeClass("hint-piece");
+    }
+    this.state.lastHintSquare = null;
+  },
+  clearLastMoveHighlight() {
+    $("#board .square-55d63").removeClass("last-move");
+  },
+  updateLastMoveHighlight() {
+    this.clearLastMoveHighlight();
+    const history = this.chess.history({ verbose: true });
+    const lastMove = history[history.length - 1];
+    if (!lastMove) {
+      return;
+    }
+    [lastMove.from, lastMove.to].forEach((square) => {
+      $(`#board .square-55d63[data-square='${square}']`).addClass("last-move");
+    });
+  },
   handleTrainingMove(uci, promotion) {
     const expected = this.getExpectedRow();
     if (!expected) {
@@ -479,19 +559,30 @@ const App = {
     }
 
     this.playMoveSound(legalMove);
+    this.recordMove(uci, legalMove);
     this.state.currentPlyIndex += 1;
     this.state.hintLevel = 0;
     this.state.wrongAttemptsForPly = 0;
     this.state.revealStage = 0;
     this.updateMoveList();
+    this.updateLastMoveHighlight();
     this.setLineStatus(this.getActiveLine());
     if (this.state.mode === "learning") {
       this.showLearningExplain(expected);
     } else {
       this.showPracticeCorrect(expected);
     }
-    this.maybeAutoPlay();
-    this.checkLineComplete();
+    if (this.state.currentPlyIndex >= this.state.currentLineMoves.length) {
+      this.checkLineComplete();
+      return;
+    }
+    const turn = this.chess.turn() === "w" ? "white" : "black";
+    if (turn !== this.state.userSide) {
+      this.setStatus("Opponent thinking...");
+      this.scheduleAutoPlay();
+    } else {
+      this.setStatus("Your move.");
+    }
     return;
   },
   handleGameMove(uci, promotion) {
@@ -506,7 +597,9 @@ const App = {
     }
 
     this.playMoveSound(legalMove);
+    this.recordMove(uci, legalMove);
     this.updateMoveList();
+    this.updateLastMoveHighlight();
 
     if (this.state.inBook) {
       const expected = this.getBookExpectedRow();
@@ -523,7 +616,13 @@ const App = {
       }
     }
 
-    this.nextGameTurn();
+    const turn = this.chess.turn() === "w" ? "white" : "black";
+    if (turn !== this.state.userSide) {
+      this.setStatus("Opponent thinking...");
+      this.scheduleOpponentMove(() => this.nextGameTurn());
+    } else {
+      this.nextGameTurn();
+    }
     return;
   },
   nextGameTurn() {
@@ -556,11 +655,13 @@ const App = {
       return;
     }
     this.playMoveSound(move);
+    this.recordMove(expected.move_uci, move);
     this.state.bookPlyIndex += 1;
     if (this.state.bookPlyIndex >= this.state.bookMaxPlies) {
       this.state.inBook = false;
     }
     this.updateMoveList();
+    this.updateLastMoveHighlight();
     this.setStatus("Opponent move played.");
     this.nextGameTurn();
   },
@@ -586,11 +687,16 @@ const App = {
         return;
       }
       this.playMoveSound(move);
+      this.recordMove(bestmove, move);
       this.updateMoveList();
+      this.updateLastMoveHighlight();
       this.setStatus("Opponent move played.");
       this.nextGameTurn();
-    }, (evalText) => {
+    }, (evalText, evalData) => {
       this.$engineEval.text(evalText);
+      if (evalData) {
+        this.updateWinProbabilityFromEval(evalData);
+      }
     });
   },
   handleWrongMove(uci, row) {
@@ -642,7 +748,7 @@ const App = {
     }
     const expected = this.getExpectedRow();
     if (!expected) {
-      this.setStatus("Line complete.");
+      this.checkLineComplete();
       return;
     }
     const move = applyMoveUCI(this.chess, expected.move_uci);
@@ -651,14 +757,87 @@ const App = {
       return;
     }
     this.playMoveSound(move);
+    this.recordMove(expected.move_uci, move);
     this.state.currentPlyIndex += 1;
     this.state.wrongAttemptsForPly = 0;
     this.state.revealStage = 0;
     this.updateMoveList();
+    this.updateLastMoveHighlight();
     this.setLineStatus(this.getActiveLine());
     this.setStatus("Opponent move played.");
     this.showLearningPrompt();
     this.maybeAutoPlay();
+  },
+  scheduleAutoPlay() {
+    this.stopPendingActions();
+    this.state.pendingAutoPlayTimer = setTimeout(() => {
+      this.state.pendingAutoPlayTimer = null;
+      this.maybeAutoPlay();
+      this.checkLineComplete();
+    }, 2000);
+  },
+  scheduleOpponentMove(callback) {
+    this.stopPendingActions();
+    this.state.pendingOpponentTimer = setTimeout(() => {
+      this.state.pendingOpponentTimer = null;
+      callback();
+    }, 2000);
+  },
+  recordMove(uci, move) {
+    if (!move) {
+      return;
+    }
+    const moveUci = uci || moveToUci(move);
+    if (!moveUci) {
+      return;
+    }
+    this.state.moveHistory.push(moveUci);
+    this.state.redoMoves = [];
+    this.clearHintHighlight();
+  },
+  stepMove(direction) {
+    if (direction < 0) {
+      const lastMove = this.state.moveHistory.pop();
+      if (!lastMove) {
+        return;
+      }
+      const undone = this.chess.undo();
+      if (!undone) {
+        this.state.moveHistory.push(lastMove);
+        return;
+      }
+      this.state.redoMoves.push(lastMove);
+      if (this.state.mode !== "game") {
+        this.state.currentPlyIndex = Math.max(0, this.state.currentPlyIndex - 1);
+        this.state.completed = false;
+      } else {
+        this.state.inBook = false;
+        this.state.bookPlyIndex = Math.max(0, this.state.bookPlyIndex - 1);
+      }
+    } else {
+      const redoMove = this.state.redoMoves.pop();
+      if (!redoMove) {
+        return;
+      }
+      const move = applyMoveUCI(this.chess, redoMove);
+      if (!move) {
+        return;
+      }
+      this.state.moveHistory.push(redoMove);
+      if (this.state.mode !== "game") {
+        this.state.currentPlyIndex = Math.min(this.state.currentLineMoves.length, this.state.currentPlyIndex + 1);
+      } else {
+        this.state.inBook = false;
+      }
+    }
+    this.board.position(this.chess.fen());
+    this.updateMoveList();
+    this.updateLastMoveHighlight();
+    this.clearHintHighlight();
+    if (this.state.mode === "learning" || this.state.mode === "practice") {
+      this.setLineStatus(this.getActiveLine());
+    }
+    this.setStatus("Reviewing moves.");
   },
   showLearningPrompt() {
     if (this.state.mode !== "learning") {
@@ -676,11 +855,17 @@ const App = {
     this.setComment(row.practice_good || "Correct.");
   },
   handleHint() {
-    if (this.state.mode !== "practice") {
-      return;
-    }
     const row = this.getExpectedRow();
     if (!row) {
+      return;
+    }
+    if (this.state.mode === "learning") {
+      const targetSquare = row.move_uci ? row.move_uci.slice(0, 2) : "";
+      this.setHintHighlight(targetSquare);
+      this.setComment("Hint: the next piece to move is highlighted.");
+      return;
+    }
+    if (this.state.mode !== "practice") {
       return;
     }
     if (this.state.hintLevel === 0 && row.practice_hint) {
@@ -813,6 +998,23 @@ const App = {
       const moveText = `${Math.floor(i / 2) + 1}. ${whiteMove ? whiteMove.san : ""} ${blackMove ? blackMove.san : ""}`;
       this.$moveList.append($("<li>").text(moveText.trim()));
     }
+    this.updateNavigationControls();
+  },
+  updateNavigationControls() {
+    const hasHistory = this.state.moveHistory.length > 0;
+    const hasRedo = this.state.redoMoves.length > 0;
+    this.$prev.prop("disabled", !hasHistory);
+    this.$next.prop("disabled", !hasRedo);
+  },
+  updateWinProbabilityFromEval(evalData) {
+    const probability = evalToWinProbability(evalData, this.state.userSide);
+    this.updateWinProbability(probability);
+  },
+  updateWinProbability(probability) {
+    const clamped = Math.max(0, Math.min(1, probability));
+    const percent = Math.round(clamped * 100);
+    this.$winProbFill.css("width", `${percent}%`);
+    this.$winProbText.text(`${percent}%`);
   },
   setStatus(text) {
     this.$status.text(text);
@@ -936,7 +1138,8 @@ class StockfishEngine {
       if (text.startsWith("info") && onInfo) {
         const evalText = parseEval(text, fen);
         if (evalText) {
-          onInfo(evalText);
+          const evalData = parseEvalData(text, fen);
+          onInfo(evalText, evalData);
         }
       }
       if (text.startsWith("bestmove")) {
@@ -1040,6 +1243,13 @@ function applyMoveUCI(chess, uci) {
     move.promotion = uci[4];
   }
   return chess.move(move);
+}
+
+function moveToUci(move) {
+  if (!move || !move.from || !move.to) {
+    return "";
+  }
+  return `${move.from}${move.to}${move.promotion || ""}`;
 }
 
 function needsPromotion(from, to, chess) {
@@ -1235,6 +1445,42 @@ function parseEval(text, fen) {
   const adjusted = turn === "b" ? -value : value;
   const adjustedCp = (adjusted / 100).toFixed(2);
   return `Engine eval: ${adjustedCp}`;
+}
+
+function parseEvalData(text, fen) {
+  if (!text.includes("score")) {
+    return null;
+  }
+  const scoreMatch = text.match(/score (cp|mate) (-?\d+)/);
+  if (!scoreMatch) {
+    return null;
+  }
+  const type = scoreMatch[1];
+  const rawValue = parseInt(scoreMatch[2], 10);
+  if (!Number.isFinite(rawValue)) {
+    return null;
+  }
+  const turn = fen.split(" ")[1];
+  const adjusted = turn === "b" ? -rawValue : rawValue;
+  if (type === "mate") {
+    return { type, value: adjusted };
+  }
+  return { type, value: adjusted / 100 };
+}
+
+function evalToWinProbability(evalData, userSide) {
+  if (!evalData) {
+    return 0.5;
+  }
+  let score = evalData.value;
+  if (userSide === "black") {
+    score = -score;
+  }
+  if (evalData.type === "mate") {
+    return score > 0 ? 0.99 : 0.01;
+  }
+  const winProb = 1 / (1 + Math.exp(-0.8 * score));
+  return Math.max(0.01, Math.min(0.99, winProb));
 }
 
 $(document).ready(() => {
