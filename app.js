@@ -210,14 +210,8 @@ const App = {
     const pieceTheme = (piece) => `pieces/${pieceNameByCode[piece]}.png`;
     this.board = Chessboard("board", {
       position: "start",
-      draggable: true,
-      pieceTheme,
-      onDragStart: (source, piece) => this.handleDragStart(source, piece),
-      onDrop: (source, target) => this.handleDrop(source, target),
-      onSnapEnd: () => {
-        this.state.isDragging = false;
-        this.board.position(this.chess.fen());
-      }
+      draggable: false,
+      pieceTheme
     });
 
     this.sounds.move = new Audio("sounds/move.mp3");
