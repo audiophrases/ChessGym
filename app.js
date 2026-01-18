@@ -773,13 +773,11 @@ const App = {
     const srData = loadSR();
     const sr = ensureSRDefaults(srData[key]);
     const today = getTodayLocal();
-    const dueLabel = sr.dueISO ? new Date(sr.dueISO).toLocaleDateString() : "Today";
-    const interval = sr.intervalDays || 0;
     const reps = sr.reps || 0;
     const ease = sr.ease ? sr.ease.toFixed(2) : "2.50";
     const stats = sr.stats || { completed: 0, perfect: 0 };
     this.$progress.text(
-      `Completed: ${stats.completed || 0} • Perfect: ${stats.perfect || 0} • Due: ${dueLabel} • Interval: ${interval}d • Reps: ${reps} • Ease: ${ease}`
+      `Completed: ${stats.completed || 0} • Perfect: ${stats.perfect || 0} • Reps: ${reps} • Ease: ${ease}`
     );
     const dueInfo = formatDueInfo(sr, today);
     this.$dueInfo.text(dueInfo);
