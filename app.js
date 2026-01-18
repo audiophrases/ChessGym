@@ -19,7 +19,10 @@ const App = {
     mistakeTemplates: [],
     openingsById: {},
     linesByOpeningId: {},
+    linesById: {},
     movesByLineId: {},
+    movesByOpeningFen: {},
+    linePriorityById: {},
     mistakeTemplatesByCode: {}
   },
   state: {
@@ -30,14 +33,19 @@ const App = {
     currentLineMoves: [],
     currentPlyIndex: 0,
     mistakes: 0,
+    wrongAttemptsForPly: 0,
     hintLevel: 0,
+    revealStage: 0,
+    hadLapse: false,
     completed: false,
     inBook: false,
     bookLineMoves: [],
     bookPlyIndex: 0,
     bookMaxPlies: 0,
     engineReady: false,
-    engineBusy: false
+    engineBusy: false,
+    studyDueOnly: false,
+    sessionLineId: null
   },
   chess: null,
   board: null,
@@ -52,6 +60,8 @@ const App = {
   cacheElements() {
     this.$opening = $("#openingSelect");
     this.$line = $("#lineSelect");
+    this.$dueInfo = $("#dueInfo");
+    this.$dueBtn = $("#dueBtn");
     this.$mode = $("#modeSelect");
     this.$side = $("#sideSelect");
     this.$strength = $("#strengthSelect");
@@ -62,6 +72,7 @@ const App = {
     this.$progress = $("#progressInfo");
     this.$comment = $("#commentBox");
     this.$hint = $("#hintBtn");
+    this.$reveal = $("#revealBtn");
     this.$moveList = $("#moveList");
     this.$engineEval = $("#engineEval");
     this.$overlay = $("#loadingOverlay");
@@ -70,12 +81,14 @@ const App = {
   bindEvents() {
     this.$opening.on("change", () => this.onOpeningChange());
     this.$line.on("change", () => this.onLineChange());
+    this.$dueBtn.on("click", () => this.onStudyDueToggle());
     this.$mode.on("change", () => this.onModeChange());
     this.$side.on("change", () => this.onSideChange());
     this.$strength.on("change", () => this.onStrengthChange());
     this.$start.on("click", () => this.startSession());
     this.$reset.on("click", () => this.resetSession());
     this.$hint.on("click", () => this.handleHint());
+    this.$reveal.on("click", () => this.handleRevealMove());
   },
   showLoading(isLoading, message) {
     if (isLoading) {
@@ -117,7 +130,10 @@ const App = {
   buildIndexes() {
     this.data.openingsById = {};
     this.data.linesByOpeningId = {};
+    this.data.linesById = {};
     this.data.movesByLineId = {};
+    this.data.movesByOpeningFen = {};
+    this.data.linePriorityById = {};
     this.data.mistakeTemplatesByCode = {};
 
     this.data.openings.forEach((opening) => {
@@ -126,10 +142,13 @@ const App = {
 
     this.data.lines.forEach((line) => {
       const key = line.opening_id;
+      this.data.linesById[line.line_id] = line;
       if (!this.data.linesByOpeningId[key]) {
         this.data.linesByOpeningId[key] = [];
       }
       this.data.linesByOpeningId[key].push(line);
+      const priority = parseFloat(line.line_priority || "1");
+      this.data.linePriorityById[line.line_id] = Number.isFinite(priority) && priority > 0 ? priority : 1;
     });
 
     this.data.moves.forEach((move) => {
@@ -138,6 +157,23 @@ const App = {
         this.data.movesByLineId[key] = [];
       }
       this.data.movesByLineId[key].push(move);
+
+      if (move.fen_before) {
+        const line = this.data.linesById[move.line_id];
+        if (line && line.opening_id) {
+          const openingId = line.opening_id;
+          if (!this.data.movesByOpeningFen[openingId]) {
+            this.data.movesByOpeningFen[openingId] = {};
+          }
+          const normalizedFen = normalizeFen(move.fen_before);
+          if (normalizedFen) {
+            if (!this.data.movesByOpeningFen[openingId][normalizedFen]) {
+              this.data.movesByOpeningFen[openingId][normalizedFen] = [];
+            }
+            this.data.movesByOpeningFen[openingId][normalizedFen].push(move);
+          }
+        }
+      }
     });
 
     Object.keys(this.data.movesByLineId).forEach((lineId) => {
@@ -184,20 +220,25 @@ const App = {
   },
   populateLines() {
     const lines = this.data.linesByOpeningId[this.state.openingId] || [];
+    const filteredLines = this.getFilteredLines(lines);
+    const displayLines = filteredLines.length ? filteredLines : lines;
+    const currentSelection = this.$line.val();
+
     this.$line.empty();
-    if (this.state.mode === "game") {
-      this.$line.append($("<option>").val("any").text("Any line"));
-    }
-    lines.forEach((line) => {
+    this.$line.append($("<option>").val("any").text("Any line (weighted)"));
+    displayLines.forEach((line) => {
       const label = line.line_name || line.line_id;
       this.$line.append($("<option>").val(line.line_id).text(label));
     });
-    const defaultLine = lines[0];
+    const defaultLine = displayLines[0];
     this.state.lineId = defaultLine ? defaultLine.line_id : null;
-    if (this.state.mode === "game") {
-      this.$line.val("any");
+    if (currentSelection && currentSelection !== "any" && displayLines.some((line) => line.line_id === currentSelection)) {
+      this.$line.val(currentSelection);
+      this.state.lineId = currentSelection;
     } else if (this.state.lineId) {
       this.$line.val(this.state.lineId);
+    } else {
+      this.$line.val("any");
     }
     this.updateProgress();
     this.updateSideSelector();
@@ -211,12 +252,21 @@ const App = {
     this.updateProgress();
     this.updateSideSelector();
   },
+  onStudyDueToggle() {
+    this.state.studyDueOnly = !this.state.studyDueOnly;
+    const label = this.state.studyDueOnly ? "Study All Lines" : "Study Due Lines";
+    this.$dueBtn.text(label);
+    this.populateLines();
+  },
   onModeChange() {
     this.state.mode = this.$mode.val();
     this.populateLines();
     this.updateSideSelector();
     this.$strengthField.toggle(this.state.mode === "game");
     this.$hint.prop("disabled", this.state.mode !== "practice");
+    this.$reveal.prop("disabled", this.state.mode !== "practice");
+    this.$dueBtn.toggle(this.state.mode === "practice");
+    this.$dueBtn.text(this.state.studyDueOnly ? "Study All Lines" : "Study Due Lines");
     this.setComment("Choose Start to begin.");
     this.resetSession();
   },
@@ -232,7 +282,7 @@ const App = {
   },
   updateSideSelector() {
     if (this.state.mode === "learning" || this.state.mode === "practice") {
-      const line = this.getSelectedLine();
+      const line = this.getActiveLine();
       const drillSide = (line && line.drill_side || "").toLowerCase();
       if (drillSide === "white" || drillSide === "black") {
         this.$side.val(drillSide);
@@ -254,18 +304,22 @@ const App = {
   resetSession(forceStart) {
     this.state.currentPlyIndex = 0;
     this.state.mistakes = 0;
+    this.state.wrongAttemptsForPly = 0;
     this.state.hintLevel = 0;
+    this.state.revealStage = 0;
+    this.state.hadLapse = false;
     this.state.completed = false;
     this.state.inBook = false;
     this.state.bookLineMoves = [];
     this.state.bookPlyIndex = 0;
     this.state.bookMaxPlies = 0;
     this.state.engineBusy = false;
+    this.state.sessionLineId = null;
     this.$moveList.empty();
     this.$engineEval.text("");
 
     const opening = this.getSelectedOpening();
-    const line = this.getSelectedLine();
+    const line = this.resolveSessionLine(forceStart);
     let fen = "start";
     if (this.state.mode === "game") {
       fen = opening && opening.starting_fen ? opening.starting_fen : "start";
@@ -292,21 +346,11 @@ const App = {
       this.showLearningPrompt();
       this.updateProgress();
     } else {
-      this.prepareGameMode();
-      this.setLineStatus(null);
+      this.prepareGameMode(line);
     }
   },
-  prepareGameMode() {
+  prepareGameMode(selectedLine) {
     const opening = this.getSelectedOpening();
-    const lineId = this.$line.val();
-    const lines = this.data.linesByOpeningId[this.state.openingId] || [];
-    let selectedLine = null;
-    if (lineId && lineId !== "any") {
-      selectedLine = lines.find((line) => line.line_id === lineId) || null;
-    } else if (lines.length > 0) {
-      selectedLine = pickWeightedLine(lines);
-    }
-
     this.state.bookLineMoves = selectedLine ? (this.data.movesByLineId[selectedLine.line_id] || []) : [];
     this.state.bookPlyIndex = 0;
     const maxPlies = opening && opening.book_max_plies_game_mode ? parseInt(opening.book_max_plies_game_mode, 10) : 0;
@@ -317,6 +361,7 @@ const App = {
     this.updateProgress();
     this.setStatus("Game mode: your move.");
     this.setComment("Play through the opening book, then test yourself against Stockfish.");
+    this.setLineStatus(selectedLine);
   },
   handleDragStart(source, piece) {
     if (this.chess.game_over()) {
@@ -383,8 +428,10 @@ const App = {
     this.playMoveSound(legalMove);
     this.state.currentPlyIndex += 1;
     this.state.hintLevel = 0;
+    this.state.wrongAttemptsForPly = 0;
+    this.state.revealStage = 0;
     this.updateMoveList();
-    this.setLineStatus(this.getSelectedLine());
+    this.setLineStatus(this.getActiveLine());
     if (this.state.mode === "learning") {
       this.showLearningExplain(expected);
     } else {
@@ -409,7 +456,7 @@ const App = {
     this.updateMoveList();
 
     if (this.state.inBook) {
-      const expected = this.state.bookLineMoves[this.state.bookPlyIndex];
+      const expected = this.getBookExpectedRow();
       const maxReached = this.state.bookPlyIndex >= this.state.bookMaxPlies;
       if (!expected || maxReached) {
         this.state.inBook = false;
@@ -443,7 +490,7 @@ const App = {
     }
   },
   playBookMove() {
-    const expected = this.state.bookLineMoves[this.state.bookPlyIndex];
+    const expected = this.getBookExpectedRow();
     if (!expected) {
       this.state.inBook = false;
       this.nextGameTurn();
@@ -495,6 +542,10 @@ const App = {
   },
   handleWrongMove(uci, row) {
     this.state.mistakes += 1;
+    this.state.wrongAttemptsForPly += 1;
+    if (this.state.wrongAttemptsForPly >= 3) {
+      this.state.hadLapse = true;
+    }
     if (this.state.mode === "learning") {
       const msg = row.practice_bad || "Try again.";
       this.setComment(msg);
@@ -548,8 +599,10 @@ const App = {
     }
     this.playMoveSound(move);
     this.state.currentPlyIndex += 1;
+    this.state.wrongAttemptsForPly = 0;
+    this.state.revealStage = 0;
     this.updateMoveList();
-    this.setLineStatus(this.getSelectedLine());
+    this.setLineStatus(this.getActiveLine());
     this.setStatus("Opponent move played.");
     this.showLearningPrompt();
     this.maybeAutoPlay();
@@ -583,12 +636,28 @@ const App = {
     } else if (this.state.hintLevel === 1 && row.practice_deep_hint) {
       this.setComment(`Deep hint: ${row.practice_deep_hint}`);
       this.state.hintLevel = 2;
-    } else if (this.state.mistakes >= 3) {
-      const san = row.move_san || row.move_uci;
-      this.setComment(`Correct move: <strong>${san}</strong>`);
     } else {
       this.setComment("Keep trying. Make a few attempts to unlock more hints.");
     }
+  },
+  handleRevealMove() {
+    if (this.state.mode !== "practice") {
+      return;
+    }
+    const row = this.getExpectedRow();
+    if (!row) {
+      return;
+    }
+    if (this.state.revealStage === 0 && this.state.hintLevel < 2 && row.practice_deep_hint) {
+      this.setComment(`Deep hint: ${row.practice_deep_hint}`);
+      this.state.hintLevel = 2;
+      this.state.revealStage = 1;
+      return;
+    }
+    const san = row.move_san || row.move_uci;
+    this.setComment(`Correct move: <strong>${san}</strong>`);
+    this.state.revealStage = 2;
+    this.state.hadLapse = true;
   },
   checkLineComplete() {
     if (this.state.completed) {
@@ -598,28 +667,94 @@ const App = {
       this.state.completed = true;
       this.setStatus("Line complete.");
       this.setComment("Line complete. Great work!");
-      this.setLineStatus(this.getSelectedLine());
-      this.updateProgress(true);
+      this.setLineStatus(this.getActiveLine());
+      if (this.state.mode === "practice") {
+        this.finalizePracticeSR();
+      }
+      this.updateProgress();
     }
   },
-  updateProgress(markComplete) {
-    const line = this.getSelectedLine();
+  updateProgress() {
+    const line = this.getActiveLine();
     if (!line) {
       this.$progress.text("");
+      this.$dueInfo.text("");
       return;
     }
-    const key = progressKey(this.state.openingId, line.line_id);
-    let data = readProgress(key);
-    if (markComplete) {
-      data.completed += 1;
-      if (this.state.mistakes === 0) {
-        data.perfect += 1;
-      }
-      data.last = new Date().toISOString();
-      saveProgress(key, data);
+    const key = getLineKey(this.state.openingId, line.line_id);
+    const srData = loadSR();
+    const sr = ensureSRDefaults(srData[key]);
+    const today = getTodayLocal();
+    const dueLabel = sr.dueISO ? new Date(sr.dueISO).toLocaleDateString() : "Today";
+    const interval = sr.intervalDays || 0;
+    const reps = sr.reps || 0;
+    const ease = sr.ease ? sr.ease.toFixed(2) : "2.50";
+    const stats = sr.stats || { completed: 0, perfect: 0 };
+    this.$progress.text(
+      `Completed: ${stats.completed || 0} • Perfect: ${stats.perfect || 0} • Due: ${dueLabel} • Interval: ${interval}d • Reps: ${reps} • Ease: ${ease}`
+    );
+    const dueInfo = formatDueInfo(sr, today);
+    this.$dueInfo.text(dueInfo);
+  },
+  finalizePracticeSR() {
+    const line = this.getActiveLine();
+    if (!line) {
+      return;
     }
-    const lastDate = data.last ? new Date(data.last).toLocaleDateString() : "Never";
-    this.$progress.text(`Progress: ${data.completed} completions (${data.perfect} perfect) • Last: ${lastDate}`);
+    const quality = this.getPracticeQuality();
+    const lineKey = getLineKey(this.state.openingId, line.line_id);
+    updateSR(lineKey, quality, {
+      mistakes: this.state.mistakes,
+      hadLapse: this.state.hadLapse
+    });
+  },
+  getPracticeQuality() {
+    if (this.state.hadLapse) {
+      return 1;
+    }
+    if (this.state.mistakes === 0) {
+      return 5;
+    }
+    return 3;
+  },
+  getFilteredLines(lines) {
+    if (this.state.mode !== "practice" || !this.state.studyDueOnly) {
+      return lines;
+    }
+    const dueLines = this.getDueLines(lines);
+    return dueLines.length ? dueLines : lines;
+  },
+  getDueLines(lines) {
+    const srData = loadSR();
+    const today = getTodayLocal();
+    return lines.filter((line) => {
+      const key = getLineKey(this.state.openingId, line.line_id);
+      const sr = ensureSRDefaults(srData[key]);
+      return isDue(sr, today);
+    });
+  },
+  resolveSessionLine(forceStart) {
+    const lines = this.data.linesByOpeningId[this.state.openingId] || [];
+    const selection = this.$line.val();
+    let line = null;
+    if (selection && selection !== "any") {
+      line = lines.find((item) => item.line_id === selection) || null;
+    } else if (forceStart && lines.length) {
+      const pool = this.getFilteredLines(lines);
+      line = weightedPick(pool, (item) => this.data.linePriorityById[item.line_id] || 1);
+    }
+    this.state.sessionLineId = line ? line.line_id : null;
+    return line;
+  },
+  getActiveLine() {
+    if (this.state.sessionLineId) {
+      return this.data.linesById[this.state.sessionLineId] || null;
+    }
+    const selection = this.$line.val();
+    if (!selection || selection === "any") {
+      return null;
+    }
+    return this.data.linesById[selection] || null;
   },
   updateMoveList() {
     const history = this.chess.history({ verbose: true });
@@ -639,29 +774,57 @@ const App = {
   },
   setLineStatus(line) {
     if (!line) {
-      this.$lineStatus.text("Game mode active.");
+      this.$lineStatus.text(this.state.mode === "game" ? "Game mode active." : "Select a line to begin.");
       return;
     }
     const ply = this.state.currentPlyIndex + 1;
     const total = this.state.currentLineMoves.length;
     const lineName = line.line_name || line.line_id;
-    this.$lineStatus.text(`Line: ${lineName} • Ply ${Math.min(ply, total)} of ${total}`);
+    const prefix = this.state.sessionLineId ? "Chosen line" : "Line";
+    this.$lineStatus.text(`${prefix}: ${lineName} • Ply ${Math.min(ply, total)} of ${total}`);
   },
   getSelectedOpening() {
     return this.data.openingsById[this.state.openingId] || null;
   },
   getSelectedLine() {
-    if (this.state.mode === "game") {
-      const lineId = this.$line.val();
-      if (!lineId || lineId === "any") {
-        return null;
-      }
-      return (this.data.linesByOpeningId[this.state.openingId] || []).find((line) => line.line_id === lineId) || null;
-    }
-    return (this.data.linesByOpeningId[this.state.openingId] || []).find((line) => line.line_id === this.state.lineId) || null;
+    return this.getActiveLine();
   },
   getExpectedRow() {
+    const opening = this.getSelectedOpening();
+    if (opening && isTrue(opening.allow_transpositions) && (this.state.mode === "practice" || this.state.mode === "game")) {
+      const normalized = normalizeFen(this.chess.fen());
+      const matches = (this.data.movesByOpeningFen[this.state.openingId] || {})[normalized] || [];
+      if (matches.length) {
+        const sessionLineId = this.state.sessionLineId;
+        const sorted = [...matches].sort((a, b) => {
+          const aSession = sessionLineId && a.line_id === sessionLineId;
+          const bSession = sessionLineId && b.line_id === sessionLineId;
+          if (aSession !== bSession) {
+            return aSession ? -1 : 1;
+          }
+          const aPriority = this.data.linePriorityById[a.line_id] || 1;
+          const bPriority = this.data.linePriorityById[b.line_id] || 1;
+          if (aPriority !== bPriority) {
+            return bPriority - aPriority;
+          }
+          const aPly = parseInt(a.ply || "0", 10);
+          const bPly = parseInt(b.ply || "0", 10);
+          return aPly - bPly;
+        });
+        return sorted[0];
+      }
+    }
     return this.state.currentLineMoves[this.state.currentPlyIndex] || null;
+  },
+  getBookExpectedRow() {
+    const opening = this.getSelectedOpening();
+    if (opening && isTrue(opening.allow_transpositions)) {
+      const expected = this.getExpectedRow();
+      if (expected) {
+        return expected;
+      }
+    }
+    return this.state.bookLineMoves[this.state.bookPlyIndex] || null;
   },
   playMoveSound(move) {
     if (move.flags.includes("c") || move.flags.includes("e")) {
@@ -840,35 +1003,107 @@ function needsPromotion(from, to, chess) {
   return (piece.color === "w" && targetRank === "8") || (piece.color === "b" && targetRank === "1");
 }
 
-function progressKey(openingId, lineId) {
-  return `progress_${openingId}_${lineId}`;
+const SR_STORAGE_KEY = "sr_data_v1";
+
+function getLineKey(openingId, lineId) {
+  return `sr_${openingId}_${lineId}`;
 }
 
-function readProgress(key) {
+function loadSR() {
   try {
-    const raw = localStorage.getItem(key);
+    const raw = localStorage.getItem(SR_STORAGE_KEY);
     if (!raw) {
-      return { completed: 0, perfect: 0, last: "" };
+      return {};
     }
-    const data = JSON.parse(raw);
-    return {
-      completed: data.completed || 0,
-      perfect: data.perfect || 0,
-      last: data.last || ""
-    };
+    return JSON.parse(raw) || {};
   } catch (error) {
-    return { completed: 0, perfect: 0, last: "" };
+    return {};
   }
 }
 
-function saveProgress(key, data) {
-  localStorage.setItem(key, JSON.stringify(data));
+function saveSR(data) {
+  localStorage.setItem(SR_STORAGE_KEY, JSON.stringify(data));
 }
 
-function pickWeightedLine(lines) {
+function ensureSRDefaults(sr) {
+  if (!sr) {
+    return {
+      lastPracticedISO: "",
+      dueISO: "",
+      intervalDays: 0,
+      ease: 2.5,
+      reps: 0,
+      lapses: 0,
+      stats: {
+        completed: 0,
+        perfect: 0,
+        totalMistakes: 0,
+        totalAttempts: 0
+      }
+    };
+  }
+  return {
+    lastPracticedISO: sr.lastPracticedISO || "",
+    dueISO: sr.dueISO || "",
+    intervalDays: Number.isFinite(sr.intervalDays) ? sr.intervalDays : 0,
+    ease: Number.isFinite(sr.ease) ? sr.ease : 2.5,
+    reps: Number.isFinite(sr.reps) ? sr.reps : 0,
+    lapses: Number.isFinite(sr.lapses) ? sr.lapses : 0,
+    stats: {
+      completed: sr.stats && Number.isFinite(sr.stats.completed) ? sr.stats.completed : 0,
+      perfect: sr.stats && Number.isFinite(sr.stats.perfect) ? sr.stats.perfect : 0,
+      totalMistakes: sr.stats && Number.isFinite(sr.stats.totalMistakes) ? sr.stats.totalMistakes : 0,
+      totalAttempts: sr.stats && Number.isFinite(sr.stats.totalAttempts) ? sr.stats.totalAttempts : 0
+    }
+  };
+}
+
+function updateSR(lineKey, quality, details) {
+  const data = loadSR();
+  const sr = ensureSRDefaults(data[lineKey]);
+  const today = getTodayLocal();
+  const mistakes = details && Number.isFinite(details.mistakes) ? details.mistakes : 0;
+
+  sr.lastPracticedISO = toLocalISO(today);
+  sr.stats.completed += 1;
+  sr.stats.totalAttempts += 1;
+  sr.stats.totalMistakes += mistakes;
+
+  if (quality < 3) {
+    sr.intervalDays = 1;
+    sr.lapses += 1;
+  } else {
+    sr.reps += 1;
+    if (sr.reps === 1) {
+      sr.intervalDays = 1;
+    } else if (sr.reps === 2) {
+      sr.intervalDays = 3;
+    } else {
+      sr.intervalDays = Math.round(sr.intervalDays * sr.ease);
+    }
+  }
+
+  if (quality === 5) {
+    sr.stats.perfect += 1;
+  }
+
+  const easeDelta = 0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02);
+  sr.ease = Math.max(1.3, sr.ease + easeDelta);
+
+  const dueDate = addDays(today, sr.intervalDays || 0);
+  sr.dueISO = toLocalISO(dueDate);
+
+  data[lineKey] = sr;
+  saveSR(data);
+}
+
+function weightedPick(lines, weightFn) {
+  if (!lines.length) {
+    return null;
+  }
   const weights = lines.map((line) => {
-    const priority = parseFloat(line.line_priority || "1");
-    return Number.isFinite(priority) && priority > 0 ? priority : 1;
+    const weight = weightFn ? weightFn(line) : 1;
+    return Number.isFinite(weight) && weight > 0 ? weight : 1;
   });
   const total = weights.reduce((sum, weight) => sum + weight, 0);
   let roll = Math.random() * total;
@@ -879,6 +1114,61 @@ function pickWeightedLine(lines) {
     }
   }
   return lines[0];
+}
+
+function isDue(sr, today) {
+  if (!sr || !sr.dueISO) {
+    return true;
+  }
+  const dueDate = startOfDay(new Date(sr.dueISO));
+  return dueDate.getTime() <= today.getTime();
+}
+
+function normalizeFen(fen) {
+  if (!fen) {
+    return "";
+  }
+  const parts = fen.trim().split(" ");
+  if (parts.length < 4) {
+    return fen.trim();
+  }
+  return parts.slice(0, 4).join(" ");
+}
+
+function getTodayLocal() {
+  return startOfDay(new Date());
+}
+
+function startOfDay(date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+function addDays(date, days) {
+  const result = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  result.setDate(result.getDate() + days);
+  return result;
+}
+
+function toLocalISO(date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate()).toISOString();
+}
+
+function formatDueLabel(sr, today) {
+  if (!sr.dueISO) {
+    return "Today";
+  }
+  const dueDate = startOfDay(new Date(sr.dueISO));
+  const diff = Math.round((dueDate - today) / (24 * 60 * 60 * 1000));
+  if (diff <= 0) {
+    return "Today";
+  }
+  return `${diff} days`;
+}
+
+function formatDueInfo(sr, today) {
+  const dueLabel = formatDueLabel(sr, today);
+  const interval = sr.intervalDays || 0;
+  return `Due: ${dueLabel} • Interval: ${interval}d`;
 }
 
 function getEngineMoveTime(level) {
