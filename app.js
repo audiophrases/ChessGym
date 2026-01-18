@@ -47,7 +47,8 @@ const App = {
     studyDueOnly: false,
     sessionLineId: null,
     selectedSquare: null,
-    selectedPiece: null
+    selectedPiece: null,
+    isDragging: false
   },
   chess: null,
   board: null,
@@ -213,14 +214,17 @@ const App = {
       pieceTheme,
       onDragStart: (source, piece) => this.handleDragStart(source, piece),
       onDrop: (source, target) => this.handleDrop(source, target),
-      onSnapEnd: () => this.board.position(this.chess.fen())
+      onSnapEnd: () => {
+        this.state.isDragging = false;
+        this.board.position(this.chess.fen());
+      }
     });
 
     this.sounds.move = new Audio("sounds/move.mp3");
     this.sounds.capture = new Audio("sounds/capture.mp3");
     this.sounds.error = new Audio("sounds/error.mp3");
 
-    $("#board").on("click", ".square-55d63", (event) => this.handleSquareClick(event));
+    $("#board").on("mouseup pointerup", (event) => this.handleSquareClick(event));
   },
   populateSelectors() {
     const openings = this.data.openings.filter((o) => isTrue(o.published));
@@ -402,10 +406,18 @@ const App = {
     if ((turn === "white" && piece.startsWith("b")) || (turn === "black" && piece.startsWith("w"))) {
       return false;
     }
+    this.state.isDragging = true;
     return true;
   },
   handleSquareClick(event) {
-    const square = $(event.currentTarget).data("square");
+    if (this.state.isDragging) {
+      return;
+    }
+    const squareElement = $(event.target).closest(".square-55d63");
+    if (!squareElement.length) {
+      return;
+    }
+    const square = squareElement.data("square");
     if (!square) {
       return;
     }
@@ -453,6 +465,7 @@ const App = {
     $("#board .square-55d63").removeClass("square-selected");
   },
   handleDrop(source, target) {
+    this.state.isDragging = false;
     const promotion = needsPromotion(source, target, this.chess) ? "q" : undefined;
     const uci = `${source}${target}${promotion || ""}`;
 
