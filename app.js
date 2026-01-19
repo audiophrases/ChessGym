@@ -2,13 +2,13 @@
   ChessGym uses four CSV feeds:
   - openings: core opening metadata (opening_id, starting_fen, book_max_plies_game_mode, etc.).
   - lines: named training lines (opening_id, line_id, drill_side, start_fen, moves_pgn).
-  - moves: per-ply instructions for each line (move_uci, accept_uci, prompts, feedback, mistake_map).
+  - nodes: per-node instructions for each line (move_uci, accept_uci, prompts, feedback, mistake_map).
   - mistake_templates: global messaging for mapped mistakes (mistake_code -> coach_message, why_wrong, hint).
 */
 
 const OPENINGS_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQNmZYrVE9U7BynLzoijjgIVSd6Mm2zP_blPqogiQ8zcmvFz4LJi7ADUiM6vdbyc1HZ9oHMBhUR4AHT/pub?gid=0&single=true&output=csv";
 const LINES_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQNmZYrVE9U7BynLzoijjgIVSd6Mm2zP_blPqogiQ8zcmvFz4LJi7ADUiM6vdbyc1HZ9oHMBhUR4AHT/pub?gid=10969022&single=true&output=csv";
-const MOVES_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQNmZYrVE9U7BynLzoijjgIVSd6Mm2zP_blPqogiQ8zcmvFz4LJi7ADUiM6vdbyc1HZ9oHMBhUR4AHT/pub?gid=1261107814&single=true&output=csv";
+const NODES_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQNmZYrVE9U7BynLzoijjgIVSd6Mm2zP_blPqogiQ8zcmvFz4LJi7ADUiM6vdbyc1HZ9oHMBhUR4AHT/pub?gid=1261107814&single=true&output=csv";
 const MISTAKE_TEMPLATES_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQNmZYrVE9U7BynLzoijjgIVSd6Mm2zP_blPqogiQ8zcmvFz4LJi7ADUiM6vdbyc1HZ9oHMBhUR4AHT/pub?gid=1251282566&single=true&output=csv";
 
 const OPPONENT_DELAY_MS = 500;
@@ -17,13 +17,15 @@ const App = {
   data: {
     openings: [],
     lines: [],
-    moves: [],
+    nodes: [],
     mistakeTemplates: [],
     openingsById: {},
     linesByOpeningId: {},
     linesById: {},
-    movesByLineId: {},
-    movesByOpeningFen: {},
+    nodesByLineId: {},
+    nodesById: {},
+    childrenByLineAndParent: {},
+    nodesByOpeningFen: {},
     linePriorityById: {},
     mistakeTemplatesByCode: {}
   },
@@ -32,8 +34,9 @@ const App = {
     openingId: null,
     lineId: null,
     userSide: "white",
-    currentLineMoves: [],
+    currentLineNodes: [],
     currentPlyIndex: 0,
+    currentNodeId: null,
     moveHistory: [],
     redoMoves: [],
     mistakes: 0,
@@ -43,7 +46,7 @@ const App = {
     hadLapse: false,
     completed: false,
     inBook: false,
-    bookLineMoves: [],
+    bookLineNodes: [],
     bookPlyIndex: 0,
     bookMaxPlies: 0,
     engineReady: false,
@@ -87,6 +90,7 @@ const App = {
     this.$comment = $("#commentBox");
     this.$hint = $("#hintBtn");
     this.$reveal = $("#revealBtn");
+    this.$resume = $("#resumeBtn");
     this.$lichess = $("#lichessBtn");
     this.$moveList = $("#moveList");
     this.$engineEval = $("#engineEval");
@@ -105,6 +109,7 @@ const App = {
     this.$next.on("click", () => this.stepMove(1));
     this.$hint.on("click", () => this.handleHint());
     this.$reveal.on("click", () => this.handleRevealMove());
+    this.$resume.on("click", () => this.resumeFromPosition());
     this.$lichess.on("click", () => this.openLichessGame());
   },
   openLichessGame() {
@@ -127,15 +132,15 @@ const App = {
     const fetches = [
       fetch(OPENINGS_CSV).then((res) => res.text()),
       fetch(LINES_CSV).then((res) => res.text()),
-      fetch(MOVES_CSV).then((res) => res.text()),
+      fetch(NODES_CSV).then((res) => res.text()),
       fetch(MISTAKE_TEMPLATES_CSV).then((res) => res.text())
     ];
 
     Promise.all(fetches)
-      .then(([openingsText, linesText, movesText, mistakesText]) => {
+      .then(([openingsText, linesText, nodesText, mistakesText]) => {
         this.data.openings = csvToObjects(openingsText);
         this.data.lines = csvToObjects(linesText);
-        this.data.moves = csvToObjects(movesText);
+        this.data.nodes = csvToObjects(nodesText);
         this.data.mistakeTemplates = csvToObjects(mistakesText);
         this.buildIndexes();
         this.initBoard();
@@ -155,8 +160,10 @@ const App = {
     this.data.openingsById = {};
     this.data.linesByOpeningId = {};
     this.data.linesById = {};
-    this.data.movesByLineId = {};
-    this.data.movesByOpeningFen = {};
+    this.data.nodesByLineId = {};
+    this.data.nodesById = {};
+    this.data.childrenByLineAndParent = {};
+    this.data.nodesByOpeningFen = {};
     this.data.linePriorityById = {};
     this.data.mistakeTemplatesByCode = {};
 
@@ -181,41 +188,143 @@ const App = {
       this.data.linePriorityById[line.line_id] = Number.isFinite(priority) && priority > 0 ? priority : 1;
     });
 
-    this.data.moves.forEach((move) => {
-      const key = move.line_id;
-      if (!this.data.movesByLineId[key]) {
-        this.data.movesByLineId[key] = [];
+    this.data.nodes.forEach((node) => {
+      const key = node.line_id;
+      if (!this.data.nodesByLineId[key]) {
+        this.data.nodesByLineId[key] = [];
       }
-      this.data.movesByLineId[key].push(move);
-
-      if (move.fen_before) {
-        const line = this.data.linesById[move.line_id];
-        if (line && line.opening_id) {
-          const openingId = line.opening_id;
-          if (!this.data.movesByOpeningFen[openingId]) {
-            this.data.movesByOpeningFen[openingId] = {};
-          }
-          const normalizedFen = normalizeFen(move.fen_before);
-          if (normalizedFen) {
-            if (!this.data.movesByOpeningFen[openingId][normalizedFen]) {
-              this.data.movesByOpeningFen[openingId][normalizedFen] = [];
-            }
-            this.data.movesByOpeningFen[openingId][normalizedFen].push(move);
-          }
-        }
+      this.data.nodesByLineId[key].push(node);
+      if (!this.data.nodesById[key]) {
+        this.data.nodesById[key] = {};
+      }
+      if (node.node_id) {
+        this.data.nodesById[key][node.node_id] = node;
       }
     });
 
-    Object.keys(this.data.movesByLineId).forEach((lineId) => {
-      this.data.movesByLineId[lineId].sort((a, b) => {
+    Object.keys(this.data.nodesByLineId).forEach((lineId) => {
+      this.data.nodesByLineId[lineId].sort((a, b) => {
         const aPly = parseInt(a.ply || "0", 10);
         const bPly = parseInt(b.ply || "0", 10);
-        return aPly - bPly;
+        if (aPly !== bPly) {
+          return aPly - bPly;
+        }
+        return (a.node_id || "").localeCompare(b.node_id || "");
+      });
+    });
+
+    Object.keys(this.data.nodesById).forEach((lineId) => {
+      this.data.childrenByLineAndParent[lineId] = {};
+      const nodesById = this.data.nodesById[lineId];
+      const nodes = this.data.nodesByLineId[lineId] || [];
+      nodes.forEach((node) => {
+        let parentKey = node.parent_node_id && nodesById[node.parent_node_id] ? node.parent_node_id : "ROOT";
+        if (node.parent_node_id && parentKey === "ROOT") {
+          console.warn("Missing parent_node_id for node, treating as ROOT:", node.node_id, "line:", lineId);
+        }
+        if (!this.data.childrenByLineAndParent[lineId][parentKey]) {
+          this.data.childrenByLineAndParent[lineId][parentKey] = [];
+        }
+        this.data.childrenByLineAndParent[lineId][parentKey].push(node);
+      });
+      Object.keys(this.data.childrenByLineAndParent[lineId]).forEach((parentKey) => {
+        this.data.childrenByLineAndParent[lineId][parentKey].sort((a, b) => this.compareNodesDeterministic(a, b));
       });
     });
 
     this.data.mistakeTemplates.forEach((tmpl) => {
       this.data.mistakeTemplatesByCode[tmpl.mistake_code] = tmpl;
+    });
+
+    this.buildComputedFenIndexes();
+  },
+  compareNodesDeterministic(a, b) {
+    const aPly = parseInt(a.ply || "0", 10);
+    const bPly = parseInt(b.ply || "0", 10);
+    if (aPly !== bPly) {
+      return aPly - bPly;
+    }
+    const aKey = isTrue(a.is_key);
+    const bKey = isTrue(b.is_key);
+    if (aKey !== bKey) {
+      return aKey ? -1 : 1;
+    }
+    return (a.node_id || "").localeCompare(b.node_id || "");
+  },
+  compareNodesByPreference(a, b) {
+    const sessionLineId = this.state.sessionLineId;
+    const aSession = sessionLineId && a.line_id === sessionLineId;
+    const bSession = sessionLineId && b.line_id === sessionLineId;
+    if (aSession !== bSession) {
+      return aSession ? -1 : 1;
+    }
+    const aPriority = this.data.linePriorityById[a.line_id] || 1;
+    const bPriority = this.data.linePriorityById[b.line_id] || 1;
+    if (aPriority !== bPriority) {
+      return bPriority - aPriority;
+    }
+    const aKey = isTrue(a.is_key);
+    const bKey = isTrue(b.is_key);
+    if (aKey !== bKey) {
+      return aKey ? -1 : 1;
+    }
+    const aPly = parseInt(a.ply || "0", 10);
+    const bPly = parseInt(b.ply || "0", 10);
+    if (aPly !== bPly) {
+      return aPly - bPly;
+    }
+    return (a.node_id || "").localeCompare(b.node_id || "");
+  },
+  buildComputedFenIndexes() {
+    this.data.nodesByOpeningFen = {};
+    const chess = new Chess();
+
+    this.data.lines.forEach((line) => {
+      const lineId = line.line_id;
+      const opening = this.data.openingsById[line.opening_id];
+      const startFen = line.start_fen || (opening ? opening.starting_fen : "") || "start";
+      const childrenMap = this.data.childrenByLineAndParent[lineId] || {};
+      const rootChildren = childrenMap.ROOT || [];
+      const queue = rootChildren.map((node) => ({ node, fenBefore: startFen }));
+
+      while (queue.length) {
+        const { node, fenBefore } = queue.shift();
+        node._fen_before = fenBefore;
+        if (!loadFenForChess(chess, fenBefore)) {
+          console.warn("Failed to load FEN for node:", node.node_id, fenBefore);
+          continue;
+        }
+        const move = applyMoveUCI(chess, node.move_uci);
+        if (!move) {
+          console.warn("Illegal move in node:", node.node_id, node.move_uci);
+          continue;
+        }
+        node._fen_after = chess.fen();
+
+        const openingId = line.opening_id;
+        if (openingId) {
+          if (!this.data.nodesByOpeningFen[openingId]) {
+            this.data.nodesByOpeningFen[openingId] = {};
+          }
+          const normalizedFen = normalizeFen(node._fen_before);
+          if (!this.data.nodesByOpeningFen[openingId][normalizedFen]) {
+            this.data.nodesByOpeningFen[openingId][normalizedFen] = [];
+          }
+          this.data.nodesByOpeningFen[openingId][normalizedFen].push(node);
+        }
+
+        const children = childrenMap[node.node_id] || [];
+        children.forEach((child) => {
+          queue.push({ node: child, fenBefore: node._fen_after });
+        });
+      }
+    });
+
+    Object.keys(this.data.nodesByOpeningFen).forEach((openingId) => {
+      const fenMap = this.data.nodesByOpeningFen[openingId];
+      Object.keys(fenMap).forEach((fenKey) => {
+        fenMap[fenKey].sort((a, b) => this.compareNodesByPreference(a, b));
+      });
     });
   },
   initBoard() {
@@ -375,6 +484,7 @@ const App = {
     this.stopPendingActions();
     this.state.sessionActive = setActive;
     this.state.currentPlyIndex = 0;
+    this.state.currentNodeId = null;
     this.state.mistakes = 0;
     this.state.wrongAttemptsForPly = 0;
     this.state.hintLevel = 0;
@@ -383,7 +493,7 @@ const App = {
     this.state.completed = false;
     this.state.inBook = false;
     this.state.hintActive = false;
-    this.state.bookLineMoves = [];
+    this.state.bookLineNodes = [];
     this.state.bookPlyIndex = 0;
     this.state.bookMaxPlies = 0;
     this.state.engineBusy = false;
@@ -434,7 +544,7 @@ const App = {
         this.setStatus("Select a line to begin.");
         return;
       }
-      this.state.currentLineMoves = line ? (this.data.movesByLineId[line.line_id] || []) : [];
+      this.state.currentLineNodes = line ? (this.data.nodesByLineId[line.line_id] || []) : [];
       this.setLineStatus(line);
       if (autoPlay) {
         this.maybeAutoPlay();
@@ -466,11 +576,11 @@ const App = {
   },
   prepareGameMode(selectedLine) {
     const opening = this.getSelectedOpening();
-    this.state.bookLineMoves = selectedLine ? (this.data.movesByLineId[selectedLine.line_id] || []) : [];
+    this.state.bookLineNodes = selectedLine ? (this.data.nodesByLineId[selectedLine.line_id] || []) : [];
     this.state.bookPlyIndex = 0;
     const maxPlies = opening && opening.book_max_plies_game_mode ? parseInt(opening.book_max_plies_game_mode, 10) : 0;
     this.state.bookMaxPlies = Number.isFinite(maxPlies) ? maxPlies : 0;
-    this.state.inBook = this.state.bookLineMoves.length > 0 && this.state.bookMaxPlies > 0;
+    this.state.inBook = this.state.bookLineNodes.length > 0 && this.state.bookMaxPlies > 0;
 
     this.ensureEngine();
     this.updateProgress();
@@ -504,7 +614,7 @@ const App = {
         return;
       }
       if (this.state.mode === "learning" || this.state.mode === "practice") {
-        const expected = this.getExpectedRow();
+        const expected = this.getExpectedNode();
         if (!expected) {
           return;
         }
@@ -573,7 +683,7 @@ const App = {
     });
   },
   handleTrainingMove(uci, promotion) {
-    const expected = this.getExpectedRow();
+    const expected = this.getExpectedNode();
     if (!expected) {
       this.setStatus("Line complete.");
       return "snapback";
@@ -601,6 +711,7 @@ const App = {
     this.playMoveSound(legalMove);
     this.recordMove(uci, legalMove);
     this.state.currentPlyIndex += 1;
+    this.state.currentNodeId = expected.node_id || null;
     this.state.hintLevel = 0;
     this.state.wrongAttemptsForPly = 0;
     this.state.revealStage = 0;
@@ -612,7 +723,7 @@ const App = {
     } else {
       this.showPracticeCorrect(expected);
     }
-    if (this.state.currentPlyIndex >= this.state.currentLineMoves.length) {
+    if (this.state.currentPlyIndex >= this.state.currentLineNodes.length) {
       this.checkLineComplete();
       return;
     }
@@ -642,7 +753,7 @@ const App = {
     this.updateLastMoveHighlight();
 
     if (this.state.inBook) {
-      const expected = this.getBookExpectedRow();
+      const expected = this.getBookExpectedNode();
       const maxReached = this.state.bookPlyIndex >= this.state.bookMaxPlies;
       if (!expected || maxReached) {
         this.state.inBook = false;
@@ -682,7 +793,7 @@ const App = {
     }
   },
   playBookMove() {
-    const expected = this.getBookExpectedRow();
+    const expected = this.getBookExpectedNode();
     if (!expected) {
       this.state.inBook = false;
       this.nextGameTurn();
@@ -791,7 +902,7 @@ const App = {
       this.setStatus("Your move.");
       return;
     }
-    const expected = this.getExpectedRow();
+    const expected = this.getExpectedNode();
     if (!expected) {
       this.checkLineComplete();
       return;
@@ -804,6 +915,7 @@ const App = {
     this.playMoveSound(move);
     this.recordMove(expected.move_uci, move);
     this.state.currentPlyIndex += 1;
+    this.state.currentNodeId = expected.node_id || null;
     this.state.wrongAttemptsForPly = 0;
     this.state.revealStage = 0;
     this.board.position(this.chess.fen());
@@ -872,10 +984,13 @@ const App = {
       }
       this.state.moveHistory.push(redoMove);
       if (this.state.mode !== "game") {
-        this.state.currentPlyIndex = Math.min(this.state.currentLineMoves.length, this.state.currentPlyIndex + 1);
+        this.state.currentPlyIndex = Math.min(this.state.currentLineNodes.length, this.state.currentPlyIndex + 1);
       } else {
         this.state.inBook = false;
       }
+    }
+    if (this.state.mode === "learning" || this.state.mode === "practice") {
+      this.updateTrainingPositionState();
     }
     this.board.position(this.chess.fen());
     this.startLiveAnalysis();
@@ -887,11 +1002,37 @@ const App = {
     }
     this.setStatus("Reviewing moves.");
   },
+  updateTrainingPositionState() {
+    const opening = this.getSelectedOpening();
+    const allowTranspositions = opening && isTrue(opening.allow_transpositions);
+    if (allowTranspositions) {
+      this.state.currentPlyIndex = this.state.moveHistory.length;
+      this.state.currentNodeId = null;
+      return;
+    }
+    const lineId = this.state.sessionLineId;
+    if (!lineId) {
+      return;
+    }
+    let parentKey = "ROOT";
+    let matched = 0;
+    for (const uci of this.state.moveHistory) {
+      const children = (this.data.childrenByLineAndParent[lineId] || {})[parentKey] || [];
+      const match = children.find((node) => getAcceptableMoves(node).includes(uci));
+      if (!match) {
+        break;
+      }
+      parentKey = match.node_id || "ROOT";
+      matched += 1;
+    }
+    this.state.currentNodeId = parentKey === "ROOT" ? null : parentKey;
+    this.state.currentPlyIndex = matched;
+  },
   showLearningPrompt() {
     if (this.state.mode !== "learning") {
       return;
     }
-    const expected = this.getExpectedRow();
+    const expected = this.getExpectedNode();
     if (expected) {
       this.setComment(expected.learn_prompt || "Find the next move.");
     }
@@ -903,7 +1044,7 @@ const App = {
     this.setComment(row.practice_good || "Correct.");
   },
   handleHint() {
-    const row = this.getExpectedRow();
+    const row = this.getExpectedNode();
     if (!row) {
       return;
     }
@@ -938,7 +1079,7 @@ const App = {
     if (this.state.mode !== "practice") {
       return;
     }
-    const row = this.getExpectedRow();
+    const row = this.getExpectedNode();
     if (!row) {
       return;
     }
@@ -953,11 +1094,52 @@ const App = {
     this.state.revealStage = 2;
     this.state.hadLapse = true;
   },
+  resumeFromPosition() {
+    if (this.state.mode === "game") {
+      this.setStatus("Resume is available in learning or practice mode.");
+      return;
+    }
+    const candidates = this.getCandidateNodesForCurrentFen();
+    if (!candidates.length) {
+      this.setStatus("No study node found for this position.");
+      this.setComment("No study node found for this position.");
+      return;
+    }
+    const bestNode = this.pickExpectedNode(candidates);
+    if (!bestNode) {
+      this.setStatus("No study node found for this position.");
+      return;
+    }
+    this.$line.val(bestNode.line_id);
+    this.state.lineId = bestNode.line_id;
+    this.state.sessionLineId = bestNode.line_id;
+    this.state.currentLineNodes = this.data.nodesByLineId[bestNode.line_id] || [];
+    this.state.currentNodeId = bestNode.parent_node_id || null;
+    const plyIndex = parseInt(bestNode.ply || "1", 10) - 1;
+    this.state.currentPlyIndex = Number.isFinite(plyIndex) && plyIndex > 0 ? plyIndex : 0;
+    this.state.hintLevel = 0;
+    this.state.revealStage = 0;
+    this.state.wrongAttemptsForPly = 0;
+    this.state.hadLapse = false;
+    this.state.completed = false;
+
+    const line = this.getActiveLine();
+    this.applyLineSide(line);
+    this.setLineStatus(line);
+    this.updateProgress();
+    this.setStatus("Your move.");
+
+    if (this.state.mode === "learning") {
+      this.setComment(bestNode.learn_prompt || "Find the next move.");
+    } else {
+      this.setComment("Your move.");
+    }
+  },
   checkLineComplete() {
     if (this.state.completed) {
       return;
     }
-    if (this.state.currentPlyIndex >= this.state.currentLineMoves.length) {
+    if (this.state.currentPlyIndex >= this.state.currentLineNodes.length || !this.getExpectedNode()) {
       this.state.completed = true;
       this.setStatus("Line complete.");
       this.setComment("Line complete. Great work!");
@@ -1137,7 +1319,7 @@ const App = {
       return;
     }
     const ply = this.state.currentPlyIndex + 1;
-    const total = this.state.currentLineMoves.length;
+    const total = this.state.currentLineNodes.length;
     const lineName = line.line_name || line.line_id;
     const prefix = this.state.sessionLineId ? "Chosen line" : "Line";
     this.$lineStatus.text(`${prefix}: ${lineName} • Ply ${Math.min(ply, total)} of ${total}`);
@@ -1149,42 +1331,47 @@ const App = {
   getSelectedLine() {
     return this.getActiveLine();
   },
-  getExpectedRow() {
-    const opening = this.getSelectedOpening();
-    if (opening && isTrue(opening.allow_transpositions) && (this.state.mode === "practice" || this.state.mode === "game")) {
-      const normalized = normalizeFen(this.chess.fen());
-      const matches = (this.data.movesByOpeningFen[this.state.openingId] || {})[normalized] || [];
-      if (matches.length) {
-        const sessionLineId = this.state.sessionLineId;
-        const sorted = [...matches].sort((a, b) => {
-          const aSession = sessionLineId && a.line_id === sessionLineId;
-          const bSession = sessionLineId && b.line_id === sessionLineId;
-          if (aSession !== bSession) {
-            return aSession ? -1 : 1;
-          }
-          const aPriority = this.data.linePriorityById[a.line_id] || 1;
-          const bPriority = this.data.linePriorityById[b.line_id] || 1;
-          if (aPriority !== bPriority) {
-            return bPriority - aPriority;
-          }
-          const aPly = parseInt(a.ply || "0", 10);
-          const bPly = parseInt(b.ply || "0", 10);
-          return aPly - bPly;
-        });
-        return sorted[0];
-      }
-    }
-    return this.state.currentLineMoves[this.state.currentPlyIndex] || null;
+  getCandidateNodesForCurrentFen() {
+    const normalized = normalizeFen(this.chess.fen());
+    return (this.data.nodesByOpeningFen[this.state.openingId] || {})[normalized] || [];
   },
-  getBookExpectedRow() {
+  pickExpectedNode(candidates) {
+    if (!candidates.length) {
+      return null;
+    }
+    const sorted = [...candidates].sort((a, b) => this.compareNodesByPreference(a, b));
+    return sorted[0] || null;
+  },
+  getDeterministicNodeForLine() {
+    const lineId = this.state.sessionLineId;
+    if (!lineId) {
+      return null;
+    }
+    const parentKey = this.state.currentNodeId || "ROOT";
+    const children = (this.data.childrenByLineAndParent[lineId] || {})[parentKey] || [];
+    return children.length ? children[0] : null;
+  },
+  getExpectedNode() {
     const opening = this.getSelectedOpening();
-    if (opening && isTrue(opening.allow_transpositions)) {
-      const expected = this.getExpectedRow();
+    const allowTranspositions = opening && isTrue(opening.allow_transpositions);
+    if (allowTranspositions) {
+      const candidates = this.getCandidateNodesForCurrentFen();
+      const expected = this.pickExpectedNode(candidates);
       if (expected) {
         return expected;
       }
     }
-    return this.state.bookLineMoves[this.state.bookPlyIndex] || null;
+    return this.getDeterministicNodeForLine();
+  },
+  getBookExpectedNode() {
+    const opening = this.getSelectedOpening();
+    if (opening && isTrue(opening.allow_transpositions)) {
+      const expected = this.getExpectedNode();
+      if (expected) {
+        return expected;
+      }
+    }
+    return this.state.bookLineNodes[this.state.bookPlyIndex] || null;
   },
   playMoveSound(move) {
     if (move.flags.includes("c") || move.flags.includes("e")) {
@@ -1405,6 +1592,18 @@ function applyMoveUCI(chess, uci) {
     move.promotion = uci[4];
   }
   return chess.move(move);
+}
+
+function loadFenForChess(chess, fen) {
+  try {
+    chess.reset();
+    if (fen && fen !== "start") {
+      return chess.load(fen);
+    }
+    return true;
+  } catch (error) {
+    return false;
+  }
 }
 
 function moveToUci(move) {
