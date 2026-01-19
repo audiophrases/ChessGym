@@ -384,6 +384,16 @@ body {
   .board-panel + .eval-panel {
     margin-top: 0;
   }
+
+  .coach-panel .info-card {
+    display: flex;
+    flex-direction: column;
+    min-height: clamp(160px, 30vh, 240px);
+  }
+
+  .coach-panel .comment-box {
+    flex: 1;
+  }
 }
 
 @media (max-width: 960px) {
