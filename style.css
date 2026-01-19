@@ -353,6 +353,8 @@ body {
   .main {
     flex-direction: column;
     gap: 0;
+    justify-content: flex-start;
+    align-items: stretch;
   }
 
   .board-column,
@@ -371,14 +373,16 @@ body {
   .eval-panel {
     order: 3;
     width: 100%;
+    align-self: stretch;
+    margin-bottom: 0;
   }
 
   .info-panel {
     order: 4;
   }
 
-  .board-panel {
-    margin-bottom: 20px;
+  .board-panel + .eval-panel {
+    margin-top: 20px;
   }
 }
 
