@@ -367,11 +367,11 @@ body {
   }
 
   .coach-panel {
-    order: 2;
+    order: 3;
   }
 
   .eval-panel {
-    order: 3;
+    order: 2;
     width: 100%;
     align-self: stretch;
     margin-bottom: 0;
@@ -382,7 +382,7 @@ body {
   }
 
   .board-panel + .eval-panel {
-    margin-top: 20px;
+    margin-top: 0;
   }
 }
 
