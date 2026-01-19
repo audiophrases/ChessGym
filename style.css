@@ -124,18 +124,30 @@ body {
 }
 
 .main {
-  display: grid;
-  grid-template-columns: minmax(320px, 520px) 1fr;
-  grid-template-areas:
-    "board coach"
-    "gauge info";
+  display: flex;
   gap: 16px;
   padding: 24px;
   flex: 1;
+  align-items: flex-start;
+}
+
+.main-column {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.board-column {
+  flex: 1 1 520px;
+  max-width: 520px;
+}
+
+.side-column {
+  flex: 1 1 0;
+  min-width: 260px;
 }
 
 .board-panel {
-  grid-area: board;
   background: transparent;
   border: none;
   border-radius: 0;
@@ -143,17 +155,16 @@ body {
   display: flex;
   flex-direction: column;
   gap: 0;
-  align-items: stretch;
+  align-items: center;
 }
 
 .eval-panel {
-  grid-area: gauge;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 14px;
-  padding: 12px 16px 16px;
+  padding: 0;
   box-shadow: 0 8px 24px rgba(28, 35, 51, 0.04);
 }
 
@@ -161,20 +172,25 @@ body {
   width: 100%;
   max-width: none;
   display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 0;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
 }
 .eval-label {
   display: flex;
   justify-content: space-between;
   font-size: 0.85rem;
   color: var(--muted);
+  order: 2;
+  min-width: 52px;
+  text-align: right;
 }
 
 .eval-bar {
   width: 100%;
   height: 10px;
+  flex: 1;
   background: var(--eval-bar);
   border-radius: 999px;
   border: 1px solid var(--border);
@@ -189,7 +205,7 @@ body {
 }
 
 #board {
-  width: 100%;
+  width: 90%;
   max-width: none;
 }
 
@@ -206,7 +222,6 @@ body {
 }
 
 .info-panel {
-  grid-area: info;
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -214,7 +229,6 @@ body {
 }
 
 .coach-panel {
-  grid-area: coach;
   align-items: flex-start;
 }
 
@@ -240,7 +254,13 @@ body {
   border: 1px solid var(--border);
   margin-bottom: 12px;
   line-height: 1.4;
-  font-size: 1.25rem;
+  font-size: 1.42rem;
+}
+
+.coach-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .ghost {
@@ -297,10 +317,6 @@ body {
 }
 
 @media (orientation: landscape) and (min-width: 900px) {
-  .main {
-    grid-template-columns: minmax(420px, 1.4fr) 1fr;
-  }
-
   #board,
   .eval-gauge {
     max-width: none;
@@ -309,12 +325,12 @@ body {
 
 @media (max-width: 960px) {
   .main {
-    grid-template-columns: 1fr;
-    grid-template-areas:
-      "board"
-      "gauge"
-      "coach"
-      "info";
+    flex-direction: column;
+  }
+  .board-column,
+  .side-column {
+    max-width: none;
+    width: 100%;
   }
   .actions {
     width: 100%;

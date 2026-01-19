@@ -87,6 +87,7 @@ const App = {
     this.$comment = $("#commentBox");
     this.$hint = $("#hintBtn");
     this.$reveal = $("#revealBtn");
+    this.$lichess = $("#lichessBtn");
     this.$moveList = $("#moveList");
     this.$engineEval = $("#engineEval");
     this.$overlay = $("#loadingOverlay");
@@ -105,6 +106,13 @@ const App = {
     this.$next.on("click", () => this.stepMove(1));
     this.$hint.on("click", () => this.handleHint());
     this.$reveal.on("click", () => this.handleRevealMove());
+    this.$lichess.on("click", () => this.openLichessGame());
+  },
+  openLichessGame() {
+    const fen = this.chess ? this.chess.fen() : "start";
+    const encodedFen = encodeURIComponent(fen);
+    const url = `https://lichess.org/?fen=${encodedFen}`;
+    window.open(url, "_blank", "noopener");
   },
   showLoading(isLoading, message) {
     if (isLoading) {
