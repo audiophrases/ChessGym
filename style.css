@@ -352,7 +352,7 @@ body {
 @media (orientation: landscape) and (max-width: 1200px) {
   .main {
     flex-direction: column;
-    gap: 20px;
+    gap: 0;
   }
 
   .board-column,
@@ -371,10 +371,15 @@ body {
   .eval-panel {
     order: 3;
     width: 100%;
+    margin-bottom: 20px;
   }
 
   .info-panel {
     order: 4;
+  }
+
+  .board-panel {
+    margin-bottom: 20px;
   }
 }
 
