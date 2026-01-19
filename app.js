@@ -58,7 +58,9 @@ const App = {
     lastHintSquare: null,
     analysisFen: null,
     analysisActive: false,
+    statusText: "",
     lastCoachComment: "",
+    currentCoachComment: "Welcome to ChessGym.",
     hintActive: false
   },
   chess: null,
@@ -80,7 +82,6 @@ const App = {
     this.$strength = $("#strengthSelect");
     this.$prev = $("#prevBtn");
     this.$next = $("#nextBtn");
-    this.$status = $("#statusText");
     this.$lineStatus = $("#lineStatus");
     this.$progress = $("#progressInfo");
     this.$comment = $("#commentBox");
@@ -132,10 +133,11 @@ const App = {
         this.buildIndexes();
         this.initBoard();
         this.populateSelectors();
-        this.onModeChange();
-        this.showLoading(false);
-        this.setStatus("Select an opening to begin.");
-      })
+    this.onModeChange();
+    this.showLoading(false);
+    this.setStatus("Select an opening to begin.");
+    this.renderCoachComment();
+  })
       .catch((error) => {
         console.error(error);
         this.setStatus("Failed to load data. Please refresh.");
@@ -858,7 +860,7 @@ const App = {
     }
     const expected = this.getExpectedRow();
     if (expected) {
-      this.setComment(expected.learn_prompt || "Your move.");
+      this.setComment(expected.learn_prompt || "Find the next move.");
     }
   },
   showLearningExplain(row) {
@@ -929,6 +931,8 @@ const App = {
       this.setLineStatus(this.getActiveLine());
       if (this.state.mode === "practice") {
         this.finalizePracticeSR();
+      } else if (this.state.mode === "learning") {
+        this.recordLearningStudy();
       }
       this.updateProgress();
     }
@@ -942,12 +946,11 @@ const App = {
     const key = getLineKey(this.state.openingId, line.line_id);
     const srData = loadSR();
     const sr = ensureSRDefaults(srData[key]);
-    const today = getTodayLocal();
     const reps = sr.reps || 0;
     const ease = sr.ease ? sr.ease.toFixed(2) : "2.50";
-    const stats = sr.stats || { completed: 0, perfect: 0 };
+    const stats = sr.stats || { completed: 0, perfect: 0, learned: 0 };
     this.$progress.text(
-      `Completed: ${stats.completed || 0} • Perfect: ${stats.perfect || 0} • Reps: ${reps} • Ease: ${ease}`
+      `Completed: ${stats.completed || 0} • Studied: ${stats.learned || 0} • Perfect: ${stats.perfect || 0} • Reps: ${reps} • Ease: ${ease}`
     );
   },
   finalizePracticeSR() {
@@ -961,6 +964,20 @@ const App = {
       mistakes: this.state.mistakes,
       hadLapse: this.state.hadLapse
     });
+  },
+  recordLearningStudy() {
+    const line = this.getActiveLine();
+    if (!line) {
+      return;
+    }
+    const lineKey = getLineKey(this.state.openingId, line.line_id);
+    const data = loadSR();
+    const sr = ensureSRDefaults(data[lineKey]);
+    sr.stats.learned += 1;
+    sr.stats.totalAttempts += 1;
+    sr.lastPracticedISO = toLocalISO(getTodayLocal());
+    data[lineKey] = sr;
+    saveSR(data);
   },
   getPracticeQuality() {
     if (this.state.hadLapse) {
@@ -987,6 +1004,15 @@ const App = {
       return isDue(sr, today);
     });
   },
+  getLineSelectionWeight(line) {
+    const basePriority = this.data.linePriorityById[line.line_id] || 1;
+    const srData = loadSR();
+    const sr = ensureSRDefaults(srData[getLineKey(this.state.openingId, line.line_id)]);
+    const completed = sr.stats.completed || 0;
+    const learned = sr.stats.learned || 0;
+    const studyCount = completed + learned;
+    return basePriority / (1 + studyCount);
+  },
   resolveSessionLine(forceStart) {
     const lines = this.data.linesByOpeningId[this.state.openingId] || [];
     const selection = this.$line.val();
@@ -995,7 +1021,7 @@ const App = {
       line = lines.find((item) => item.line_id === selection) || null;
     } else if (forceStart && lines.length) {
       const pool = this.getFilteredLines(lines);
-      line = weightedPick(pool, (item) => this.data.linePriorityById[item.line_id] || 1);
+      line = weightedPick(pool, (item) => this.getLineSelectionWeight(item));
     }
     this.state.sessionLineId = line ? line.line_id : null;
     return line;
@@ -1038,14 +1064,23 @@ const App = {
     this.$winProbText.text(`${percent}%`);
   },
   setStatus(text) {
-    this.$status.text(text);
+    this.state.statusText = text;
+    this.renderCoachComment();
   },
   setComment(html, options = {}) {
-    this.$comment.html(html);
+    this.state.currentCoachComment = html;
     if (!options.isHint) {
       this.state.lastCoachComment = html;
       this.state.hintActive = false;
     }
+    this.renderCoachComment();
+  },
+  renderCoachComment() {
+    const base = this.state.currentCoachComment || "";
+    const plainBase = base.replace(/<[^>]*>/g, "").trim();
+    const needsPrefix = this.state.statusText === "Your move." && !/^your move\b/i.test(plainBase);
+    const prefix = needsPrefix ? "<strong>Your move:</strong> " : "";
+    this.$comment.html(`${prefix}${base}`);
   },
   setLineStatus(line) {
     if (!line) {
@@ -1377,6 +1412,7 @@ function ensureSRDefaults(sr) {
       lapses: 0,
       stats: {
         completed: 0,
+        learned: 0,
         perfect: 0,
         totalMistakes: 0,
         totalAttempts: 0
@@ -1392,6 +1428,7 @@ function ensureSRDefaults(sr) {
     lapses: Number.isFinite(sr.lapses) ? sr.lapses : 0,
     stats: {
       completed: sr.stats && Number.isFinite(sr.stats.completed) ? sr.stats.completed : 0,
+      learned: sr.stats && Number.isFinite(sr.stats.learned) ? sr.stats.learned : 0,
       perfect: sr.stats && Number.isFinite(sr.stats.perfect) ? sr.stats.perfect : 0,
       totalMistakes: sr.stats && Number.isFinite(sr.stats.totalMistakes) ? sr.stats.totalMistakes : 0,
       totalAttempts: sr.stats && Number.isFinite(sr.stats.totalAttempts) ? sr.stats.totalAttempts : 0
