@@ -1062,6 +1062,14 @@ const App = {
     this.$next.prop("disabled", !hasRedo);
   },
   updateWinProbabilityFromEval(evalData) {
+    if (evalData && evalData.type === "mate") {
+      const mateScore = evalData.value;
+      const percent = mateScore > 0 ? 100 : 0;
+      const mateLabel = `#${mateScore > 0 ? Math.abs(mateScore) : `-${Math.abs(mateScore)}`}`;
+      this.$winProbFill.css("width", `${percent}%`);
+      this.$winProbText.text(mateLabel);
+      return;
+    }
     const probability = evalToWinProbability(evalData, this.state.userSide);
     this.updateWinProbability(probability);
   },
@@ -1566,7 +1574,10 @@ function parseEval(text, fen) {
     return "";
   }
   if (type === "mate") {
-    return `Engine eval: Mate in ${Math.abs(value)}`;
+    const turn = fen.split(" ")[1];
+    const adjusted = turn === "b" ? -value : value;
+    const mateText = adjusted > 0 ? Math.abs(adjusted) : `-${Math.abs(adjusted)}`;
+    return `Engine eval: #${mateText}`;
   }
   const cp = (value / 100).toFixed(2);
   const turn = fen.split(" ")[1];
