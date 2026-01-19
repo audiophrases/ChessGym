@@ -234,14 +234,6 @@ body {
   align-items: flex-start;
 }
 
-.coach-panel .info-card {
-  background: transparent;
-  border: none;
-  box-shadow: none;
-  padding: 0;
-  align-items: flex-start;
-}
-
 .info-card {
   background: var(--panel);
   border: 1px solid var(--border);
@@ -257,43 +249,14 @@ body {
 
 .comment-box {
   min-height: 100px;
-  max-height: clamp(160px, 28vh, 260px);
-  padding: 0;
+  padding: 12px;
   border-radius: 12px;
-  background: transparent;
+  background: var(--panel-muted);
   color: var(--text);
-  border: none;
+  border: 1px solid var(--border);
   margin-bottom: 12px;
   line-height: 1.4;
   font-size: 1.42rem;
-  overflow-y: auto;
-  text-align: left;
-  display: flex;
-  align-items: flex-start;
-}
-
-.comment-history {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  align-items: flex-start;
-  width: 100%;
-}
-
-.coach-comment {
-  width: 100%;
-  background: none;
-  border: none;
-  padding: 0;
-  text-align: left;
-  color: inherit;
-  font: inherit;
-  cursor: pointer;
-}
-
-.coach-comment:focus-visible {
-  outline: 1px solid var(--border);
-  outline-offset: 4px;
 }
 
 .coach-actions {

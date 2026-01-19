@@ -64,9 +64,7 @@ const App = {
     statusText: "",
     lastCoachComment: "",
     currentCoachComment: "Welcome to ChessGym.",
-    hintActive: false,
-    coachComments: [],
-    nextCoachCommentId: 1
+    hintActive: false
   },
   chess: null,
   board: null,
@@ -74,24 +72,9 @@ const App = {
   sounds: {},
   init() {
     this.cacheElements();
-    this.seedCoachComments();
     this.bindEvents();
     this.showLoading(true);
     this.loadData();
-  },
-  seedCoachComments() {
-    if (this.state.coachComments.length) {
-      return;
-    }
-    const initial = this.state.currentCoachComment || "";
-    if (initial) {
-      this.state.coachComments = [
-        {
-          id: this.state.nextCoachCommentId++,
-          html: initial
-        }
-      ];
-    }
   },
   cacheElements() {
     this.$opening = $("#openingSelect");
@@ -128,9 +111,6 @@ const App = {
     this.$reveal.on("click", () => this.handleRevealMove());
     this.$resume.on("click", () => this.resumeFromPosition());
     this.$lichess.on("click", () => this.openLichessGame());
-    this.$comment.on("click", ".coach-comment", (event) => {
-      event.currentTarget.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
   },
   openLichessGame() {
     const fen = this.chess ? this.chess.fen() : "start";
@@ -1319,10 +1299,6 @@ const App = {
   },
   setComment(html, options = {}) {
     this.state.currentCoachComment = html;
-    this.state.coachComments.push({
-      id: this.state.nextCoachCommentId++,
-      html
-    });
     if (!options.isHint) {
       this.state.lastCoachComment = html;
       this.state.hintActive = false;
@@ -1331,20 +1307,10 @@ const App = {
   },
   renderCoachComment() {
     const base = this.state.currentCoachComment || "";
-    if (!this.state.coachComments.length && base) {
-      this.seedCoachComments();
-    }
     const plainBase = base.replace(/<[^>]*>/g, "").trim();
     const needsPrefix = this.state.statusText === "Your move." && !/^your move\b/i.test(plainBase);
     const prefix = needsPrefix ? "<strong>Your move:</strong> " : "";
-    const comments = [...this.state.coachComments].reverse();
-    const items = comments
-      .map((comment, index) => {
-        const content = index === 0 ? `${prefix}${comment.html}` : comment.html;
-        return `<button type="button" class="coach-comment" data-comment-id="${comment.id}">${content}</button>`;
-      })
-      .join("");
-    this.$comment.html(`<div class="comment-history">${items}</div>`);
+    this.$comment.html(`${prefix}${base}`);
   },
   setLineStatus(line) {
     if (!line) {
