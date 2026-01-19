@@ -259,6 +259,23 @@ body {
   font-size: 1.42rem;
 }
 
+.comment-box .coach-message-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.comment-box .coach-message-current {
+  font-weight: 700;
+  color: #16a34a;
+}
+
+.comment-box .coach-message-previous {
+  font-weight: 400;
+  color: var(--text);
+  opacity: 0.85;
+}
+
 .coach-actions {
   display: flex;
   flex-wrap: wrap;
@@ -364,17 +381,31 @@ body {
 
   .board-panel {
     order: 1;
+    align-items: stretch;
+    width: 100%;
   }
 
   .coach-panel {
     order: 3;
+    margin-top: 0;
+    width: 100%;
   }
 
   .eval-panel {
     order: 2;
     width: 100%;
+    max-width: none;
     align-self: stretch;
+    margin: 0;
     margin-bottom: 0;
+  }
+
+  #board {
+    width: 100%;
+  }
+
+  .eval-gauge {
+    width: 100%;
   }
 
   .info-panel {

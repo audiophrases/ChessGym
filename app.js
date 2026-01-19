@@ -63,6 +63,7 @@ const App = {
     analysisActive: false,
     statusText: "",
     lastCoachComment: "",
+    previousCoachComment: "",
     currentCoachComment: "Welcome to ChessGym.",
     hintActive: false
   },
@@ -1298,6 +1299,7 @@ const App = {
     this.renderCoachComment();
   },
   setComment(html, options = {}) {
+    this.state.previousCoachComment = this.state.currentCoachComment;
     this.state.currentCoachComment = html;
     if (!options.isHint) {
       this.state.lastCoachComment = html;
@@ -1308,9 +1310,16 @@ const App = {
   renderCoachComment() {
     const base = this.state.currentCoachComment || "";
     const plainBase = base.replace(/<[^>]*>/g, "").trim();
+    const previous = this.state.previousCoachComment || "";
+    const plainPrevious = previous.replace(/<[^>]*>/g, "").trim();
     const needsPrefix = this.state.statusText === "Your move." && !/^your move\b/i.test(plainBase);
     const prefix = needsPrefix ? "<strong>Your move:</strong> " : "";
-    this.$comment.html(`${prefix}${base}`);
+    const previousHtml = plainPrevious
+      ? `<div class="coach-message-previous">${plainPrevious}</div>`
+      : "";
+    this.$comment.html(
+      `<div class="coach-message-stack"><div class="coach-message-current">${prefix}${base}</div>${previousHtml}</div>`
+    );
   },
   setLineStatus(line) {
     if (!line) {
