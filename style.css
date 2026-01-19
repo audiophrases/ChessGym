@@ -265,6 +265,30 @@ body {
   gap: 10px;
 }
 
+.session-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+#lineStatus {
+  margin: 0;
+}
+
+.side-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--panel-muted);
+  color: var(--muted);
+}
+
 .ghost {
   background: transparent;
   border: 1px solid var(--border);
