@@ -259,23 +259,6 @@ body {
   font-size: 1.42rem;
 }
 
-.comment-box .coach-message-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.comment-box .coach-message-current {
-  font-weight: 700;
-  color: #16a34a;
-}
-
-.comment-box .coach-message-previous {
-  font-weight: 400;
-  color: var(--text);
-  opacity: 0.85;
-}
-
 .coach-actions {
   display: flex;
   flex-wrap: wrap;
@@ -381,7 +364,6 @@ body {
 
   .board-panel {
     order: 1;
-    align-items: stretch;
   }
 
   .coach-panel {
@@ -393,14 +375,6 @@ body {
     width: 100%;
     align-self: stretch;
     margin-bottom: 0;
-  }
-
-  #board {
-    width: 100%;
-  }
-
-  .eval-gauge {
-    width: 100%;
   }
 
   .info-panel {
