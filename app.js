@@ -82,6 +82,7 @@ const App = {
     this.$prev = $("#prevBtn");
     this.$next = $("#nextBtn");
     this.$lineStatus = $("#lineStatus");
+    this.$sideStatus = $("#sideStatus");
     this.$progress = $("#progressInfo");
     this.$comment = $("#commentBox");
     this.$hint = $("#hintBtn");
@@ -335,6 +336,7 @@ const App = {
     }
     this.state.userSide = normalizedSide;
     this.board.orientation(this.state.userSide);
+    this.updateSideStatus();
     if (this.state.mode === "game") {
       this.prepareSession();
     }
@@ -353,6 +355,7 @@ const App = {
       this.state.userSide = "white";
     }
     this.board.orientation(this.state.userSide);
+    this.updateSideStatus();
   },
   startSession() {
     this.resetSession(true, { autoPlay: true, setActive: true });
@@ -971,6 +974,13 @@ const App = {
       `Completed: ${stats.completed || 0} • Studied: ${stats.learned || 0} • Perfect: ${stats.perfect || 0} • Reps: ${reps} • Ease: ${ease}`
     );
   },
+  updateSideStatus() {
+    if (!this.$sideStatus || !this.$sideStatus.length) {
+      return;
+    }
+    const sideLabel = this.state.userSide === "black" ? "Black" : "White";
+    this.$sideStatus.text(`Training as ${sideLabel}`);
+  },
   finalizePracticeSR() {
     const line = this.getActiveLine();
     if (!line) {
@@ -1111,6 +1121,7 @@ const App = {
   setLineStatus(line) {
     if (!line) {
       this.$lineStatus.text(this.state.mode === "game" ? "Game mode active." : "Select a line to begin.");
+      this.updateSideStatus();
       return;
     }
     const ply = this.state.currentPlyIndex + 1;
@@ -1118,6 +1129,7 @@ const App = {
     const lineName = line.line_name || line.line_id;
     const prefix = this.state.sessionLineId ? "Chosen line" : "Line";
     this.$lineStatus.text(`${prefix}: ${lineName} • Ply ${Math.min(ply, total)} of ${total}`);
+    this.updateSideStatus();
   },
   getSelectedOpening() {
     return this.data.openingsById[this.state.openingId] || null;
