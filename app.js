@@ -78,7 +78,6 @@ const App = {
     this.$line = $("#lineSelect");
     this.$dueBtn = $("#dueBtn");
     this.$mode = $("#modeSelect");
-    this.$side = $("#sideSelect");
     this.$strength = $("#strengthSelect");
     this.$prev = $("#prevBtn");
     this.$next = $("#nextBtn");
@@ -100,7 +99,6 @@ const App = {
     this.$line.on("change", () => this.onLineChange());
     this.$dueBtn.on("click", () => this.onStudyDueToggle());
     this.$mode.on("change", () => this.onModeChange());
-    this.$side.on("change", () => this.onSideChange());
     this.$strength.on("change", () => this.onStrengthChange());
     this.$prev.on("click", () => this.stepMove(-1));
     this.$next.on("click", () => this.stepMove(1));
@@ -167,6 +165,12 @@ const App = {
 
     this.data.lines.forEach((line) => {
       const key = line.opening_id;
+      const normalizedDrillSide = normalizeDrillSide(line.drill_side);
+      line.drill_side = normalizedDrillSide || "white";
+      line.drill_side_missing = !normalizedDrillSide;
+      if (line.drill_side_missing) {
+        console.warn("Missing drill_side for line:", line.line_id);
+      }
       this.data.linesById[line.line_id] = line;
       if (!this.data.linesByOpeningId[key]) {
         this.data.linesByOpeningId[key] = [];
@@ -324,10 +328,16 @@ const App = {
     this.setComment("Session ready.");
     this.prepareSession();
   },
-  onSideChange() {
-    this.state.userSide = this.$side.val();
+  onSideChange(nextSide) {
+    const normalizedSide = normalizeDrillSide(nextSide);
+    if (!normalizedSide) {
+      return;
+    }
+    this.state.userSide = normalizedSide;
     this.board.orientation(this.state.userSide);
-    this.prepareSession();
+    if (this.state.mode === "game") {
+      this.prepareSession();
+    }
   },
   onStrengthChange() {
     if (this.state.mode === "game") {
@@ -337,18 +347,10 @@ const App = {
   updateSideSelector() {
     if (this.state.mode === "learning" || this.state.mode === "practice") {
       const line = this.getActiveLine();
-      const drillSide = (line && line.drill_side || "").toLowerCase();
-      if (drillSide === "white" || drillSide === "black") {
-        this.$side.val(drillSide);
-        this.$side.prop("disabled", true);
-        this.state.userSide = drillSide;
-      } else {
-        this.$side.prop("disabled", false);
-        this.state.userSide = this.$side.val();
-      }
+      const drillSide = normalizeDrillSide(line && line.drill_side);
+      this.state.userSide = drillSide || "white";
     } else {
-      this.$side.prop("disabled", false);
-      this.state.userSide = this.$side.val();
+      this.state.userSide = "white";
     }
     this.board.orientation(this.state.userSide);
   },
@@ -388,6 +390,14 @@ const App = {
 
     const opening = this.getSelectedOpening();
     const line = this.resolveSessionLine(forceStart);
+    const needsDrillSide = this.state.mode === "learning" || this.state.mode === "practice";
+    if (needsDrillSide && line && line.drill_side_missing) {
+      this.state.sessionActive = false;
+      this.setLineStatus(line);
+      this.setStatus("Line data is missing drill_side. Please update the lines feed with white/black.");
+      this.setComment("Unable to start until drill_side is set for this line.");
+      return;
+    }
     let fen = "start";
     if (this.state.mode === "game") {
       fen = opening && opening.starting_fen ? opening.starting_fen : "start";
@@ -1527,6 +1537,17 @@ function normalizeFen(fen) {
     return fen.trim();
   }
   return parts.slice(0, 4).join(" ");
+}
+
+function normalizeDrillSide(value) {
+  if (!value) {
+    return "";
+  }
+  const normalized = value.toString().trim().toLowerCase();
+  if (normalized === "white" || normalized === "black") {
+    return normalized;
+  }
+  return "";
 }
 
 function getTodayLocal() {
