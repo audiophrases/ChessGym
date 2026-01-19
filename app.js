@@ -110,8 +110,8 @@ const App = {
   },
   openLichessGame() {
     const fen = this.chess ? this.chess.fen() : "start";
-    const encodedFen = encodeURIComponent(fen);
-    const url = `https://lichess.org/?fen=${encodedFen}`;
+    const encodedFen = encodeURIComponent(fen).replace(/%2F/g, "/");
+    const url = `https://lichess.org/analysis/${encodedFen}`;
     window.open(url, "_blank", "noopener");
   },
   showLoading(isLoading, message) {

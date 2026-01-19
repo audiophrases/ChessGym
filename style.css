@@ -165,6 +165,8 @@ body {
   border: 1px solid var(--border);
   border-radius: 14px;
   padding: 0;
+  width: 90%;
+  align-self: center;
   box-shadow: 0 8px 24px rgba(28, 35, 51, 0.04);
 }
 
@@ -175,7 +177,7 @@ body {
   flex-direction: row;
   align-items: center;
   gap: 10px;
-  padding: 12px 14px;
+  padding: 0;
 }
 .eval-label {
   display: flex;
