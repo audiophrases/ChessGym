@@ -349,6 +349,35 @@ body {
   }
 }
 
+@media (orientation: landscape) and (max-width: 1200px) {
+  .main {
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .board-column,
+  .side-column {
+    display: contents;
+  }
+
+  .board-panel {
+    order: 1;
+  }
+
+  .coach-panel {
+    order: 2;
+  }
+
+  .eval-panel {
+    order: 3;
+    width: 100%;
+  }
+
+  .info-panel {
+    order: 4;
+  }
+}
+
 @media (max-width: 960px) {
   .main {
     flex-direction: column;

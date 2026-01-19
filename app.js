@@ -347,13 +347,20 @@ const App = {
     }
   },
   updateSideSelector() {
+    const line = this.getActiveLine();
     if (this.state.mode === "learning" || this.state.mode === "practice") {
-      const line = this.getActiveLine();
-      const drillSide = normalizeDrillSide(line && line.drill_side);
-      this.state.userSide = drillSide || "white";
+      this.applyLineSide(line);
+    } else if (this.state.mode === "game") {
+      this.applyLineSide(line);
     } else {
       this.state.userSide = "white";
+      this.board.orientation(this.state.userSide);
+      this.updateSideStatus();
     }
+  },
+  applyLineSide(line) {
+    const drillSide = normalizeDrillSide(line && line.drill_side);
+    this.state.userSide = drillSide || "white";
     this.board.orientation(this.state.userSide);
     this.updateSideStatus();
   },
@@ -401,9 +408,14 @@ const App = {
       this.setComment("Unable to start until drill_side is set for this line.");
       return;
     }
+    this.applyLineSide(line);
     let fen = "start";
     if (this.state.mode === "game") {
-      fen = opening && opening.starting_fen ? opening.starting_fen : "start";
+      if (line && line.start_fen) {
+        fen = line.start_fen;
+      } else {
+        fen = opening && opening.starting_fen ? opening.starting_fen : "start";
+      }
     } else if (line && line.start_fen) {
       fen = line.start_fen;
     } else if (opening && opening.starting_fen) {
