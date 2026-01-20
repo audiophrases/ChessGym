@@ -140,6 +140,7 @@ body {
 .board-column {
   flex: 1 1 520px;
   max-width: 520px;
+  gap: 0;
 }
 
 .side-column {
