@@ -510,7 +510,7 @@ const App = {
     this.$sessionSummary.attr("aria-expanded", nextState);
   },
   pickDefaultLine() {
-    const openings = this.data.openings.filter((o) => isTrue(o.published));
+    const openings = this.data.openings.filter((o) => isPublished(o.published));
     const openingIds = new Set(openings.map((opening) => opening.opening_id));
     const candidateLines = this.data.lines.filter((line) => openingIds.has(line.opening_id));
     if (!candidateLines.length) {
@@ -519,7 +519,7 @@ const App = {
     return weightedPick(candidateLines, (line) => this.getLineSelectionWeight(line, line.opening_id));
   },
   selectDefaultMode() {
-    const openings = this.data.openings.filter((o) => isTrue(o.published));
+    const openings = this.data.openings.filter((o) => isPublished(o.published));
     const openingIds = new Set(openings.map((opening) => opening.opening_id));
     const candidateLines = this.data.lines.filter((line) => openingIds.has(line.opening_id));
     if (!candidateLines.length) {
@@ -533,7 +533,7 @@ const App = {
     return hasUnlearned ? "learning" : "practice";
   },
   populateSelectors(defaults = {}) {
-    const openings = this.data.openings.filter((o) => isTrue(o.published));
+    const openings = this.data.openings.filter((o) => isPublished(o.published));
     this.$opening.empty();
     openings.forEach((opening) => {
       this.$opening.append(
@@ -1179,6 +1179,8 @@ const App = {
     this.state.moveHistory.push(moveUci);
     this.state.redoMoves = [];
     this.clearHintHighlight();
+    this.state.hintLevel = 0;
+    this.state.hintActive = false;
   },
   stepMove(direction) {
     if (direction < 0) {
@@ -1220,6 +1222,8 @@ const App = {
     this.updateNavigationControls();
     this.updateLastMoveHighlight();
     this.clearHintHighlight();
+    this.state.hintLevel = 0;
+    this.state.hintActive = false;
     if (this.state.mode === "learning" || this.state.mode === "practice") {
       this.setLineStatus(this.getActiveLine());
     }
@@ -1264,24 +1268,50 @@ const App = {
     }
     return row.move_uci || "";
   },
+  getExpectedHintSquare(row) {
+    if (!row) {
+      return null;
+    }
+    const uci = row.move_uci || "";
+    if (uci.length >= 2) {
+      const fromSquare = uci.slice(0, 2);
+      if (this.chess.get(fromSquare)) {
+        return fromSquare;
+      }
+    }
+    const expectedSan = this.getExpectedSan(row);
+    const moves = this.chess.moves({ verbose: true });
+    let match = null;
+    if (uci) {
+      match = moves.find((move) => moveToUci(move) === uci) || null;
+    }
+    if (!match && expectedSan) {
+      match = moves.find((move) => move.san === expectedSan) || null;
+    }
+    return match ? match.from : null;
+  },
   handleHint() {
     const row = this.getExpectedNode();
     if (!row) {
       return;
     }
-    if (this.state.hintActive) {
-      this.clearHintHighlight();
-      this.setComment(this.state.lastCoachComment || "Keep going.");
-      this.state.hintActive = false;
-      return;
-    }
-    const expectedSan = this.getExpectedSan(row);
-    if (expectedSan) {
-      this.setComment(`Hint: ${expectedSan}`, { isHint: true });
+    const hintStep = this.state.hintLevel % 2;
+    if (hintStep === 0) {
+      const square = this.getExpectedHintSquare(row);
+      if (square) {
+        this.setHintHighlight(square);
+        this.setComment("Hint: highlighted the piece to move.", { isHint: true });
+      } else {
+        this.setComment("Hint: focus on the expected move.", { isHint: true });
+      }
+      this.state.hintActive = true;
     } else {
-      this.setComment("Hint: make the expected move.", { isHint: true });
+      this.clearHintHighlight();
+      const prompt = row.learn_prompt || "Find the next move.";
+      this.setComment(`Hint: ${prompt}`, { isHint: true });
+      this.state.hintActive = false;
     }
-    this.state.hintActive = true;
+    this.state.hintLevel = (this.state.hintLevel + 1) % 2;
   },
   handleRevealMove() {
     if (this.state.mode !== "practice") {
@@ -1766,6 +1796,14 @@ function csvToObjects(text) {
 
 function isTrue(value) {
   return String(value || "").trim().toLowerCase() === "true";
+}
+
+function isPublished(value) {
+  const normalized = String(value || "").trim().toLowerCase();
+  if (!normalized) {
+    return true;
+  }
+  return normalized === "true" || normalized === "yes" || normalized === "1";
 }
 
 function applyMoveUCI(chess, uci) {
