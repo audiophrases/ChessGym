@@ -62,10 +62,15 @@ const App = {
     analysisActive: false,
     statusText: "",
     lastCoachComment: "",
-    previousCoachComment: "",
-    currentCoachComment: "Welcome to ChessGym.",
-    promptHistoryByFen: {},
-    promptChain: { current: "", previous: "" },
+    coachCommentBySide: {
+      white: { current: "Welcome to ChessGym.", previous: "" },
+      black: { current: "Welcome to ChessGym.", previous: "" }
+    },
+    promptHistoryByFenBySide: {},
+    promptChainBySide: {
+      white: { current: "", previous: "" },
+      black: { current: "", previous: "" }
+    },
     coachOverride: null,
     coachOverrideTimer: null,
     coachOverrideActive: false,
@@ -669,8 +674,11 @@ const App = {
     this.state.sessionLineId = null;
     this.state.moveHistory = [];
     this.state.redoMoves = [];
-    this.state.promptHistoryByFen = {};
-    this.state.promptChain = { current: "", previous: "" };
+    this.state.promptHistoryByFenBySide = {};
+    this.state.promptChainBySide = {
+      white: { current: "", previous: "" },
+      black: { current: "", previous: "" }
+    };
     this.clearCoachOverride();
     this.$engineEval.text("");
     this.clearSelection();
@@ -1532,8 +1540,15 @@ const App = {
       this.setCoachOverride(html, options);
       return;
     }
-    this.state.previousCoachComment = this.state.currentCoachComment;
-    this.state.currentCoachComment = html;
+    const resolvedSide = normalizeDrillSide(options.side);
+    // When no side is specified, associate the message with the side to move
+    // so neutral feedback follows the active player instead of showing twice.
+    const inferredSide = normalizeDrillSide(this.chess ? this.chess.turn() : this.state.userSide) || this.state.userSide;
+    const side = resolvedSide || inferredSide;
+    const history = this.state.coachCommentBySide[side] || { current: "", previous: "" };
+    history.previous = history.current;
+    history.current = html;
+    this.state.coachCommentBySide[side] = history;
     if (!options.isHint) {
       this.state.lastCoachComment = html;
       this.state.hintActive = false;
@@ -1582,54 +1597,87 @@ const App = {
       this.$comment.removeClass("coach-override-active coach-override-exit");
     }, 220);
   },
-  getPromptHistoryForFen(fenKey) {
-    return this.state.promptHistoryByFen[fenKey] || { current: "", previous: "" };
+  getPromptHistoryForFen(fenKey, side) {
+    const historyBySide = this.state.promptHistoryByFenBySide[fenKey];
+    if (!historyBySide) {
+      return { current: "", previous: "" };
+    }
+    return historyBySide[side] || { current: "", previous: "" };
   },
-  setPromptForCurrentFen(prompt) {
+  setPromptForCurrentFen(prompt, options = {}) {
     const fenKey = normalizeFen(this.chess.fen());
-    const history = this.getPromptHistoryForFen(fenKey);
-    const previousPrompt = this.state.promptChain.current || "";
+    const resolvedSide = normalizeDrillSide(options.side);
+    const inferredSide = normalizeDrillSide(this.chess ? this.chess.turn() : this.state.userSide) || this.state.userSide;
+    const side = resolvedSide || inferredSide;
+    const history = this.getPromptHistoryForFen(fenKey, side);
+    const previousPrompt = (this.state.promptChainBySide[side] || {}).current || "";
     if (history.current !== prompt) {
       history.previous = history.current || previousPrompt;
       history.current = prompt;
     } else if (previousPrompt && history.previous !== previousPrompt && history.current !== previousPrompt) {
       history.previous = previousPrompt;
     }
-    this.state.promptHistoryByFen[fenKey] = history;
-    this.state.promptChain = { current: history.current, previous: history.previous };
+    if (!this.state.promptHistoryByFenBySide[fenKey]) {
+      this.state.promptHistoryByFenBySide[fenKey] = {};
+    }
+    this.state.promptHistoryByFenBySide[fenKey][side] = history;
+    this.state.promptChainBySide[side] = { current: history.current, previous: history.previous };
     this.renderCoachComment();
   },
   syncPromptChainForCurrentFen() {
     const fenKey = normalizeFen(this.chess.fen());
-    const history = this.state.promptHistoryByFen[fenKey];
-    if (history) {
-      this.state.promptChain = { current: history.current, previous: history.previous };
-    } else {
-      this.state.promptChain = { current: "", previous: "" };
-    }
+    const historyBySide = this.state.promptHistoryByFenBySide[fenKey] || {};
+    ["white", "black"].forEach((side) => {
+      const history = historyBySide[side];
+      if (history) {
+        this.state.promptChainBySide[side] = { current: history.current, previous: history.previous };
+      } else {
+        this.state.promptChainBySide[side] = { current: "", previous: "" };
+      }
+    });
   },
   renderCoachComment() {
     const override = this.state.coachOverride;
     const useLearningPrompts = this.state.mode === "learning";
-    const promptCurrent = this.state.promptChain.current || "";
-    const promptPrevious = this.state.promptChain.previous || "";
-    const fallbackCurrent = this.state.currentCoachComment || "";
-    const fallbackPrevious = this.state.previousCoachComment || "";
-    const base = override || (useLearningPrompts ? (promptCurrent || fallbackCurrent) : fallbackCurrent);
-    let previous = fallbackPrevious;
-    if (useLearningPrompts) {
-      previous = override ? (promptCurrent || fallbackPrevious) : (promptCurrent ? promptPrevious : fallbackPrevious);
-    }
-    const plainBase = base.replace(/<[^>]*>/g, "").trim();
-    const plainPrevious = previous.replace(/<[^>]*>/g, "").trim();
-    const sideLabel = this.state.userSide === "black" ? "Black" : "White";
+    const studiedSide = this.state.userSide;
+    const opponentSide = studiedSide === "white" ? "black" : "white";
     const useSideLabel = useLearningPrompts || this.state.mode === "practice";
-    const prefix = useSideLabel ? `<strong>${sideLabel}:</strong> ` : "";
-    const previousHtml = plainPrevious
-      ? `<div class="coach-message-previous">${prefix}${plainPrevious}</div>`
-      : "";
+    const buildCoachMessage = (side) => {
+      const promptChain = this.state.promptChainBySide[side] || { current: "", previous: "" };
+      const fallback = this.state.coachCommentBySide[side] || { current: "", previous: "" };
+      const promptCurrent = promptChain.current || "";
+      const promptPrevious = promptChain.previous || "";
+      const fallbackCurrent = fallback.current || "";
+      const fallbackPrevious = fallback.previous || "";
+      const base = override || (useLearningPrompts ? (promptCurrent || fallbackCurrent) : fallbackCurrent);
+      let previous = fallbackPrevious;
+      if (useLearningPrompts) {
+        previous = override ? (promptCurrent || fallbackPrevious) : (promptCurrent ? promptPrevious : fallbackPrevious);
+      }
+      return { base, previous };
+    };
+    const buildRow = (side, rowClass) => {
+      if (override && side !== studiedSide) {
+        return "";
+      }
+      const sideLabel = side === "black" ? "Black" : "White";
+      const prefix = useSideLabel ? `<strong>${sideLabel}:</strong> ` : "";
+      const { base, previous } = buildCoachMessage(side);
+      const plainBase = base.replace(/<[^>]*>/g, "").trim();
+      const plainPrevious = previous.replace(/<[^>]*>/g, "").trim();
+      if (!plainBase && !plainPrevious) {
+        return "";
+      }
+      const currentHtml = plainBase ? `<div class="coach-message-current">${prefix}${base}</div>` : "";
+      const previousHtml = plainPrevious
+        ? `<div class="coach-message-previous">${prefix}${plainPrevious}</div>`
+        : "";
+      return `<div class="coach-message-row ${rowClass}">${currentHtml}${previousHtml}</div>`;
+    };
+    const studiedRow = buildRow(studiedSide, "coach-message-studied");
+    const opponentRow = buildRow(opponentSide, "coach-message-opponent");
     this.$comment.html(
-      `<div class="coach-message-stack coach-message-fade"><div class="coach-message-current">${prefix}${base}</div>${previousHtml}</div>`
+      `<div class="coach-message-stack coach-message-fade">${studiedRow}${opponentRow}</div>`
     );
   },
   setLineStatus(line) {
