@@ -65,7 +65,7 @@ const App = {
     winProbText: "50%",
     coachCommentBySide: {
       white: { current: "Welcome to ChessGym.", previous: "" },
-      black: { current: "Welcome to ChessGym.", previous: "" }
+      black: { current: "", previous: "" }
     },
     promptHistoryByFenBySide: {},
     promptChainBySide: {
@@ -1292,7 +1292,24 @@ const App = {
     }
     const expected = this.getExpectedNode();
     if (expected) {
-      this.setPromptForCurrentFen(expected.learn_prompt || "Find the next move.");
+      const expectedSide = getSideFromFen(expected._fen_before)
+        || (this.chess && this.chess.turn() === "w" ? "white" : "black");
+      const opponentSide = expectedSide === "white" ? "black" : "white";
+      const prompt = expected.learn_prompt || "Find the next move.";
+      this.setPromptForCurrentFen(prompt, { side: expectedSide });
+      const plan = this.state.sessionPlan;
+      const fenKey = normalizeFen(this.chess.fen());
+      let currentDepth = Number.isFinite(this.state.currentDepth)
+        ? this.state.currentDepth
+        : (plan ? plan.depthByFenKey[fenKey] : -1);
+      if (!Number.isFinite(currentDepth)) {
+        currentDepth = -1;
+      }
+      const nextKey = plan && currentDepth >= 0 ? plan.order[currentDepth + 1] : null;
+      const nextNode = nextKey ? this.data.nodesById[nextKey] : null;
+      const nextPrompt = nextNode && nextNode.learn_prompt ? nextNode.learn_prompt : "";
+      const nextSide = nextNode ? (getSideFromFen(nextNode._fen_before) || opponentSide) : opponentSide;
+      this.setPromptForCurrentFen(nextPrompt, { side: nextSide });
     }
   },
   showLearningExplain(row) {
@@ -1665,12 +1682,12 @@ const App = {
       const fallbackCurrent = fallback.current || "";
       const fallbackPrevious = fallback.previous || "";
       const sideOverride = override && side === studiedSide ? override : "";
-      const base = sideOverride || (useLearningPrompts ? (promptCurrent || fallbackCurrent) : fallbackCurrent);
+      const base = sideOverride || (useLearningPrompts ? promptCurrent : fallbackCurrent);
       let previous = fallbackPrevious;
       if (useLearningPrompts) {
         previous = sideOverride
-          ? (promptCurrent || fallbackPrevious)
-          : (promptCurrent ? promptPrevious : fallbackPrevious);
+          ? (promptCurrent || "")
+          : (promptCurrent ? promptPrevious : "");
       }
       return { base, previous };
     };
@@ -1685,7 +1702,7 @@ const App = {
       }
       const currentHtml = plainBase ? `<div class="coach-message-current">${prefix}${base}</div>` : "";
       const previousHtml = plainPrevious
-        ? `<div class="coach-message-previous">${prefix}${winProbHtml}${plainPrevious}</div>`
+        ? `<div class="coach-message-previous"><span class="coach-message-text">${prefix}${plainPrevious}</span>${winProbHtml}</div>`
         : "";
       return `<div class="coach-message-row ${rowClass}">${currentHtml}${previousHtml}</div>`;
     };
@@ -2209,6 +2226,23 @@ function normalizeFen(fen) {
     return fen.trim();
   }
   return parts.slice(0, 4).join(" ");
+}
+
+function getSideFromFen(fen) {
+  if (!fen) {
+    return "";
+  }
+  const parts = fen.trim().split(" ");
+  if (parts.length < 2) {
+    return "";
+  }
+  if (parts[1] === "w") {
+    return "white";
+  }
+  if (parts[1] === "b") {
+    return "black";
+  }
+  return "";
 }
 
 function getNodeKey(lineId, nodeId) {
