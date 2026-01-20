@@ -72,6 +72,7 @@ const App = {
   },
   chess: null,
   board: null,
+  boardConfig: null,
   engine: null,
   sounds: {},
   init() {
@@ -488,11 +489,12 @@ const App = {
       bP: "black-pawn"
     };
     const pieceTheme = (piece) => `pieces/${pieceNameByCode[piece]}.png`;
-    this.board = Chessboard("board", {
+    this.boardConfig = {
       position: "start",
       draggable: false,
       pieceTheme
-    });
+    };
+    this.board = Chessboard("board", this.boardConfig);
     this.state.boardSize = Math.round($("#board").width());
     this.applyBoardSize();
 
@@ -528,13 +530,20 @@ const App = {
     }
     const panelWidth = $(".board-panel").width() || BOARD_SIZE_MAX;
     const maxSize = Math.min(BOARD_SIZE_MAX, panelWidth);
-    const clampedSize = Math.max(BOARD_SIZE_MIN, Math.min(maxSize, this.state.boardSize));
+    const minSize = Math.min(BOARD_SIZE_MIN, maxSize);
+    const clampedSize = Math.max(minSize, Math.min(maxSize, this.state.boardSize));
     this.state.boardSize = clampedSize;
-    $("#board").css("width", `${clampedSize}px`);
+    $("#board").css({ width: `${clampedSize}px`, height: `${clampedSize}px` });
     if (this.board && typeof this.board.resize === "function") {
       this.board.resize();
+    } else if (this.board) {
+      // chessboard.js v1.0.0 supports resize(); fall back to re-render if unavailable.
+      const currentPosition = this.board.position();
+      const currentOrientation = this.board.orientation();
+      this.board = Chessboard("board", { ...this.boardConfig, position: currentPosition });
+      this.board.orientation(currentOrientation);
     }
-    const canShrink = clampedSize > BOARD_SIZE_MIN;
+    const canShrink = clampedSize > minSize;
     const canGrow = clampedSize < maxSize;
     this.$boardSmaller.prop("disabled", !canShrink);
     this.$boardLarger.prop("disabled", !canGrow);
