@@ -307,6 +307,11 @@ body {
   opacity: 0.85;
 }
 
+.comment-box .coach-message-previous .win-probability {
+  margin-right: 8px;
+  align-items: baseline;
+}
+
 .comment-box .coach-message-studied .coach-message-current {
   font-weight: 700;
   font-size: calc(1.42rem + 2px);

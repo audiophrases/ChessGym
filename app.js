@@ -62,6 +62,7 @@ const App = {
     analysisActive: false,
     statusText: "",
     lastCoachComment: "",
+    winProbText: "50%",
     coachCommentBySide: {
       white: { current: "Welcome to ChessGym.", previous: "" },
       black: { current: "Welcome to ChessGym.", previous: "" }
@@ -1520,7 +1521,13 @@ const App = {
     if (evalData && evalData.type === "mate") {
       const mateScore = evalData.value;
       const mateLabel = `#${mateScore > 0 ? Math.abs(mateScore) : `-${Math.abs(mateScore)}`}`;
-      this.$winProbText.text(mateLabel);
+      this.state.winProbText = mateLabel;
+      if (!this.$winProbText || !this.$winProbText.length) {
+        this.$winProbText = $("#winProbText");
+      }
+      if (this.$winProbText.length) {
+        this.$winProbText.text(mateLabel);
+      }
       return;
     }
     const probability = evalToWinProbability(evalData, "white");
@@ -1529,7 +1536,14 @@ const App = {
   updateWinProbability(probability) {
     const clamped = Math.max(0, Math.min(1, probability));
     const percent = Math.round(clamped * 100);
-    this.$winProbText.text(`${percent}%`);
+    const label = `${percent}%`;
+    this.state.winProbText = label;
+    if (!this.$winProbText || !this.$winProbText.length) {
+      this.$winProbText = $("#winProbText");
+    }
+    if (this.$winProbText.length) {
+      this.$winProbText.text(label);
+    }
   },
   setStatus(text) {
     this.state.statusText = text;
@@ -1642,6 +1656,7 @@ const App = {
     const studiedSide = this.state.userSide;
     const opponentSide = studiedSide === "white" ? "black" : "white";
     const useSideLabel = useLearningPrompts || this.state.mode === "practice";
+    const winProbHtml = `<span class="win-probability" id="winProbText">${this.state.winProbText}</span>`;
     const buildCoachMessage = (side) => {
       const promptChain = this.state.promptChainBySide[side] || { current: "", previous: "" };
       const fallback = this.state.coachCommentBySide[side] || { current: "", previous: "" };
@@ -1649,17 +1664,17 @@ const App = {
       const promptPrevious = promptChain.previous || "";
       const fallbackCurrent = fallback.current || "";
       const fallbackPrevious = fallback.previous || "";
-      const base = override || (useLearningPrompts ? (promptCurrent || fallbackCurrent) : fallbackCurrent);
+      const sideOverride = override && side === studiedSide ? override : "";
+      const base = sideOverride || (useLearningPrompts ? (promptCurrent || fallbackCurrent) : fallbackCurrent);
       let previous = fallbackPrevious;
       if (useLearningPrompts) {
-        previous = override ? (promptCurrent || fallbackPrevious) : (promptCurrent ? promptPrevious : fallbackPrevious);
+        previous = sideOverride
+          ? (promptCurrent || fallbackPrevious)
+          : (promptCurrent ? promptPrevious : fallbackPrevious);
       }
       return { base, previous };
     };
     const buildRow = (side, rowClass) => {
-      if (override && side !== studiedSide) {
-        return "";
-      }
       const sideLabel = side === "black" ? "Black" : "White";
       const prefix = useSideLabel ? `<strong>${sideLabel}:</strong> ` : "";
       const { base, previous } = buildCoachMessage(side);
@@ -1670,7 +1685,7 @@ const App = {
       }
       const currentHtml = plainBase ? `<div class="coach-message-current">${prefix}${base}</div>` : "";
       const previousHtml = plainPrevious
-        ? `<div class="coach-message-previous">${prefix}${plainPrevious}</div>`
+        ? `<div class="coach-message-previous">${prefix}${winProbHtml}${plainPrevious}</div>`
         : "";
       return `<div class="coach-message-row ${rowClass}">${currentHtml}${previousHtml}</div>`;
     };
@@ -1679,6 +1694,7 @@ const App = {
     this.$comment.html(
       `<div class="coach-message-stack coach-message-fade">${studiedRow}${opponentRow}</div>`
     );
+    this.$winProbText = this.$comment.find("#winProbText");
   },
   setLineStatus(line) {
     if (!line) {
