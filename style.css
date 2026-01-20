@@ -275,6 +275,23 @@ body {
   gap: 8px;
 }
 
+.comment-box .coach-message-fade {
+  transition: opacity 200ms ease, transform 200ms ease;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.comment-box.coach-override-enter .coach-message-fade,
+.comment-box.coach-override-exit .coach-message-fade {
+  opacity: 0;
+  transform: translateY(6px);
+}
+
+.comment-box.coach-override-active .coach-message-fade {
+  opacity: 1;
+  transform: translateY(0);
+}
+
 .comment-box .coach-message-current {
   font-weight: 700;
   color: #16a34a;
