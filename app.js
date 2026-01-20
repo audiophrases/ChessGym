@@ -78,6 +78,7 @@ const App = {
   init() {
     this.cacheElements();
     this.bindEvents();
+    this.setupCoachPanelDrag();
     this.showLoading(true);
     this.loadData();
   },
@@ -107,6 +108,8 @@ const App = {
     this.$winProbText = $("#winProbText");
     this.$boardSmaller = $("#boardSmallerBtn");
     this.$boardLarger = $("#boardLargerBtn");
+    this.$coachPanel = $("#coachPanel");
+    this.$coachHandle = $("#coachPanelHandle");
   },
   bindEvents() {
     this.$opening.on("change", () => this.onOpeningChange());
@@ -124,6 +127,67 @@ const App = {
     this.$boardSmaller.on("click", () => this.adjustBoardSize(-BOARD_SIZE_STEP));
     this.$boardLarger.on("click", () => this.adjustBoardSize(BOARD_SIZE_STEP));
     $(window).on("resize", () => this.applyBoardSize());
+  },
+  setupCoachPanelDrag() {
+    const panel = this.$coachPanel?.get(0);
+    const handle = this.$coachHandle?.get(0);
+    if (!panel || !handle) {
+      return;
+    }
+    const rect = panel.getBoundingClientRect();
+    panel.style.position = "fixed";
+    panel.style.top = `${rect.top}px`;
+    panel.style.left = `${rect.left}px`;
+    panel.style.width = `${rect.width}px`;
+    panel.style.zIndex = "50";
+    let isDragging = false;
+    let startX = 0;
+    let startY = 0;
+    let startLeft = 0;
+    let startTop = 0;
+    const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+    const onPointerMove = (event) => {
+      if (!isDragging) {
+        return;
+      }
+      const deltaX = event.clientX - startX;
+      const deltaY = event.clientY - startY;
+      const maxLeft = Math.max(0, window.innerWidth - panel.offsetWidth);
+      const maxTop = Math.max(0, window.innerHeight - panel.offsetHeight);
+      const nextLeft = clamp(startLeft + deltaX, 0, maxLeft);
+      const nextTop = clamp(startTop + deltaY, 0, maxTop);
+      panel.style.left = `${nextLeft}px`;
+      panel.style.top = `${nextTop}px`;
+    };
+    const stopDragging = (event) => {
+      if (!isDragging) {
+        return;
+      }
+      isDragging = false;
+      panel.classList.remove("coach-panel-dragging");
+      if (event && handle.hasPointerCapture?.(event.pointerId)) {
+        handle.releasePointerCapture(event.pointerId);
+      }
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerup", stopDragging);
+      window.removeEventListener("pointercancel", stopDragging);
+    };
+    handle.addEventListener("pointerdown", (event) => {
+      if (event.button !== 0) {
+        return;
+      }
+      event.preventDefault();
+      isDragging = true;
+      panel.classList.add("coach-panel-dragging");
+      handle.setPointerCapture(event.pointerId);
+      startX = event.clientX;
+      startY = event.clientY;
+      startLeft = parseFloat(panel.style.left) || rect.left;
+      startTop = parseFloat(panel.style.top) || rect.top;
+      window.addEventListener("pointermove", onPointerMove);
+      window.addEventListener("pointerup", stopDragging);
+      window.addEventListener("pointercancel", stopDragging);
+    });
   },
   openLichessGame() {
     const fen = this.chess ? this.chess.fen() : "start";

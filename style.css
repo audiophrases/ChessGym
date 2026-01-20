@@ -247,6 +247,38 @@ body {
 
 .coach-panel {
   align-items: flex-start;
+  position: fixed;
+  z-index: 30;
+}
+
+.coach-panel .drag-handle {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--panel-muted);
+  color: var(--text);
+  cursor: grab;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(28, 35, 51, 0.12);
+  touch-action: none;
+}
+
+.coach-panel .drag-handle::before {
+  content: "";
+  width: 10px;
+  height: 10px;
+  border-left: 2px solid var(--border);
+  border-top: 2px solid var(--border);
+}
+
+.coach-panel-dragging .drag-handle {
+  cursor: grabbing;
 }
 
 .info-card {
