@@ -64,6 +64,10 @@ const App = {
     lastCoachComment: "",
     previousCoachComment: "",
     currentCoachComment: "Welcome to ChessGym.",
+    promptHistoryByFen: {},
+    promptChain: { current: "", previous: "" },
+    coachOverride: null,
+    coachOverrideTimer: null,
     hintActive: false,
     boardSizeIndex: 2,
     outOfLine: false
@@ -664,6 +668,9 @@ const App = {
     this.state.sessionLineId = null;
     this.state.moveHistory = [];
     this.state.redoMoves = [];
+    this.state.promptHistoryByFen = {};
+    this.state.promptChain = { current: "", previous: "" };
+    this.clearCoachOverride();
     this.$engineEval.text("");
     this.clearSelection();
     this.clearHintHighlight();
@@ -1246,6 +1253,10 @@ const App = {
     if (this.state.mode === "learning" || this.state.mode === "practice") {
       this.setLineStatus(this.getActiveLine());
     }
+    if (this.state.mode === "learning") {
+      this.syncPromptChainForCurrentFen();
+      this.clearCoachOverride();
+    }
     this.setStatus("Reviewing moves.");
   },
   updateTrainingPositionState() {
@@ -1263,11 +1274,11 @@ const App = {
     }
     const expected = this.getExpectedNode();
     if (expected) {
-      this.setComment(expected.learn_prompt || "Find the next move.");
+      this.setPromptForCurrentFen(expected.learn_prompt || "Find the next move.");
     }
   },
   showLearningExplain(row) {
-    this.setComment("Good move. Continue.");
+    this.setCoachOverride("Good move. Continue.", { durationMs: 2000 });
   },
   showPracticeCorrect(row) {
     this.setComment("Correct.");
@@ -1508,6 +1519,10 @@ const App = {
     this.renderCoachComment();
   },
   setComment(html, options = {}) {
+    if (this.state.mode === "learning" && !options.isPrompt) {
+      this.setCoachOverride(html, options);
+      return;
+    }
     this.state.previousCoachComment = this.state.currentCoachComment;
     this.state.currentCoachComment = html;
     if (!options.isHint) {
@@ -1516,10 +1531,65 @@ const App = {
     }
     this.renderCoachComment();
   },
+  setCoachOverride(html, options = {}) {
+    const { durationMs } = options;
+    this.clearCoachOverride();
+    this.state.coachOverride = html;
+    if (durationMs) {
+      this.state.coachOverrideTimer = setTimeout(() => {
+        this.state.coachOverrideTimer = null;
+        this.state.coachOverride = null;
+        this.renderCoachComment();
+      }, durationMs);
+    }
+    this.renderCoachComment();
+  },
+  clearCoachOverride() {
+    if (this.state.coachOverrideTimer) {
+      clearTimeout(this.state.coachOverrideTimer);
+      this.state.coachOverrideTimer = null;
+    }
+    this.state.coachOverride = null;
+  },
+  getPromptHistoryForFen(fenKey) {
+    return this.state.promptHistoryByFen[fenKey] || { current: "", previous: "" };
+  },
+  setPromptForCurrentFen(prompt) {
+    const fenKey = normalizeFen(this.chess.fen());
+    const history = this.getPromptHistoryForFen(fenKey);
+    const previousPrompt = this.state.promptChain.current || "";
+    if (history.current !== prompt) {
+      history.previous = history.current || previousPrompt;
+      history.current = prompt;
+    } else if (previousPrompt && history.previous !== previousPrompt && history.current !== previousPrompt) {
+      history.previous = previousPrompt;
+    }
+    this.state.promptHistoryByFen[fenKey] = history;
+    this.state.promptChain = { current: history.current, previous: history.previous };
+    this.renderCoachComment();
+  },
+  syncPromptChainForCurrentFen() {
+    const fenKey = normalizeFen(this.chess.fen());
+    const history = this.state.promptHistoryByFen[fenKey];
+    if (history) {
+      this.state.promptChain = { current: history.current, previous: history.previous };
+    } else {
+      this.state.promptChain = { current: "", previous: "" };
+    }
+  },
   renderCoachComment() {
-    const base = this.state.currentCoachComment || "";
+    const override = this.state.coachOverride;
+    const useLearningPrompts = this.state.mode === "learning";
+    const promptCurrent = this.state.promptChain.current || "";
+    const promptPrevious = this.state.promptChain.previous || "";
+    const fallbackCurrent = this.state.currentCoachComment || "";
+    const fallbackPrevious = this.state.previousCoachComment || "";
+    const base = override || (useLearningPrompts ? (promptCurrent || fallbackCurrent) : fallbackCurrent);
+    let previous = fallbackPrevious;
+    if (useLearningPrompts) {
+      previous = override ? (promptCurrent || fallbackPrevious) : (promptCurrent ? promptPrevious : fallbackPrevious);
+    }
     const plainBase = base.replace(/<[^>]*>/g, "").trim();
-    const previous = this.state.previousCoachComment || "";
     const plainPrevious = previous.replace(/<[^>]*>/g, "").trim();
     const needsPrefix = this.state.statusText === "Your move." && !/^your move\b/i.test(plainBase);
     const prefix = needsPrefix ? "<strong>Your move:</strong> " : "";
