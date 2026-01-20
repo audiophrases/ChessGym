@@ -2,7 +2,7 @@
   ChessGym uses four CSV feeds:
   - openings: core opening metadata (opening_id, starting_fen, book_max_plies_game_mode, etc.).
   - lines: named training lines (opening_id, line_id, drill_side, start_fen, moves_pgn).
-  - nodes: per-node instructions for each line (move_uci, accept_uci, prompts, feedback, mistake_map).
+  - nodes: streamlined per-node instructions (opening_id, line_id, node_id, parent_node_id, move_uci, learn_prompt, mistake_map).
   - mistake_templates: global messaging for mapped mistakes (mistake_code -> coach_message, why_wrong, hint).
 */
 
@@ -232,17 +232,6 @@ const App = {
       }
     });
 
-    Object.keys(this.data.nodesByLineId).forEach((lineId) => {
-      this.data.nodesByLineId[lineId].sort((a, b) => {
-        const aPly = parseInt(a.ply || "0", 10);
-        const bPly = parseInt(b.ply || "0", 10);
-        if (aPly !== bPly) {
-          return aPly - bPly;
-        }
-        return (a.node_id || "").localeCompare(b.node_id || "");
-      });
-    });
-
     Object.keys(this.data.childrenByParentKey).forEach((parentKey) => {
       this.data.childrenByParentKey[parentKey].sort((aKey, bKey) => {
         const aNode = this.data.nodesById[aKey];
@@ -258,17 +247,13 @@ const App = {
     this.buildComputedFenIndexes();
   },
   compareNodesDeterministic(a, b) {
-    const aPly = parseInt(a.ply || "0", 10);
-    const bPly = parseInt(b.ply || "0", 10);
-    if (aPly !== bPly) {
-      return aPly - bPly;
+    const aNodeId = (a && a.node_id) || "";
+    const bNodeId = (b && b.node_id) || "";
+    const nodeCompare = aNodeId.localeCompare(bNodeId);
+    if (nodeCompare !== 0) {
+      return nodeCompare;
     }
-    const aKey = isTrue(a.is_key);
-    const bKey = isTrue(b.is_key);
-    if (aKey !== bKey) {
-      return aKey ? -1 : 1;
-    }
-    return (a.node_id || "").localeCompare(b.node_id || "");
+    return ((a && a.move_uci) || "").localeCompare((b && b.move_uci) || "");
   },
   compareNodesByPreference(a, b) {
     const sessionLineId = this.state.sessionLineId;
@@ -282,17 +267,7 @@ const App = {
     if (aPriority !== bPriority) {
       return bPriority - aPriority;
     }
-    const aKey = isTrue(a.is_key);
-    const bKey = isTrue(b.is_key);
-    if (aKey !== bKey) {
-      return aKey ? -1 : 1;
-    }
-    const aPly = parseInt(a.ply || "0", 10);
-    const bPly = parseInt(b.ply || "0", 10);
-    if (aPly !== bPly) {
-      return aPly - bPly;
-    }
-    return (a.node_id || "").localeCompare(b.node_id || "");
+    return this.compareNodesDeterministic(a, b);
   },
   buildComputedFenIndexes() {
     this.data.nodesByOpeningFen = {};
@@ -311,7 +286,11 @@ const App = {
     Object.keys(this.data.nodesByOpeningFen).forEach((openingId) => {
       const fenMap = this.data.nodesByOpeningFen[openingId];
       Object.keys(fenMap).forEach((fenKey) => {
-        fenMap[fenKey].sort((a, b) => this.compareNodesByPreference(a, b));
+        fenMap[fenKey].sort((aKey, bKey) => {
+          const aNode = this.data.nodesById[aKey];
+          const bNode = this.data.nodesById[bKey];
+          return this.compareNodesByPreference(aNode, bNode);
+        });
       });
     });
   },
@@ -333,6 +312,7 @@ const App = {
       return;
     }
     const afterFen = chess.fen();
+    node._san = move.san || "";
 
     const openingId = line.opening_id;
     if (openingId) {
@@ -343,7 +323,7 @@ const App = {
       if (!this.data.nodesByOpeningFen[openingId][normalizedFen]) {
         this.data.nodesByOpeningFen[openingId][normalizedFen] = [];
       }
-      this.data.nodesByOpeningFen[openingId][normalizedFen].push(node);
+      this.data.nodesByOpeningFen[openingId][normalizedFen].push(node._key);
     }
 
     const children = this.data.childrenByParentKey[nodeKey] || [];
@@ -454,7 +434,7 @@ const App = {
     return false;
   },
   findTranspositionCandidate(fenKey) {
-    const candidates = (this.data.nodesByOpeningFen[this.state.openingId] || {})[fenKey] || [];
+    const candidates = this.getNodesForOpeningFenKey(this.state.openingId, fenKey);
     return this.pickBestCandidate(candidates, this.state.sessionLineId);
   },
   switchSessionToNode(node, options = {}) {
@@ -886,14 +866,16 @@ const App = {
       return "snapback";
     }
 
-    const acceptable = getAcceptableMoves(expected);
     const fenKeyAfter = normalizeFen(this.chess.fen());
     const plan = this.state.sessionPlan;
     const planDepth = plan ? plan.depthByFenKey[fenKeyAfter] : undefined;
     const currentDepth = Number.isFinite(this.state.currentDepth) ? this.state.currentDepth : -1;
-    const isTranspositionWithinPlan = Number.isFinite(planDepth) && planDepth > currentDepth;
+    const opening = this.getSelectedOpening();
+    const allowTranspositions = opening && isTrue(opening.allow_transpositions);
+    const isExpectedMove = uci === expected.move_uci;
+    const isTranspositionWithinPlan = allowTranspositions && Number.isFinite(planDepth) && planDepth > currentDepth;
 
-    if (!acceptable.includes(uci) && !isTranspositionWithinPlan) {
+    if (!isExpectedMove && !isTranspositionWithinPlan) {
       const branchNode = this.findMistakeBranchNode(fenKeyBefore, uci, expected);
       if (branchNode) {
         this.handleMistakeBranchJump(branchNode, expected, uci, legalMove);
@@ -935,7 +917,7 @@ const App = {
   },
   findMistakeBranchNode(fenKeyBefore, uci, expected) {
     const openingId = this.state.openingId;
-    const candidates = (this.data.nodesByOpeningFen[openingId] || {})[fenKeyBefore] || [];
+    const candidates = this.getNodesForOpeningFenKey(openingId, fenKeyBefore);
     const matches = candidates.filter((node) => node.move_uci === uci);
     if (!matches.length) {
       return null;
@@ -951,9 +933,12 @@ const App = {
     this.state.wrongAttemptsForPly += 1;
     this.state.hadLapse = true;
     const mistakeMessage = expected ? this.lookupMistake(uci, expected) : "";
-    const fallback = expected && expected.practice_bad ? expected.practice_bad : "Not quite. Follow the refutation.";
-    this.setComment(mistakeMessage || fallback);
-    this.setStatus("Mistake detected. Switching to refutation line.");
+    if (mistakeMessage) {
+      this.setComment(mistakeMessage);
+    } else {
+      this.setComment("Different branch selected. We'll follow this line.");
+    }
+    this.setStatus("Switching to the selected branch.");
 
     this.playMoveSound(legalMove);
     this.recordMove(uci, legalMove);
@@ -995,7 +980,7 @@ const App = {
       if (maxReached || bookCandidates.length === 0) {
         this.state.inBook = false;
       } else {
-        const matchesCandidate = bookCandidates.some((candidate) => getAcceptableMoves(candidate).includes(uci));
+        const matchesCandidate = bookCandidates.some((candidate) => candidate.move_uci === uci);
         if (!matchesCandidate) {
           this.state.inBook = false;
         } else {
@@ -1108,18 +1093,13 @@ const App = {
     if (this.state.wrongAttemptsForPly >= 3) {
       this.state.hadLapse = true;
     }
-    if (this.state.mode === "learning") {
-      const msg = row.practice_bad || "Try again.";
-      this.setComment(msg);
-      this.setStatus("Not quite. Try again.");
-      return;
-    }
-
     const mistakeMessage = this.lookupMistake(uci, row);
     if (mistakeMessage) {
       this.setComment(mistakeMessage);
     } else {
-      this.setComment(row.practice_bad || "Not quite. Try again.");
+      const expectedSan = row ? this.getExpectedSan(row) : "";
+      const hint = expectedSan ? ` Hint: ${expectedSan}` : "";
+      this.setComment(`Not in this repertoire.${hint}`);
     }
     this.setStatus("Incorrect. Try again.");
   },
@@ -1270,10 +1250,19 @@ const App = {
     }
   },
   showLearningExplain(row) {
-    this.setComment(row.learn_explain || "Good move. Continue.");
+    this.setComment("Good move. Continue.");
   },
   showPracticeCorrect(row) {
-    this.setComment(row.practice_good || "Correct.");
+    this.setComment("Correct.");
+  },
+  getExpectedSan(row) {
+    if (!row) {
+      return "";
+    }
+    if (row._san) {
+      return row._san;
+    }
+    return row.move_uci || "";
   },
   handleHint() {
     const row = this.getExpectedNode();
@@ -1286,24 +1275,11 @@ const App = {
       this.state.hintActive = false;
       return;
     }
-    if (this.state.mode === "learning") {
-      const targetSquare = row.move_uci ? row.move_uci.slice(0, 2) : "";
-      this.setHintHighlight(targetSquare);
-      this.setComment("Hint: the next piece to move is highlighted.", { isHint: true });
-      this.state.hintActive = true;
-      return;
-    }
-    if (this.state.mode !== "practice") {
-      return;
-    }
-    if (this.state.hintLevel === 0 && row.practice_hint) {
-      this.setComment(`Hint: ${row.practice_hint}`, { isHint: true });
-      this.state.hintLevel = 1;
-    } else if (this.state.hintLevel === 1 && row.practice_deep_hint) {
-      this.setComment(`Deep hint: ${row.practice_deep_hint}`, { isHint: true });
-      this.state.hintLevel = 2;
+    const expectedSan = this.getExpectedSan(row);
+    if (expectedSan) {
+      this.setComment(`Hint: ${expectedSan}`, { isHint: true });
     } else {
-      this.setComment("Keep trying. Make a few attempts to unlock more hints.", { isHint: true });
+      this.setComment("Hint: make the expected move.", { isHint: true });
     }
     this.state.hintActive = true;
   },
@@ -1315,13 +1291,7 @@ const App = {
     if (!row) {
       return;
     }
-    if (this.state.revealStage === 0 && this.state.hintLevel < 2 && row.practice_deep_hint) {
-      this.setComment(`Deep hint: ${row.practice_deep_hint}`);
-      this.state.hintLevel = 2;
-      this.state.revealStage = 1;
-      return;
-    }
-    const san = row.move_san || row.move_uci;
+    const san = this.getExpectedSan(row) || row.move_uci;
     this.setComment(`Correct move: <strong>${san}</strong>`);
     this.state.revealStage = 2;
     this.state.hadLapse = true;
@@ -1544,9 +1514,13 @@ const App = {
   getSelectedLine() {
     return this.getActiveLine();
   },
+  getNodesForOpeningFenKey(openingId, fenKey) {
+    const keys = (this.data.nodesByOpeningFen[openingId] || {})[fenKey] || [];
+    return keys.map((key) => this.data.nodesById[key]).filter(Boolean);
+  },
   getCandidateNodesForCurrentFen() {
     const normalized = normalizeFen(this.chess.fen());
-    return (this.data.nodesByOpeningFen[this.state.openingId] || {})[normalized] || [];
+    return this.getNodesForOpeningFenKey(this.state.openingId, normalized);
   },
   pickBestCandidate(candidates, preferredLineId) {
     if (!candidates.length) {
@@ -1591,7 +1565,7 @@ const App = {
     return this.getExpectedNodeFromPlan();
   },
   getBookCandidatesForFenKey(fenKey) {
-    return (this.data.nodesByOpeningFen[this.state.openingId] || {})[fenKey] || [];
+    return this.getNodesForOpeningFenKey(this.state.openingId, fenKey);
   },
   pickBookNode(candidates) {
     if (!candidates.length) {
@@ -1792,18 +1766,6 @@ function csvToObjects(text) {
 
 function isTrue(value) {
   return String(value || "").trim().toLowerCase() === "true";
-}
-
-function getAcceptableMoves(row) {
-  const moves = [row.move_uci];
-  if (row.accept_uci) {
-    row.accept_uci.split("|").forEach((move) => {
-      if (move.trim()) {
-        moves.push(move.trim());
-      }
-    });
-  }
-  return moves.filter(Boolean);
 }
 
 function applyMoveUCI(chess, uci) {
