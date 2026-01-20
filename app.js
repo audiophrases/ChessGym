@@ -84,6 +84,8 @@ const App = {
     this.$strength = $("#strengthSelect");
     this.$prev = $("#prevBtn");
     this.$next = $("#nextBtn");
+    this.$sessionSummary = $("#sessionSummary");
+    this.$sessionSelectors = $("#sessionSelectors");
     this.$lineStatus = $("#lineStatus");
     this.$sideStatus = $("#sideStatus");
     this.$progress = $("#progressInfo");
@@ -114,6 +116,13 @@ const App = {
     this.$resumeFen.on("click", () => this.resumeFromFen(this.$fenInput.val()));
     this.$copyFen.on("click", () => this.copyCurrentFen());
     this.$lichess.on("click", () => this.openLichessGame());
+    this.$sessionSummary.on("click", () => this.toggleSessionSelectors());
+    this.$sessionSummary.on("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        this.toggleSessionSelectors();
+      }
+    });
   },
   openLichessGame() {
     const fen = this.chess ? this.chess.fen() : "start";
@@ -147,12 +156,18 @@ const App = {
         this.data.mistakeTemplates = csvToObjects(mistakesText);
         this.buildIndexes();
         this.initBoard();
-        this.populateSelectors();
-    this.onModeChange();
-    this.showLoading(false);
-    this.setStatus("Select an opening to begin.");
-    this.renderCoachComment();
-  })
+        const defaultLine = this.pickDefaultLine();
+        const defaultMode = this.selectDefaultMode();
+        this.populateSelectors({
+          openingId: defaultLine ? defaultLine.opening_id : null,
+          lineId: defaultLine ? defaultLine.line_id : null,
+          mode: defaultMode
+        });
+        this.$mode.val(defaultMode);
+        this.onModeChange();
+        this.showLoading(false);
+        this.renderCoachComment();
+      })
       .catch((error) => {
         console.error(error);
         this.setStatus("Failed to load data. Please refresh.");
@@ -506,7 +521,39 @@ const App = {
     $("#board").on("click", ".square-55d63", handleBoardSelect);
     $("#board").on("touchend", ".square-55d63", handleBoardSelect);
   },
-  populateSelectors() {
+  toggleSessionSelectors(force) {
+    if (!this.$sessionSelectors || !this.$sessionSelectors.length) {
+      return;
+    }
+    const isOpen = !this.$sessionSelectors.prop("hidden");
+    const nextState = typeof force === "boolean" ? force : !isOpen;
+    this.$sessionSelectors.prop("hidden", !nextState);
+    this.$sessionSummary.attr("aria-expanded", nextState);
+  },
+  pickDefaultLine() {
+    const openings = this.data.openings.filter((o) => isTrue(o.published));
+    const openingIds = new Set(openings.map((opening) => opening.opening_id));
+    const candidateLines = this.data.lines.filter((line) => openingIds.has(line.opening_id));
+    if (!candidateLines.length) {
+      return null;
+    }
+    return weightedPick(candidateLines, (line) => this.getLineSelectionWeight(line, line.opening_id));
+  },
+  selectDefaultMode() {
+    const openings = this.data.openings.filter((o) => isTrue(o.published));
+    const openingIds = new Set(openings.map((opening) => opening.opening_id));
+    const candidateLines = this.data.lines.filter((line) => openingIds.has(line.opening_id));
+    if (!candidateLines.length) {
+      return "learning";
+    }
+    const srData = loadSR();
+    const hasUnlearned = candidateLines.some((line) => {
+      const sr = ensureSRDefaults(srData[getLineKey(line.opening_id, line.line_id)]);
+      return (sr.stats.learned || 0) === 0;
+    });
+    return hasUnlearned ? "learning" : "practice";
+  },
+  populateSelectors(defaults = {}) {
     const openings = this.data.openings.filter((o) => isTrue(o.published));
     this.$opening.empty();
     openings.forEach((opening) => {
@@ -514,17 +561,20 @@ const App = {
         $("<option>").val(opening.opening_id).text(opening.opening_name || opening.opening_id)
       );
     });
-    if (openings.length > 0) {
-      this.state.openingId = openings[0].opening_id;
-      this.$opening.val(this.state.openingId);
-      this.populateLines();
+    if (openings.length === 0) {
+      return;
     }
+    const openingId = defaults.openingId || openings[0].opening_id;
+    this.state.openingId = openingId;
+    this.$opening.val(openingId);
+    this.state.lineId = defaults.lineId || "any";
+    this.populateLines(defaults.lineId);
   },
-  populateLines() {
+  populateLines(preferredLineId) {
     const lines = this.data.linesByOpeningId[this.state.openingId] || [];
     const filteredLines = this.getFilteredLines(lines);
     const displayLines = filteredLines.length ? filteredLines : lines;
-    const currentSelection = this.$line.val();
+    const currentSelection = preferredLineId || this.$line.val();
 
     this.$line.empty();
     this.$line.append($("<option>").val("any").text("Any line (weighted)"));
@@ -563,7 +613,7 @@ const App = {
   },
   onModeChange() {
     this.state.mode = this.$mode.val();
-    this.populateLines();
+    this.populateLines(this.state.lineId);
     this.updateSideSelector();
     this.$strengthField.toggle(this.state.mode === "game");
     this.$hint.prop("disabled", this.state.mode === "game");
@@ -1463,10 +1513,10 @@ const App = {
       return isDue(sr, today);
     });
   },
-  getLineSelectionWeight(line) {
+  getLineSelectionWeight(line, openingId = this.state.openingId) {
     const basePriority = this.data.linePriorityById[line.line_id] || 1;
     const srData = loadSR();
-    const sr = ensureSRDefaults(srData[getLineKey(this.state.openingId, line.line_id)]);
+    const sr = ensureSRDefaults(srData[getLineKey(openingId, line.line_id)]);
     const completed = sr.stats.completed || 0;
     const learned = sr.stats.learned || 0;
     const studyCount = completed + learned;
@@ -1559,7 +1609,10 @@ const App = {
   },
   setLineStatus(line) {
     if (!line) {
-      this.$lineStatus.text(this.state.mode === "game" ? "Game mode active." : "Select a line to begin.");
+      const opening = this.getSelectedOpening();
+      const openingName = opening ? opening.opening_name || opening.opening_id : "Opening";
+      const modeLabel = formatModeLabel(this.state.mode);
+      this.$lineStatus.text(`${openingName} • ${modeLabel}`);
       this.updateSideStatus();
       return;
     }
@@ -1568,11 +1621,13 @@ const App = {
     const depth = Number.isFinite(this.state.currentDepth) ? this.state.currentDepth + 1 : 0;
     const ply = total ? Math.min(Math.max(depth, 1), total) : 0;
     const lineName = line.line_name || line.line_id;
-    const prefix = this.state.sessionLineId ? "Chosen line" : "Line";
+    const opening = this.getSelectedOpening();
+    const openingName = opening ? opening.opening_name || opening.opening_id : "Opening";
+    const modeLabel = formatModeLabel(this.state.mode);
     if (total) {
-      this.$lineStatus.text(`${prefix}: ${lineName} • Ply ${ply} of ${total}`);
+      this.$lineStatus.text(`${openingName} • ${lineName} • Ply ${ply} of ${total} • ${modeLabel}`);
     } else {
-      this.$lineStatus.text(`${prefix}: ${lineName}`);
+      this.$lineStatus.text(`${openingName} • ${lineName} • ${modeLabel}`);
     }
     this.updateSideStatus();
   },
@@ -2132,6 +2187,17 @@ function evalToWinProbability(evalData, userSide) {
   }
   const winProb = 1 / (1 + Math.exp(-0.8 * score));
   return Math.max(0.01, Math.min(0.99, winProb));
+}
+
+function formatModeLabel(mode) {
+  switch (mode) {
+    case "practice":
+      return "Practice";
+    case "game":
+      return "Game";
+    default:
+      return "Learning";
+  }
 }
 
 $(document).ready(() => {

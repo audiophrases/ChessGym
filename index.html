@@ -10,30 +10,50 @@
 <body>
   <div id="app">
     <header class="top-bar">
-      <div class="field">
-        <select id="openingSelect" aria-label="Opening"></select>
+      <div class="top-bar-row">
+        <button id="sessionSummary" class="session-summary" type="button" aria-expanded="false" aria-controls="sessionSelectors">
+          <div class="session-main">
+            <p id="lineStatus">Selecting your next line…</p>
+            <span id="sideStatus" class="side-label" aria-live="polite">Training as White</span>
+          </div>
+          <div class="progress" id="progressInfo"></div>
+          <span class="summary-hint">Click to change opening, line, or mode.</span>
+        </button>
+        <div class="top-bar-controls">
+          <div class="field" id="strengthField">
+            <select id="strengthSelect" aria-label="Engine strength">
+              <option value="beginner">Beginner</option>
+              <option value="intermediate">Intermediate</option>
+              <option value="strong">Strong</option>
+            </select>
+          </div>
+          <div class="actions">
+            <button id="prevBtn" class="ghost">Prev</button>
+            <button id="nextBtn" class="ghost">Next</button>
+          </div>
+        </div>
       </div>
-      <div class="field">
-        <select id="lineSelect" aria-label="Line"></select>
-        <button id="dueBtn" class="ghost">Study Due Lines</button>
+      <div class="session-selectors" id="sessionSelectors" hidden>
+        <div class="field">
+          <label for="openingSelect">Opening</label>
+          <select id="openingSelect" aria-label="Opening"></select>
+        </div>
+        <div class="field">
+          <label for="lineSelect">Line</label>
+          <select id="lineSelect" aria-label="Line"></select>
+          <button id="dueBtn" class="ghost">Study Due Lines</button>
+        </div>
+        <div class="field">
+          <label for="modeSelect">Mode</label>
+          <select id="modeSelect" aria-label="Mode">
+            <option value="learning">Learning</option>
+            <option value="practice">Practice</option>
+            <option value="game">Game</option>
+          </select>
+        </div>
       </div>
-      <div class="field">
-        <select id="modeSelect" aria-label="Mode">
-          <option value="learning">Learning</option>
-          <option value="practice">Practice</option>
-          <option value="game">Game</option>
-        </select>
-      </div>
-      <div class="field" id="strengthField">
-        <select id="strengthSelect" aria-label="Engine strength">
-          <option value="beginner">Beginner</option>
-          <option value="intermediate">Intermediate</option>
-          <option value="strong">Strong</option>
-        </select>
-      </div>
-      <div class="actions">
-        <button id="prevBtn" class="ghost">Prev</button>
-        <button id="nextBtn" class="ghost">Next</button>
+      <div class="coach-header">
+        <div id="commentBox" class="comment-box header-comment">Welcome to ChessGym.</div>
       </div>
     </header>
 
@@ -58,7 +78,6 @@
       <div class="main-column side-column">
         <aside class="coach-panel">
           <div class="info-card">
-            <div id="commentBox" class="comment-box">Welcome to ChessGym.</div>
             <div class="coach-actions">
               <button id="hintBtn" class="ghost">Hint</button>
               <button id="revealBtn" class="ghost">Reveal Move</button>
@@ -74,14 +93,6 @@
 
         <aside class="info-panel">
           <div class="info-card">
-            <div class="session-status">
-              <p id="lineStatus">Select a line to begin.</p>
-              <span id="sideStatus" class="side-label" aria-live="polite">Training as White</span>
-            </div>
-            <div class="progress" id="progressInfo"></div>
-          </div>
-          <div class="info-card">
-            <div id="engineEval" class="engine-eval"></div>
             <ol id="moveList" class="move-list"></ol>
           </div>
         </aside>
