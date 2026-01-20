@@ -98,50 +98,15 @@ body {
 .top-bar-controls {
   display: flex;
   gap: 16px;
-  align-items: flex-end;
+  align-items: center;
   margin-left: auto;
 }
 
-.header-actions,
-.board-controls {
+.header-actions {
   display: flex;
   gap: 8px;
-}
-
-.actions {
-  display: flex;
-  gap: 12px;
-}
-
-.actions button {
-  background: var(--accent);
-  color: #fff;
-  border: none;
-  cursor: pointer;
-  min-width: 78px;
-  padding: 6px 10px;
-  font-size: 0.85rem;
-  transition: background 0.2s ease;
-}
-
-.actions button:hover {
-  background: var(--accent-dark);
-}
-
-.actions button.ghost {
-  background: transparent;
-  color: var(--text);
-  border: 1px solid var(--border);
-}
-
-.actions button.ghost:hover {
-  background: var(--ghost-hover);
-}
-
-.actions button#resetBtn {
-  background: var(--surface-muted);
-  color: var(--text);
-  border: 1px solid var(--border);
+  flex-wrap: nowrap;
+  align-items: center;
 }
 
 .session-summary {
@@ -175,6 +140,12 @@ body {
 
 #lineStatus {
   margin: 0;
+}
+
+.session-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .session-stats {
@@ -253,7 +224,7 @@ body {
 }
 
 #board {
-  width: min(90%, var(--board-size, 520px));
+  width: min(100%, var(--board-size, 520px));
   max-width: none;
 }
 
@@ -405,7 +376,7 @@ body {
   }
 
   #board {
-    width: 100%;
+    width: min(100%, var(--board-size, 520px));
   }
 
   .coach-panel .info-card {
@@ -427,10 +398,6 @@ body {
   .side-column {
     max-width: none;
     width: 100%;
-  }
-  .actions {
-    width: 100%;
-    justify-content: flex-start;
   }
 }
 
@@ -456,6 +423,10 @@ body {
     width: 100%;
     flex-wrap: wrap;
     justify-content: space-between;
+  }
+
+  .header-actions {
+    flex-wrap: wrap;
   }
 
   .main {

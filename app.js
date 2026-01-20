@@ -1459,7 +1459,9 @@ const App = {
     }
     const nextIndex = Math.max(0, Math.min(sizes.length - 1, this.state.boardSizeIndex + direction));
     this.state.boardSizeIndex = nextIndex;
-    this.$board.css("--board-size", `${sizes[nextIndex]}px`);
+    const nextSize = `${sizes[nextIndex]}px`;
+    document.documentElement.style.setProperty("--board-size", nextSize);
+    this.$board.css("--board-size", nextSize);
     if (this.board && this.board.resize) {
       this.board.resize();
     }

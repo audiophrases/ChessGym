@@ -14,11 +14,13 @@
         <button id="sessionSummary" class="session-summary" type="button" aria-expanded="false" aria-controls="sessionSelectors">
           <div class="session-main">
             <p id="lineStatus">Selecting your next line…</p>
-            <span id="sideStatus" class="side-label" aria-live="polite">Training as White</span>
+            <div class="session-meta">
+              <span id="sideStatus" class="side-label" aria-live="polite">Training as White</span>
+              <span class="win-probability" id="winProbText">50%</span>
+            </div>
           </div>
           <div class="session-stats">
             <div class="progress" id="progressInfo"></div>
-            <div class="win-probability">White win: <span id="winProbText">50%</span></div>
           </div>
         </button>
         <div class="top-bar-controls">
@@ -30,16 +32,12 @@
             </select>
           </div>
           <div class="header-actions">
-            <button id="hintBtn" class="ghost">Hint</button>
-            <button id="lichessBtn" class="ghost">Lichess</button>
-          </div>
-          <div class="board-controls">
-            <button id="boardZoomOut" class="ghost" aria-label="Reduce board size">-</button>
-            <button id="boardZoomIn" class="ghost" aria-label="Increase board size">+</button>
-          </div>
-          <div class="actions">
             <button id="prevBtn" class="ghost">Prev</button>
             <button id="nextBtn" class="ghost">Next</button>
+            <button id="boardZoomOut" class="ghost" aria-label="Reduce board size">-</button>
+            <button id="boardZoomIn" class="ghost" aria-label="Increase board size">+</button>
+            <button id="hintBtn" class="ghost">Hint</button>
+            <button id="lichessBtn" class="ghost">Lichess</button>
           </div>
         </div>
       </div>
@@ -74,15 +72,6 @@
         </section>
       </div>
 
-      <div class="main-column side-column">
-        <aside class="coach-panel">
-          <div class="info-card">
-            <div class="coach-actions">
-              <button id="revealBtn" class="ghost">Reveal Move</button>
-            </div>
-          </div>
-        </aside>
-      </div>
     </main>
   </div>
 
