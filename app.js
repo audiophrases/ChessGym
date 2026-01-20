@@ -64,7 +64,8 @@ const App = {
     lastCoachComment: "",
     previousCoachComment: "",
     currentCoachComment: "Welcome to ChessGym.",
-    hintActive: false
+    hintActive: false,
+    boardSizeIndex: 2
   },
   chess: null,
   board: null,
@@ -92,16 +93,14 @@ const App = {
     this.$comment = $("#commentBox");
     this.$hint = $("#hintBtn");
     this.$reveal = $("#revealBtn");
-    this.$fenInput = $("#fenInput");
-    this.$resumeFen = $("#resumeFenBtn");
-    this.$copyFen = $("#copyFenBtn");
     this.$lichess = $("#lichessBtn");
-    this.$moveList = $("#moveList");
     this.$engineEval = $("#engineEval");
     this.$overlay = $("#loadingOverlay");
     this.$strengthField = $("#strengthField");
-    this.$winProbFill = $("#winProbFill");
     this.$winProbText = $("#winProbText");
+    this.$board = $("#board");
+    this.$boardZoomIn = $("#boardZoomIn");
+    this.$boardZoomOut = $("#boardZoomOut");
   },
   bindEvents() {
     this.$opening.on("change", () => this.onOpeningChange());
@@ -113,9 +112,9 @@ const App = {
     this.$next.on("click", () => this.stepMove(1));
     this.$hint.on("click", () => this.handleHint());
     this.$reveal.on("click", () => this.handleRevealMove());
-    this.$resumeFen.on("click", () => this.resumeFromFen(this.$fenInput.val()));
-    this.$copyFen.on("click", () => this.copyCurrentFen());
     this.$lichess.on("click", () => this.openLichessGame());
+    this.$boardZoomIn.on("click", () => this.adjustBoardSize(1));
+    this.$boardZoomOut.on("click", () => this.adjustBoardSize(-1));
     this.$sessionSummary.on("click", () => this.toggleSessionSelectors());
     this.$sessionSummary.on("keydown", (event) => {
       if (event.key === "Enter" || event.key === " ") {
@@ -620,10 +619,6 @@ const App = {
     this.$reveal.prop("disabled", this.state.mode !== "practice");
     this.$dueBtn.toggle(this.state.mode === "practice");
     this.$dueBtn.text(this.state.studyDueOnly ? "Study All Lines" : "Study Due Lines");
-    const resumeDisabled = this.state.mode === "game";
-    this.$fenInput.prop("disabled", resumeDisabled);
-    this.$resumeFen.prop("disabled", resumeDisabled);
-    this.$copyFen.prop("disabled", resumeDisabled);
     this.setComment("Session ready.");
     this.prepareSession();
   },
@@ -688,7 +683,6 @@ const App = {
     this.state.sessionLineId = null;
     this.state.moveHistory = [];
     this.state.redoMoves = [];
-    this.$moveList.empty();
     this.$engineEval.text("");
     this.clearSelection();
     this.clearHintHighlight();
@@ -921,7 +915,7 @@ const App = {
     this.state.hintLevel = 0;
     this.state.wrongAttemptsForPly = 0;
     this.state.revealStage = 0;
-    this.updateMoveList();
+    this.updateNavigationControls();
     this.updateLastMoveHighlight();
     this.setLineStatus(this.getActiveLine());
     if (this.state.mode === "learning") {
@@ -967,7 +961,7 @@ const App = {
     this.state.hintLevel = 0;
     this.state.revealStage = 0;
     this.state.wrongAttemptsForPly = 0;
-    this.updateMoveList();
+    this.updateNavigationControls();
     this.updateLastMoveHighlight();
     this.board.position(this.chess.fen());
     this.startLiveAnalysis();
@@ -993,7 +987,7 @@ const App = {
 
     this.playMoveSound(legalMove);
     this.recordMove(uci, legalMove);
-    this.updateMoveList();
+    this.updateNavigationControls();
     this.updateLastMoveHighlight();
 
     if (this.state.inBook) {
@@ -1066,7 +1060,7 @@ const App = {
         this.state.inBook = false;
       }
     }
-    this.updateMoveList();
+    this.updateNavigationControls();
     this.updateLastMoveHighlight();
     this.setStatus("Opponent move played.");
     this.nextGameTurn();
@@ -1097,7 +1091,7 @@ const App = {
       this.recordMove(bestmove, move);
       this.board.position(this.chess.fen());
       this.startLiveAnalysis();
-      this.updateMoveList();
+      this.updateNavigationControls();
       this.updateLastMoveHighlight();
       this.setStatus("Opponent move played.");
       this.nextGameTurn();
@@ -1172,7 +1166,7 @@ const App = {
     this.state.revealStage = 0;
     this.board.position(this.chess.fen());
     this.startLiveAnalysis();
-    this.updateMoveList();
+    this.updateNavigationControls();
     this.updateLastMoveHighlight();
     this.setLineStatus(this.getActiveLine());
     this.setStatus("Opponent move played.");
@@ -1243,7 +1237,7 @@ const App = {
     }
     this.board.position(this.chess.fen());
     this.startLiveAnalysis();
-    this.updateMoveList();
+    this.updateNavigationControls();
     this.updateLastMoveHighlight();
     this.clearHintHighlight();
     if (this.state.mode === "learning" || this.state.mode === "practice") {
@@ -1331,93 +1325,6 @@ const App = {
     this.setComment(`Correct move: <strong>${san}</strong>`);
     this.state.revealStage = 2;
     this.state.hadLapse = true;
-  },
-  resumeFromFen(fenText) {
-    if (this.state.mode === "game") {
-      this.setStatus("Resume is available in learning or practice mode.");
-      return;
-    }
-    const trimmed = (fenText || "").trim();
-    const fenToLoad = trimmed || "";
-    if (!fenToLoad) {
-      this.setStatus("Paste a FEN to resume from.");
-      return;
-    }
-    const testChess = new Chess();
-    const loaded = fenToLoad === "start" ? true : testChess.load(fenToLoad);
-    if (!loaded) {
-      this.setStatus("Invalid FEN. Please check and try again.");
-      return;
-    }
-
-    this.stopPendingActions();
-    this.state.moveHistory = [];
-    this.state.redoMoves = [];
-    this.$moveList.empty();
-    this.chess.reset();
-    if (fenToLoad !== "start") {
-      this.chess.load(fenToLoad);
-    }
-    this.board.position(this.chess.fen());
-    this.startLiveAnalysis();
-
-    const fenKey = normalizeFen(this.chess.fen());
-    const candidates = (this.data.nodesByOpeningFen[this.state.openingId] || {})[fenKey] || [];
-    if (!candidates.length) {
-      this.setStatus("No matching study nodes for this position.");
-      this.setComment("No matching study nodes for this position.");
-      return;
-    }
-    const bestNode = this.pickBestCandidate(candidates, this.state.sessionLineId);
-    if (!bestNode) {
-      this.setStatus("No matching study nodes for this position.");
-      return;
-    }
-
-    this.switchSessionToNode(bestNode, { announce: false });
-    this.state.hintLevel = 0;
-    this.state.revealStage = 0;
-    this.state.wrongAttemptsForPly = 0;
-    this.state.hadLapse = false;
-    this.state.completed = false;
-    this.updateProgress();
-    this.setStatus("Position resumed.");
-    if (this.state.mode === "learning") {
-      const expected = this.getExpectedNode();
-      this.setComment(expected && expected.learn_prompt ? expected.learn_prompt : "Find the next move.");
-    } else {
-      this.setComment("Your move.");
-    }
-    const turn = this.chess.turn() === "w" ? "white" : "black";
-    if (turn !== this.state.userSide) {
-      this.scheduleAutoPlay();
-    }
-  },
-  copyCurrentFen() {
-    if (!this.chess) {
-      return;
-    }
-    const fen = this.chess.fen();
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(fen).then(() => {
-        this.setStatus("FEN copied to clipboard.");
-      }).catch(() => {
-        this.setStatus("Unable to copy FEN. Please copy manually.");
-      });
-      return;
-    }
-    const temp = document.createElement("textarea");
-    temp.value = fen;
-    document.body.appendChild(temp);
-    temp.select();
-    try {
-      document.execCommand("copy");
-      this.setStatus("FEN copied to clipboard.");
-    } catch (error) {
-      this.setStatus("Unable to copy FEN. Please copy manually.");
-    } finally {
-      document.body.removeChild(temp);
-    }
   },
   checkLineComplete() {
     if (this.state.completed) {
@@ -1545,16 +1452,17 @@ const App = {
     }
     return this.data.linesById[selection] || null;
   },
-  updateMoveList() {
-    const history = this.chess.history({ verbose: true });
-    this.$moveList.empty();
-    for (let i = 0; i < history.length; i += 2) {
-      const whiteMove = history[i];
-      const blackMove = history[i + 1];
-      const moveText = `${whiteMove ? whiteMove.san : ""} ${blackMove ? blackMove.san : ""}`;
-      this.$moveList.append($("<li>").text(moveText.trim()));
+  adjustBoardSize(direction) {
+    const sizes = [420, 480, 520, 560, 600];
+    if (!Number.isFinite(this.state.boardSizeIndex)) {
+      this.state.boardSizeIndex = 2;
     }
-    this.updateNavigationControls();
+    const nextIndex = Math.max(0, Math.min(sizes.length - 1, this.state.boardSizeIndex + direction));
+    this.state.boardSizeIndex = nextIndex;
+    this.$board.css("--board-size", `${sizes[nextIndex]}px`);
+    if (this.board && this.board.resize) {
+      this.board.resize();
+    }
   },
   updateNavigationControls() {
     const hasHistory = this.state.moveHistory.length > 0;
@@ -1565,19 +1473,16 @@ const App = {
   updateWinProbabilityFromEval(evalData) {
     if (evalData && evalData.type === "mate") {
       const mateScore = evalData.value;
-      const percent = mateScore > 0 ? 100 : 0;
       const mateLabel = `#${mateScore > 0 ? Math.abs(mateScore) : `-${Math.abs(mateScore)}`}`;
-      this.$winProbFill.css("width", `${percent}%`);
       this.$winProbText.text(mateLabel);
       return;
     }
-    const probability = evalToWinProbability(evalData, this.state.userSide);
+    const probability = evalToWinProbability(evalData, "white");
     this.updateWinProbability(probability);
   },
   updateWinProbability(probability) {
     const clamped = Math.max(0, Math.min(1, probability));
     const percent = Math.round(clamped * 100);
-    this.$winProbFill.css("width", `${percent}%`);
     this.$winProbText.text(`${percent}%`);
   },
   setStatus(text) {

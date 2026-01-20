@@ -16,8 +16,10 @@
             <p id="lineStatus">Selecting your next line…</p>
             <span id="sideStatus" class="side-label" aria-live="polite">Training as White</span>
           </div>
-          <div class="progress" id="progressInfo"></div>
-          <span class="summary-hint">Click to change opening, line, or mode.</span>
+          <div class="session-stats">
+            <div class="progress" id="progressInfo"></div>
+            <div class="win-probability">White win: <span id="winProbText">50%</span></div>
+          </div>
         </button>
         <div class="top-bar-controls">
           <div class="field" id="strengthField">
@@ -26,6 +28,14 @@
               <option value="intermediate">Intermediate</option>
               <option value="strong">Strong</option>
             </select>
+          </div>
+          <div class="header-actions">
+            <button id="hintBtn" class="ghost">Hint</button>
+            <button id="lichessBtn" class="ghost">Lichess</button>
+          </div>
+          <div class="board-controls">
+            <button id="boardZoomOut" class="ghost" aria-label="Reduce board size">-</button>
+            <button id="boardZoomIn" class="ghost" aria-label="Increase board size">+</button>
           </div>
           <div class="actions">
             <button id="prevBtn" class="ghost">Prev</button>
@@ -62,38 +72,14 @@
         <section class="board-panel">
           <div id="board"></div>
         </section>
-
-        <section class="eval-panel">
-          <div class="eval-gauge">
-            <div class="eval-label">
-              <span id="winProbText">50%</span>
-            </div>
-            <div class="eval-bar">
-              <div id="winProbFill" class="eval-fill"></div>
-            </div>
-          </div>
-        </section>
       </div>
 
       <div class="main-column side-column">
         <aside class="coach-panel">
           <div class="info-card">
             <div class="coach-actions">
-              <button id="hintBtn" class="ghost">Hint</button>
               <button id="revealBtn" class="ghost">Reveal Move</button>
-              <button id="lichessBtn" class="ghost">Lichess</button>
             </div>
-            <div class="resume-panel">
-              <input id="fenInput" type="text" placeholder="Paste FEN" aria-label="Paste FEN" />
-              <button id="resumeFenBtn" class="ghost">Resume from FEN</button>
-              <button id="copyFenBtn" class="ghost">Copy current FEN</button>
-            </div>
-          </div>
-        </aside>
-
-        <aside class="info-panel">
-          <div class="info-card">
-            <ol id="moveList" class="move-list"></ol>
           </div>
         </aside>
       </div>
