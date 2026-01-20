@@ -179,6 +179,8 @@ body {
 
 .coach-header {
   display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .header-comment {
@@ -186,6 +188,66 @@ body {
   min-height: 0;
   width: 100%;
   font-size: 1.15rem;
+}
+
+.learning-prompts {
+  border: 1px solid var(--border);
+  background: var(--panel-muted);
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.learning-prompts__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.learning-prompts__header h2 {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.learning-prompts__toggle {
+  font-size: 0.85rem;
+  padding: 6px 10px;
+}
+
+.learning-prompts__body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.learning-prompts__list {
+  list-style: decimal;
+  margin: 0;
+  padding-left: 20px;
+  max-height: 160px;
+  overflow-y: auto;
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.learning-prompts__list li {
+  padding-right: 6px;
+}
+
+.learning-prompts__empty {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.is-hidden {
+  display: none !important;
 }
 
 .main {

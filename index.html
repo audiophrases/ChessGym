@@ -61,6 +61,18 @@
       </div>
       <div class="coach-header">
         <div id="commentBox" class="comment-box header-comment">Welcome to ChessGym.</div>
+        <section class="learning-prompts" aria-live="polite">
+          <div class="learning-prompts__header">
+            <h2>Learning prompts</h2>
+            <button id="learningPromptsToggle" class="ghost learning-prompts__toggle" type="button" aria-expanded="false" aria-controls="learningPromptsBody">
+              Show
+            </button>
+          </div>
+          <div id="learningPromptsBody" class="learning-prompts__body" hidden>
+            <ul id="learningPromptsList" class="learning-prompts__list"></ul>
+            <p id="learningPromptsEmpty" class="learning-prompts__empty">No prompts yet.</p>
+          </div>
+        </section>
       </div>
     </header>
 
