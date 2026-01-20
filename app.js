@@ -66,8 +66,7 @@ const App = {
     currentCoachComment: "Welcome to ChessGym.",
     hintActive: false,
     boardSizeIndex: 2,
-    outOfLine: false,
-    promptHistory: []
+    outOfLine: false
   },
   chess: null,
   board: null,
@@ -76,7 +75,6 @@ const App = {
   init() {
     this.cacheElements();
     this.bindEvents();
-    this.renderPromptHistory();
     this.showLoading(true);
     this.loadData();
   },
@@ -104,10 +102,6 @@ const App = {
     this.$board = $("#board");
     this.$boardZoomIn = $("#boardZoomIn");
     this.$boardZoomOut = $("#boardZoomOut");
-    this.$learningPromptsToggle = $("#learningPromptsToggle");
-    this.$learningPromptsBody = $("#learningPromptsBody");
-    this.$learningPromptsList = $("#learningPromptsList");
-    this.$learningPromptsEmpty = $("#learningPromptsEmpty");
   },
   bindEvents() {
     this.$opening.on("change", () => this.onOpeningChange());
@@ -123,7 +117,6 @@ const App = {
     this.$boardZoomIn.on("click", () => this.adjustBoardSize(1));
     this.$boardZoomOut.on("click", () => this.adjustBoardSize(-1));
     this.$sessionSummary.on("click", () => this.toggleSessionSelectors());
-    this.$learningPromptsToggle.on("click", () => this.toggleLearningPrompts());
     this.$sessionSummary.on("keydown", (event) => {
       if (event.key === "Enter" || event.key === " ") {
         event.preventDefault();
@@ -1269,71 +1262,15 @@ const App = {
       return;
     }
     const expected = this.getExpectedNode();
-    if (!expected) {
-      return;
+    if (expected) {
+      this.setComment(expected.learn_prompt || "Find the next move.");
     }
-    const prompt = expected.learn_prompt || "Find the next move.";
-    this.recordLearningPrompt(prompt);
-    this.setComment("Prompt added to log. Open the Learning prompts panel to review it.");
   },
   showLearningExplain(row) {
-    const nextExpected = this.getExpectedNode();
-    const prompt = nextExpected ? nextExpected.learn_prompt : "";
-    if (prompt) {
-      const preview = this.getPromptPreview(prompt);
-      this.setComment(`Good move. Next prompt logged: <strong>${preview}</strong> Open the Learning prompts panel for more.`);
-      return;
-    }
     this.setComment("Good move. Continue.");
   },
   showPracticeCorrect(row) {
     this.setComment("Correct.");
-  },
-  toggleLearningPrompts() {
-    const isHidden = this.$learningPromptsBody.prop("hidden");
-    this.$learningPromptsBody.prop("hidden", !isHidden);
-    this.$learningPromptsToggle.attr("aria-expanded", String(isHidden));
-    this.$learningPromptsToggle.text(isHidden ? "Hide" : "Show");
-  },
-  recordLearningPrompt(prompt) {
-    const trimmed = (prompt || "").trim();
-    if (!trimmed) {
-      return;
-    }
-    this.state.promptHistory.push(trimmed);
-    const maxHistory = 12;
-    if (this.state.promptHistory.length > maxHistory) {
-      this.state.promptHistory = this.state.promptHistory.slice(-maxHistory);
-    }
-    this.renderPromptHistory();
-  },
-  getPromptPreview(prompt) {
-    const trimmed = (prompt || "").trim();
-    if (!trimmed) {
-      return "";
-    }
-    const sentenceEnd = trimmed.search(/[.!?](\s|$)/);
-    if (sentenceEnd !== -1) {
-      return trimmed.slice(0, sentenceEnd + 1);
-    }
-    return trimmed.length > 110 ? `${trimmed.slice(0, 110)}…` : trimmed;
-  },
-  renderPromptHistory() {
-    if (!this.$learningPromptsList.length) {
-      return;
-    }
-    this.$learningPromptsList.empty();
-    const history = this.state.promptHistory;
-    if (!history.length) {
-      this.$learningPromptsEmpty.removeClass("is-hidden");
-      return;
-    }
-    this.$learningPromptsEmpty.addClass("is-hidden");
-    history.forEach((prompt) => {
-      const $item = $("<li></li>");
-      $item.text(prompt);
-      this.$learningPromptsList.append($item);
-    });
   },
   getExpectedSan(row) {
     if (!row) {
