@@ -866,37 +866,40 @@ const App = {
       return "snapback";
     }
 
+    const playedUci = moveToUci(legalMove);
+    const normalizedPlayedUci = playedUci.toLowerCase();
+    const normalizedExpectedUci = expected.move_uci.toLowerCase();
     const fenKeyAfter = normalizeFen(this.chess.fen());
     const plan = this.state.sessionPlan;
     const planDepth = plan ? plan.depthByFenKey[fenKeyAfter] : undefined;
     const currentDepth = Number.isFinite(this.state.currentDepth) ? this.state.currentDepth : -1;
     const opening = this.getSelectedOpening();
     const allowTranspositions = this.state.mode === "game" && opening && isTrue(opening.allow_transpositions);
-    const isExpectedMove = uci === expected.move_uci;
+    const isExpectedMove = normalizedPlayedUci === normalizedExpectedUci;
     const isTranspositionWithinPlan = allowTranspositions && Number.isFinite(planDepth) && planDepth > currentDepth;
 
     if (!isExpectedMove && !isTranspositionWithinPlan) {
-      const branchNode = this.findMistakeBranchNode(fenKeyBefore, uci, expected, {
+      const branchNode = this.findMistakeBranchNode(fenKeyBefore, playedUci, expected, {
         mode: this.state.mode,
         currentLineId: expected.line_id
       });
       if (branchNode) {
-        this.handleMistakeBranchJump(branchNode, expected, uci, legalMove);
+        this.handleMistakeBranchJump(branchNode, expected, playedUci, legalMove);
         return;
       }
-      const isOtherLineMove = this.isMoveInOtherLine(fenKeyBefore, uci, expected.line_id);
+      const isOtherLineMove = this.isMoveInOtherLine(fenKeyBefore, playedUci, expected.line_id);
       this.chess.undo();
       if (isOtherLineMove) {
-        this.handleWrongMove(uci, expected, { message: "Not in this line." });
+        this.handleWrongMove(playedUci, expected, { message: "Not in this line." });
       } else {
-        this.handleWrongMove(uci, expected);
+        this.handleWrongMove(playedUci, expected);
       }
       this.playSound("error");
       return "snapback";
     }
 
     this.playMoveSound(legalMove);
-    this.recordMove(uci, legalMove);
+    this.recordMove(playedUci, legalMove);
     if (isTranspositionWithinPlan) {
       this.state.currentDepth = planDepth;
     } else {
@@ -927,7 +930,8 @@ const App = {
     const openingId = this.state.openingId;
     const { mode = this.state.mode, currentLineId = this.state.sessionLineId } = options;
     const candidates = this.getCandidateNodesForFen(openingId, fenKeyBefore, mode, currentLineId);
-    const matches = candidates.filter((node) => node.move_uci === uci);
+    const normalizedUci = uci.toLowerCase();
+    const matches = candidates.filter((node) => node.move_uci.toLowerCase() === normalizedUci);
     if (!matches.length) {
       return null;
     }
@@ -1637,7 +1641,8 @@ const App = {
   },
   isMoveInOtherLine(fenKey, uci, currentLineId) {
     const candidates = this.getNodesForOpeningFenKey(this.state.openingId, fenKey);
-    return candidates.some((node) => node.move_uci === uci && node.line_id !== currentLineId);
+    const normalizedUci = uci.toLowerCase();
+    return candidates.some((node) => node.move_uci.toLowerCase() === normalizedUci && node.line_id !== currentLineId);
   },
   isLineCompletePosition() {
     const plan = this.state.sessionPlan;
