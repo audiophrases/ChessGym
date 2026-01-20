@@ -68,6 +68,7 @@ const App = {
     promptChain: { current: "", previous: "" },
     coachOverride: null,
     coachOverrideTimer: null,
+    coachOverrideActive: false,
     hintActive: false,
     boardSizeIndex: 2,
     outOfLine: false
@@ -1541,23 +1542,45 @@ const App = {
   },
   setCoachOverride(html, options = {}) {
     const { durationMs } = options;
-    this.clearCoachOverride();
+    this.clearCoachOverride({ animate: false });
     this.state.coachOverride = html;
+    this.state.coachOverrideActive = true;
+    this.$comment
+      .addClass("coach-override-enter")
+      .removeClass("coach-override-exit");
+    requestAnimationFrame(() => {
+      this.$comment
+        .addClass("coach-override-active")
+        .removeClass("coach-override-enter");
+    });
     if (durationMs) {
       this.state.coachOverrideTimer = setTimeout(() => {
         this.state.coachOverrideTimer = null;
-        this.state.coachOverride = null;
+        this.clearCoachOverride();
         this.renderCoachComment();
       }, durationMs);
     }
     this.renderCoachComment();
   },
-  clearCoachOverride() {
+  clearCoachOverride({ animate = true } = {}) {
     if (this.state.coachOverrideTimer) {
       clearTimeout(this.state.coachOverrideTimer);
       this.state.coachOverrideTimer = null;
     }
     this.state.coachOverride = null;
+    this.state.coachOverrideActive = false;
+    if (!animate) {
+      this.$comment.removeClass("coach-override-active coach-override-enter coach-override-exit");
+      return;
+    }
+    if (!this.$comment.hasClass("coach-override-active")) {
+      this.$comment.removeClass("coach-override-enter coach-override-exit");
+      return;
+    }
+    this.$comment.removeClass("coach-override-enter").addClass("coach-override-exit");
+    setTimeout(() => {
+      this.$comment.removeClass("coach-override-active coach-override-exit");
+    }, 220);
   },
   getPromptHistoryForFen(fenKey) {
     return this.state.promptHistoryByFen[fenKey] || { current: "", previous: "" };
@@ -1605,7 +1628,7 @@ const App = {
       ? `<div class="coach-message-previous">${plainPrevious}</div>`
       : "";
     this.$comment.html(
-      `<div class="coach-message-stack"><div class="coach-message-current">${prefix}${base}</div>${previousHtml}</div>`
+      `<div class="coach-message-stack coach-message-fade"><div class="coach-message-current">${prefix}${base}</div>${previousHtml}</div>`
     );
   },
   setLineStatus(line) {
