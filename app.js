@@ -1395,7 +1395,7 @@ const App = {
     const ease = sr.ease ? sr.ease.toFixed(2) : "2.50";
     const stats = sr.stats || { completed: 0, perfect: 0, learned: 0 };
     this.$progressText.text(
-      `${stats.completed || 0} • Studied: ${stats.learned || 0} • Perfect: ${stats.perfect || 0} • Reps: ${reps} • Ease: ${ease}`
+      `Cmp:${stats.completed || 0} Stu:${stats.learned || 0} Prf:${stats.perfect || 0} Reps:${reps} Ease:${ease}`
     );
   },
   updateSideStatus() {
