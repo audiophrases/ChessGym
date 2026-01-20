@@ -88,8 +88,8 @@ const App = {
     this.$sessionSummary = $("#sessionSummary");
     this.$sessionSelectors = $("#sessionSelectors");
     this.$lineStatus = $("#lineStatus");
-    this.$sideStatus = $("#sideStatus");
     this.$progress = $("#progressInfo");
+    this.$progressText = $("#progressText");
     this.$comment = $("#commentBox");
     this.$hint = $("#hintBtn");
     this.$reveal = $("#revealBtn");
@@ -1349,7 +1349,7 @@ const App = {
   updateProgress() {
     const line = this.getActiveLine();
     if (!line) {
-      this.$progress.text("");
+      this.$progressText.text("");
       return;
     }
     const key = getLineKey(this.state.openingId, line.line_id);
@@ -1358,8 +1358,8 @@ const App = {
     const reps = sr.reps || 0;
     const ease = sr.ease ? sr.ease.toFixed(2) : "2.50";
     const stats = sr.stats || { completed: 0, perfect: 0, learned: 0 };
-    this.$progress.text(
-      `Completed: ${stats.completed || 0} • Studied: ${stats.learned || 0} • Perfect: ${stats.perfect || 0} • Reps: ${reps} • Ease: ${ease}`
+    this.$progressText.text(
+      `${stats.completed || 0} • Studied: ${stats.learned || 0} • Perfect: ${stats.perfect || 0} • Reps: ${reps} • Ease: ${ease}`
     );
   },
   updateSideStatus() {
