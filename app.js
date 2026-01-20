@@ -1622,10 +1622,11 @@ const App = {
     }
     const plainBase = base.replace(/<[^>]*>/g, "").trim();
     const plainPrevious = previous.replace(/<[^>]*>/g, "").trim();
-    const needsPrefix = this.state.statusText === "Your move." && !/^your move\b/i.test(plainBase);
-    const prefix = needsPrefix ? "<strong>Your move:</strong> " : "";
+    const sideLabel = this.state.userSide === "black" ? "Black" : "White";
+    const useSideLabel = useLearningPrompts || this.state.mode === "practice";
+    const prefix = useSideLabel ? `<strong>${sideLabel}:</strong> ` : "";
     const previousHtml = plainPrevious
-      ? `<div class="coach-message-previous">${plainPrevious}</div>`
+      ? `<div class="coach-message-previous">${prefix}${plainPrevious}</div>`
       : "";
     this.$comment.html(
       `<div class="coach-message-stack coach-message-fade"><div class="coach-message-current">${prefix}${base}</div>${previousHtml}</div>`
