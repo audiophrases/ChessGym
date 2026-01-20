@@ -1119,12 +1119,20 @@ const App = {
     } else if (options.message) {
       this.setComment(options.message);
     } else if (this.state.mode === "practice") {
-      const expectedSan = row ? this.getExpectedSan(row) : "";
-      const hint = expectedSan ? ` Expected: <strong>${expectedSan}</strong>.` : "";
+      const expectedSan = row ? row._san || "" : "";
+      const expectedUci = row ? row.move_uci || "" : "";
+      const expectedLabel = expectedSan && expectedUci
+        ? `${expectedSan} (${expectedUci})`
+        : expectedSan || expectedUci;
+      const hint = expectedLabel ? ` Expected: <strong>${expectedLabel}</strong>.` : "";
       this.setComment(`Incorrect.${hint}`);
     } else {
-      const expectedSan = row ? this.getExpectedSan(row) : "";
-      const hint = expectedSan ? ` Hint: ${expectedSan}` : "";
+      const expectedSan = row ? row._san || "" : "";
+      const expectedUci = row ? row.move_uci || "" : "";
+      const expectedLabel = expectedSan && expectedUci
+        ? `${expectedSan} (${expectedUci})`
+        : expectedSan || expectedUci;
+      const hint = expectedLabel ? ` Hint: ${expectedLabel}` : "";
       this.setComment(`Not in this repertoire.${hint}`);
     }
     this.setStatus("Incorrect. Try again.");
