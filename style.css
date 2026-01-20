@@ -162,7 +162,7 @@ body {
   gap: 6px;
   align-items: center;
   color: var(--text);
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .session-selectors {
@@ -179,6 +179,8 @@ body {
 
 .coach-header {
   display: flex;
+  align-items: flex-start;
+  gap: 12px;
 }
 
 .header-comment {
@@ -186,6 +188,7 @@ body {
   min-height: 0;
   width: 100%;
   font-size: 1.15rem;
+  flex: 1;
 }
 
 .main {
