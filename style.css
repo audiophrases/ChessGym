@@ -52,13 +52,20 @@ body {
 
 .top-bar {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 16px;
-  align-items: flex-end;
+  align-items: stretch;
   padding: 16px 24px;
   background: var(--panel);
   border-bottom: 1px solid var(--border);
   box-shadow: 0 2px 8px rgba(28, 35, 51, 0.04);
+}
+
+.top-bar-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
 }
 
 .top-bar .field {
@@ -88,10 +95,16 @@ body {
   color: var(--muted);
 }
 
+.top-bar-controls {
+  display: flex;
+  gap: 16px;
+  align-items: flex-end;
+  margin-left: auto;
+}
+
 .actions {
   display: flex;
   gap: 12px;
-  margin-left: auto;
 }
 
 .actions button {
@@ -121,6 +134,67 @@ body {
   background: var(--surface-muted);
   color: var(--text);
   border: 1px solid var(--border);
+}
+
+.session-summary {
+  flex: 1;
+  min-width: min(100%, 420px);
+  text-align: left;
+  border-radius: 14px;
+  padding: 12px 16px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: inherit;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  box-shadow: 0 6px 16px rgba(28, 35, 51, 0.06);
+}
+
+.session-summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.session-main {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+#lineStatus {
+  margin: 0;
+}
+
+.summary-hint {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.session-selectors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--border);
+}
+
+.session-selectors[hidden] {
+  display: none;
+}
+
+.coach-header {
+  display: flex;
+}
+
+.header-comment {
+  margin: 0;
+  min-height: 0;
+  width: 100%;
+  font-size: 1.15rem;
 }
 
 .main {
@@ -300,19 +374,6 @@ body {
   color: var(--text);
 }
 
-.session-status {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 6px;
-}
-
-#lineStatus {
-  margin: 0;
-}
-
 .side-label {
   font-size: 0.75rem;
   text-transform: uppercase;
@@ -347,12 +408,6 @@ body {
 .progress {
   font-size: 0.9rem;
   color: var(--muted);
-}
-
-.engine-eval {
-  font-size: 0.85rem;
-  color: var(--muted);
-  margin-bottom: 8px;
 }
 
 .overlay {
@@ -471,6 +526,18 @@ body {
   .top-bar {
     gap: 10px;
     padding: 12px 16px;
+  }
+
+  .top-bar-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .top-bar-controls {
+    margin-left: 0;
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: space-between;
   }
 
   .main {
