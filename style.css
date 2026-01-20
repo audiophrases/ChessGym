@@ -282,6 +282,24 @@ body {
   gap: 10px;
 }
 
+.resume-panel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.resume-panel input {
+  flex: 1 1 220px;
+  min-width: 180px;
+  padding: 8px 10px;
+  font-size: 0.9rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+}
+
 .session-status {
   display: flex;
   flex-wrap: wrap;
