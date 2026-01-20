@@ -12,6 +12,9 @@ const NODES_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQNmZYrVE9U7B
 const MISTAKE_TEMPLATES_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQNmZYrVE9U7BynLzoijjgIVSd6Mm2zP_blPqogiQ8zcmvFz4LJi7ADUiM6vdbyc1HZ9oHMBhUR4AHT/pub?gid=1251282566&single=true&output=csv";
 
 const OPPONENT_DELAY_MS = 500;
+const BOARD_SIZE_STEP = 40;
+const BOARD_SIZE_MIN = 280;
+const BOARD_SIZE_MAX = 720;
 
 const App = {
   data: {
@@ -64,7 +67,8 @@ const App = {
     lastCoachComment: "",
     previousCoachComment: "",
     currentCoachComment: "Welcome to ChessGym.",
-    hintActive: false
+    hintActive: false,
+    boardSize: null
   },
   chess: null,
   board: null,
@@ -100,6 +104,8 @@ const App = {
     this.$strengthField = $("#strengthField");
     this.$winProbFill = $("#winProbFill");
     this.$winProbText = $("#winProbText");
+    this.$boardSmaller = $("#boardSmallerBtn");
+    this.$boardLarger = $("#boardLargerBtn");
   },
   bindEvents() {
     this.$opening.on("change", () => this.onOpeningChange());
@@ -114,6 +120,9 @@ const App = {
     this.$resumeFen.on("click", () => this.resumeFromFen(this.$fenInput.val()));
     this.$copyFen.on("click", () => this.copyCurrentFen());
     this.$lichess.on("click", () => this.openLichessGame());
+    this.$boardSmaller.on("click", () => this.adjustBoardSize(-BOARD_SIZE_STEP));
+    this.$boardLarger.on("click", () => this.adjustBoardSize(BOARD_SIZE_STEP));
+    $(window).on("resize", () => this.applyBoardSize());
   },
   openLichessGame() {
     const fen = this.chess ? this.chess.fen() : "start";
@@ -484,6 +493,8 @@ const App = {
       draggable: false,
       pieceTheme
     });
+    this.state.boardSize = Math.round($("#board").width());
+    this.applyBoardSize();
 
     this.sounds.move = new Audio("sounds/move.mp3");
     this.sounds.capture = new Audio("sounds/capture.mp3");
@@ -505,6 +516,28 @@ const App = {
 
     $("#board").on("click", ".square-55d63", handleBoardSelect);
     $("#board").on("touchend", ".square-55d63", handleBoardSelect);
+  },
+  adjustBoardSize(delta) {
+    const currentSize = this.state.boardSize || $("#board").width();
+    this.state.boardSize = currentSize + delta;
+    this.applyBoardSize();
+  },
+  applyBoardSize() {
+    if (!this.state.boardSize) {
+      return;
+    }
+    const panelWidth = $(".board-panel").width() || BOARD_SIZE_MAX;
+    const maxSize = Math.min(BOARD_SIZE_MAX, panelWidth);
+    const clampedSize = Math.max(BOARD_SIZE_MIN, Math.min(maxSize, this.state.boardSize));
+    this.state.boardSize = clampedSize;
+    $("#board").css("width", `${clampedSize}px`);
+    if (this.board && typeof this.board.resize === "function") {
+      this.board.resize();
+    }
+    const canShrink = clampedSize > BOARD_SIZE_MIN;
+    const canGrow = clampedSize < maxSize;
+    this.$boardSmaller.prop("disabled", !canShrink);
+    this.$boardLarger.prop("disabled", !canGrow);
   },
   populateSelectors() {
     const openings = this.data.openings.filter((o) => isTrue(o.published));
