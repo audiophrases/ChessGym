@@ -65,7 +65,8 @@ const App = {
     previousCoachComment: "",
     currentCoachComment: "Welcome to ChessGym.",
     hintActive: false,
-    boardSizeIndex: 2
+    boardSizeIndex: 2,
+    outOfLine: false
   },
   chess: null,
   board: null,
@@ -433,8 +434,8 @@ const App = {
     this.state.currentDepth = -1;
     return false;
   },
-  findTranspositionCandidate(fenKey) {
-    const candidates = this.getNodesForOpeningFenKey(this.state.openingId, fenKey);
+  findTranspositionCandidate(fenKey, mode = this.state.mode, currentLineId = this.state.sessionLineId) {
+    const candidates = this.getCandidateNodesForFen(this.state.openingId, fenKey, mode, currentLineId);
     return this.pickBestCandidate(candidates, this.state.sessionLineId);
   },
   switchSessionToNode(node, options = {}) {
@@ -850,7 +851,6 @@ const App = {
   handleTrainingMove(uci, promotion) {
     const expected = this.getExpectedNode();
     if (!expected) {
-      this.setStatus("Line complete.");
       return "snapback";
     }
 
@@ -871,18 +871,26 @@ const App = {
     const planDepth = plan ? plan.depthByFenKey[fenKeyAfter] : undefined;
     const currentDepth = Number.isFinite(this.state.currentDepth) ? this.state.currentDepth : -1;
     const opening = this.getSelectedOpening();
-    const allowTranspositions = opening && isTrue(opening.allow_transpositions);
+    const allowTranspositions = this.state.mode === "game" && opening && isTrue(opening.allow_transpositions);
     const isExpectedMove = uci === expected.move_uci;
     const isTranspositionWithinPlan = allowTranspositions && Number.isFinite(planDepth) && planDepth > currentDepth;
 
     if (!isExpectedMove && !isTranspositionWithinPlan) {
-      const branchNode = this.findMistakeBranchNode(fenKeyBefore, uci, expected);
+      const branchNode = this.findMistakeBranchNode(fenKeyBefore, uci, expected, {
+        mode: this.state.mode,
+        currentLineId: expected.line_id
+      });
       if (branchNode) {
         this.handleMistakeBranchJump(branchNode, expected, uci, legalMove);
         return;
       }
+      const isOtherLineMove = this.isMoveInOtherLine(fenKeyBefore, uci, expected.line_id);
       this.chess.undo();
-      this.handleWrongMove(uci, expected);
+      if (isOtherLineMove) {
+        this.handleWrongMove(uci, expected, { message: "Not in this line." });
+      } else {
+        this.handleWrongMove(uci, expected);
+      }
       this.playSound("error");
       return "snapback";
     }
@@ -915,9 +923,10 @@ const App = {
     }
     return;
   },
-  findMistakeBranchNode(fenKeyBefore, uci, expected) {
+  findMistakeBranchNode(fenKeyBefore, uci, expected, options = {}) {
     const openingId = this.state.openingId;
-    const candidates = this.getNodesForOpeningFenKey(openingId, fenKeyBefore);
+    const { mode = this.state.mode, currentLineId = this.state.sessionLineId } = options;
+    const candidates = this.getCandidateNodesForFen(openingId, fenKeyBefore, mode, currentLineId);
     const matches = candidates.filter((node) => node.move_uci === uci);
     if (!matches.length) {
       return null;
@@ -1087,7 +1096,7 @@ const App = {
       }
     });
   },
-  handleWrongMove(uci, row) {
+  handleWrongMove(uci, row, options = {}) {
     this.state.mistakes += 1;
     this.state.wrongAttemptsForPly += 1;
     if (this.state.wrongAttemptsForPly >= 3) {
@@ -1096,6 +1105,12 @@ const App = {
     const mistakeMessage = this.lookupMistake(uci, row);
     if (mistakeMessage) {
       this.setComment(mistakeMessage);
+    } else if (options.message) {
+      this.setComment(options.message);
+    } else if (this.state.mode === "practice") {
+      const expectedSan = row ? this.getExpectedSan(row) : "";
+      const hint = expectedSan ? ` Expected: <strong>${expectedSan}</strong>.` : "";
+      this.setComment(`Incorrect.${hint}`);
     } else {
       const expectedSan = row ? this.getExpectedSan(row) : "";
       const hint = expectedSan ? ` Hint: ${expectedSan}` : "";
@@ -1230,19 +1245,13 @@ const App = {
     this.setStatus("Reviewing moves.");
   },
   updateTrainingPositionState() {
-    const opening = this.getSelectedOpening();
-    const allowTranspositions = opening && isTrue(opening.allow_transpositions);
     const fenKey = normalizeFen(this.chess.fen());
-    if (allowTranspositions && this.state.sessionPlan) {
-      const depth = this.state.sessionPlan.depthByFenKey[fenKey];
-      if (!Number.isFinite(depth)) {
-        const transposed = this.findTranspositionCandidate(fenKey);
-        if (transposed) {
-          this.switchSessionToNode(transposed, { announce: false });
-        }
-      }
-    }
     this.syncCurrentDepthFromFen();
+    if (this.state.sessionPlan && !this.state.sessionPlan.expectedByFenKey[fenKey]) {
+      this.state.outOfLine = true;
+    } else {
+      this.state.outOfLine = false;
+    }
   },
   showLearningPrompt() {
     if (this.state.mode !== "learning") {
@@ -1333,7 +1342,10 @@ const App = {
     if (!this.state.sessionPlan) {
       return;
     }
-    if (!this.getExpectedNode()) {
+    if (this.state.outOfLine && !this.isLineCompletePosition()) {
+      return;
+    }
+    if (this.isLineCompletePosition()) {
       this.state.completed = true;
       this.setStatus("Line complete.");
       this.setComment("Line complete. Great work!");
@@ -1548,6 +1560,16 @@ const App = {
     const keys = (this.data.nodesByOpeningFen[openingId] || {})[fenKey] || [];
     return keys.map((key) => this.data.nodesById[key]).filter(Boolean);
   },
+  getCandidateNodesForFen(openingId, fenKey, mode, currentLineId) {
+    const candidates = this.getNodesForOpeningFenKey(openingId, fenKey);
+    if (mode === "learning" || mode === "practice") {
+      if (!currentLineId) {
+        return [];
+      }
+      return candidates.filter((candidate) => candidate.line_id === currentLineId);
+    }
+    return candidates;
+  },
   getCandidateNodesForCurrentFen() {
     const normalized = normalizeFen(this.chess.fen());
     return this.getNodesForOpeningFenKey(this.state.openingId, normalized);
@@ -1579,7 +1601,17 @@ const App = {
   getExpectedNode() {
     const expected = this.getExpectedNodeFromPlan();
     if (expected) {
+      this.state.outOfLine = false;
       return expected;
+    }
+    if (this.state.mode === "learning" || this.state.mode === "practice") {
+      const fenKey = normalizeFen(this.chess.fen());
+      const plan = this.state.sessionPlan;
+      if (plan && !plan.expectedByFenKey[fenKey] && !this.isLineCompletePosition()) {
+        this.state.outOfLine = true;
+        this.setStatus("Out of this line. Use Undo or Resume-from-FEN to continue.");
+      }
+      return null;
     }
     const opening = this.getSelectedOpening();
     const allowTranspositions = opening && isTrue(opening.allow_transpositions);
@@ -1602,6 +1634,26 @@ const App = {
       return null;
     }
     return this.pickBestCandidate(candidates, this.state.sessionLineId);
+  },
+  isMoveInOtherLine(fenKey, uci, currentLineId) {
+    const candidates = this.getNodesForOpeningFenKey(this.state.openingId, fenKey);
+    return candidates.some((node) => node.move_uci === uci && node.line_id !== currentLineId);
+  },
+  isLineCompletePosition() {
+    const plan = this.state.sessionPlan;
+    if (!plan || !plan.order.length) {
+      return false;
+    }
+    if (this.state.moveHistory.length < plan.totalPlies) {
+      return false;
+    }
+    const lastNodeKey = plan.order[plan.order.length - 1];
+    const lastNode = this.data.nodesById[lastNodeKey];
+    if (!lastNode) {
+      return false;
+    }
+    const lastMove = this.state.moveHistory[this.state.moveHistory.length - 1];
+    return lastMove === lastNode.move_uci;
   },
   playMoveSound(move) {
     if (move.flags.includes("c") || move.flags.includes("e")) {
