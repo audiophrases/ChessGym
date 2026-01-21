@@ -1261,6 +1261,8 @@ const App = {
   stepMove(direction) {
     let moved = false;
     this.stopPendingActions();
+    let promptSideForStep = null;
+    let promptForStep = "";
     if (direction < 0) {
       const lastMove = this.state.moveHistory.pop();
       if (!lastMove) {
@@ -1282,6 +1284,14 @@ const App = {
     } else {
       const redoMove = this.state.redoMoves.pop();
       if (redoMove) {
+        if (this.state.mode === "learning") {
+          const expected = this.getExpectedNodeFromPlan();
+          if (expected) {
+            promptSideForStep = getSideFromFen(expected._fen_before)
+              || (this.chess && this.chess.turn() === "w" ? "white" : "black");
+            promptForStep = expected.learn_prompt ? expected.learn_prompt : "";
+          }
+        }
         const move = applyMoveUCI(this.chess, redoMove);
         if (!move) {
           return;
@@ -1296,6 +1306,11 @@ const App = {
         const move = expected ? applyMoveUCI(this.chess, expected.move_uci) : null;
         if (!move) {
           return;
+        }
+        if (this.state.mode === "learning" && expected) {
+          promptSideForStep = getSideFromFen(expected._fen_before)
+            || (this.chess && this.chess.turn() === "w" ? "white" : "black");
+          promptForStep = expected.learn_prompt ? expected.learn_prompt : "";
         }
         this.recordMove(expected.move_uci, move);
         this.syncCurrentDepthFromFen();
@@ -1325,7 +1340,11 @@ const App = {
     }
     if (this.state.mode === "learning") {
       this.syncPromptChainForCurrentFen();
-      this.showLearningPrompt();
+      if (direction > 0 && promptSideForStep) {
+        this.setPromptForCurrentFen(promptForStep, { side: promptSideForStep });
+      } else {
+        this.showLearningPrompt();
+      }
       this.clearCoachOverride();
     }
     this.setStatus("Reviewing moves.");
