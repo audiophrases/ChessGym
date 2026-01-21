@@ -53,9 +53,9 @@ body {
 .top-bar {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 6px;
   align-items: stretch;
-  padding: 12px 20px;
+  padding: 6px 12px;
   background: var(--panel);
   border-bottom: 1px solid var(--border);
   box-shadow: 0 2px 8px rgba(28, 35, 51, 0.04);
@@ -64,7 +64,7 @@ body {
 .top-bar-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 16px;
+  gap: 10px;
   align-items: center;
 }
 
@@ -115,7 +115,7 @@ body {
   text-align: left;
   margin-left: auto;
   border-radius: 14px;
-  padding: 12px 16px;
+  padding: 8px 12px;
   border: 1px solid var(--border);
   background: var(--surface);
   color: inherit;
@@ -169,14 +169,15 @@ body {
 .win-probability-pill {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
   border-radius: 999px;
-  padding: 6px 14px;
+  padding: 6px 8px;
   border: 1px solid var(--border);
   background: rgba(255, 255, 255, 0.04);
   color: var(--text);
   font-weight: 700;
   cursor: pointer;
+  width: 60px;
+  justify-content: center;
 }
 
 .win-probability-pill:focus {
@@ -191,11 +192,16 @@ body {
   color: var(--muted);
 }
 
+.win-probability {
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
 .session-selectors {
   display: flex;
   flex-wrap: wrap;
   gap: 16px;
-  padding-top: 12px;
+  padding-top: 6px;
   border-top: 1px dashed var(--border);
 }
 
@@ -206,7 +212,7 @@ body {
 .coach-header {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
+  gap: 8px;
 }
 
 .header-comment {
@@ -220,7 +226,7 @@ body {
 .main {
   display: flex;
   gap: 12px;
-  padding: 16px 24px;
+  padding: 0 24px 16px;
   flex: 1;
   align-items: flex-start;
 }
@@ -295,7 +301,8 @@ body {
   border: 1px solid var(--border);
   margin-bottom: 12px;
   line-height: 1.4;
-  font-size: 1.42rem;
+  --prompt-font-size: calc(1.42rem - 2px);
+  font-size: var(--prompt-font-size);
   text-align: left;
   display: flex;
   flex-direction: column;
@@ -330,7 +337,7 @@ body {
 
 .comment-box .coach-message-current {
   font-weight: 400;
-  font-size: 1.42rem;
+  font-size: var(--prompt-font-size);
   color: inherit;
 }
 
@@ -345,7 +352,7 @@ body {
 
 .comment-box .coach-message-row {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   gap: 12px;
 }
 
@@ -372,13 +379,13 @@ body {
 
 .comment-box .coach-message-studied .coach-message-current {
   font-weight: 700;
-  font-size: calc(1.42rem + 2px);
+  font-size: calc(var(--prompt-font-size) + 2px);
   color: var(--text);
 }
 
 .comment-box .coach-message-opponent .coach-message-current {
   font-weight: 400;
-  font-size: 1.42rem;
+  font-size: var(--prompt-font-size);
   color: inherit;
 }
 
@@ -509,8 +516,8 @@ body {
 
 @media (max-width: 600px) {
   .top-bar {
-    gap: 10px;
-    padding: 12px 16px;
+    gap: 8px;
+    padding: 6px 10px;
   }
 
   .top-bar-row {
@@ -530,8 +537,8 @@ body {
   }
 
   .main {
-    gap: 16px;
-    padding: 16px;
+    gap: 12px;
+    padding: 0 16px 16px;
   }
 
   .board-panel {

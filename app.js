@@ -1786,7 +1786,6 @@ const App = {
     const useSideLabel = useLearningPrompts || this.state.mode === "practice";
     const winProbHtml = `
       <button class="win-probability-pill" id="winProbPill" type="button" aria-label="Restart engine analysis">
-        <span class="win-probability-label">Win %</span>
         <span class="win-probability" id="winProbText">${this.state.winProbText}</span>
       </button>
     `;
@@ -1829,7 +1828,8 @@ const App = {
         : `<div class="coach-message-content"></div>`;
       const metaHtml = includeWinProb ? `<div class="coach-message-meta">${winProbHtml}</div>` : "";
       const rowClasses = metaOnly ? `${rowClass} coach-message-row-meta-only` : rowClass;
-      return `<div class="coach-message-row ${rowClasses}">${contentHtml}${metaHtml}</div>`;
+      const rowBody = includeWinProb ? `${metaHtml}${contentHtml}` : `${contentHtml}${metaHtml}`;
+      return `<div class="coach-message-row ${rowClasses}">${rowBody}</div>`;
     };
     const opponentRow = buildRow(opponentSide, "coach-message-opponent");
     const studiedRow = buildRow(studiedSide, "coach-message-studied");
