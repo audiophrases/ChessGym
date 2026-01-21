@@ -1689,7 +1689,7 @@ const App = {
       const base = sideOverride || (useLearningPrompts ? promptCurrent : fallbackCurrent);
       let previous = fallbackPrevious;
       if (useLearningPrompts) {
-        previous = "";
+        previous = side === studiedSide ? "" : (promptPrevious || fallbackPrevious);
       }
       return { base, previous };
     };
