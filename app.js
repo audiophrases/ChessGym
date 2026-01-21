@@ -519,7 +519,6 @@ const App = {
 
     this.sounds.move = new Audio("sounds/move.mp3");
     this.sounds.capture = new Audio("sounds/capture.mp3");
-    this.sounds.error = new Audio("sounds/error.mp3");
 
     let lastTouchTime = 0;
     const handleBoardSelect = (event) => {
@@ -905,7 +904,6 @@ const App = {
     });
 
     if (!legalMove) {
-      this.playSound("error");
       return "snapback";
     }
 
@@ -937,7 +935,6 @@ const App = {
       } else {
         this.handleWrongMove(playedUci, expected);
       }
-      this.playSound("error");
       return "snapback";
     }
 
@@ -1022,7 +1019,6 @@ const App = {
       promotion
     });
     if (!legalMove) {
-      this.playSound("error");
       return "snapback";
     }
 
