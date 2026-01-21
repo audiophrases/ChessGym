@@ -1812,11 +1812,9 @@ const App = {
       const { base, previous } = buildCoachMessage(side);
       const plainBase = base.replace(/<[^>]*>/g, "").trim();
       const plainPrevious = previous.replace(/<[^>]*>/g, "").trim();
-      const includeWinProb = rowClass === "coach-message-studied";
-      if (!plainBase && !plainPrevious && !includeWinProb) {
+      if (!plainBase && !plainPrevious) {
         return "";
       }
-      const metaOnly = !plainBase && !plainPrevious;
       const currentHtml = plainBase
         ? `<div class="coach-message-current"><span class="coach-message-text">${prefix}${base}</span></div>`
         : "";
@@ -1826,10 +1824,7 @@ const App = {
       const contentHtml = (currentHtml || previousHtml)
         ? `<div class="coach-message-content">${currentHtml}${previousHtml}</div>`
         : `<div class="coach-message-content"></div>`;
-      const metaHtml = includeWinProb ? `<div class="coach-message-meta">${winProbHtml}</div>` : "";
-      const rowClasses = metaOnly ? `${rowClass} coach-message-row-meta-only` : rowClass;
-      const rowBody = includeWinProb ? `${metaHtml}${contentHtml}` : `${contentHtml}${metaHtml}`;
-      return `<div class="coach-message-row ${rowClasses}">${rowBody}</div>`;
+      return `<div class="coach-message-row ${rowClass}">${contentHtml}</div>`;
     };
     const opponentRow = buildRow(opponentSide, "coach-message-opponent");
     const studiedRow = buildRow(studiedSide, "coach-message-studied");
@@ -1838,7 +1833,10 @@ const App = {
     const isSinglePrompt = Number(hasOpponentRow) + Number(hasStudiedRow) === 1;
     this.$comment.toggleClass("single-prompt", isSinglePrompt);
     this.$comment.html(
-      `<div class="coach-message-stack coach-message-fade">${opponentRow}${studiedRow}</div>`
+      `<div class="coach-message-stack coach-message-fade">
+        <div class="coach-message-meta-column">${winProbHtml}</div>
+        <div class="coach-message-rows">${opponentRow}${studiedRow}</div>
+      </div>`
     );
     this.$winProbText = this.$comment.find("#winProbText");
   },
