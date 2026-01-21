@@ -1728,6 +1728,10 @@ const App = {
     };
     const opponentRow = buildRow(opponentSide, "coach-message-opponent");
     const studiedRow = buildRow(studiedSide, "coach-message-studied");
+    const hasOpponentRow = opponentRow.trim().length > 0;
+    const hasStudiedRow = studiedRow.trim().length > 0;
+    const isSinglePrompt = Number(hasOpponentRow) + Number(hasStudiedRow) === 1;
+    this.$comment.toggleClass("single-prompt", isSinglePrompt);
     this.$comment.html(
       `<div class="coach-message-stack coach-message-fade">${opponentRow}${studiedRow}</div>`
     );

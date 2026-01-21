@@ -53,9 +53,9 @@ body {
 .top-bar {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
   align-items: stretch;
-  padding: 16px 24px;
+  padding: 12px 20px;
   background: var(--panel);
   border-bottom: 1px solid var(--border);
   box-shadow: 0 2px 8px rgba(28, 35, 51, 0.04);
@@ -99,7 +99,7 @@ body {
   display: flex;
   gap: 16px;
   align-items: center;
-  margin-left: auto;
+  margin-left: 0;
 }
 
 .header-actions {
@@ -113,6 +113,7 @@ body {
   flex: 1;
   min-width: min(100%, 420px);
   text-align: left;
+  margin-left: auto;
   border-radius: 14px;
   padding: 12px 16px;
   border: 1px solid var(--border);
@@ -193,8 +194,8 @@ body {
 
 .main {
   display: flex;
-  gap: 16px;
-  padding: 24px;
+  gap: 12px;
+  padding: 16px 24px;
   flex: 1;
   align-items: flex-start;
 }
@@ -271,12 +272,18 @@ body {
   line-height: 1.4;
   font-size: 1.42rem;
   text-align: left;
+  display: flex;
+  flex-direction: column;
 }
 
 .comment-box .coach-message-stack {
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+.comment-box.single-prompt .coach-message-stack {
+  margin-top: auto;
 }
 
 .comment-box .coach-message-fade {
