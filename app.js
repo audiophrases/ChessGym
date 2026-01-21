@@ -1178,6 +1178,12 @@ const App = {
       this.checkLineComplete();
       return;
     }
+    if (this.state.mode === "learning") {
+      const expectedSide = getSideFromFen(expected._fen_before)
+        || (this.chess && this.chess.turn() === "w" ? "white" : "black");
+      const prompt = expected.learn_prompt ? expected.learn_prompt : "Find the best move.";
+      this.setPromptForCurrentFen(prompt, { side: expectedSide });
+    }
     const move = applyMoveUCI(this.chess, expected.move_uci);
     if (!move) {
       this.setStatus("Opponent move failed.");
@@ -1690,7 +1696,7 @@ const App = {
       if (useLearningPrompts) {
         base = side === studiedSide
           ? (promptCurrent || fallbackCurrent)
-          : (promptPrevious || fallbackPrevious);
+          : (promptPrevious || promptCurrent || fallbackPrevious || fallbackCurrent);
       }
       const previous = useLearningPrompts ? "" : fallbackPrevious;
       return { base, previous };
