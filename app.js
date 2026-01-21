@@ -1296,20 +1296,17 @@ const App = {
         || (this.chess && this.chess.turn() === "w" ? "white" : "black");
       const opponentSide = expectedSide === "white" ? "black" : "white";
       const prompt = expected.learn_prompt || "Find the next move.";
-      this.setPromptForCurrentFen(prompt, { side: expectedSide });
-      const plan = this.state.sessionPlan;
-      const fenKey = normalizeFen(this.chess.fen());
-      let currentDepth = Number.isFinite(this.state.currentDepth)
-        ? this.state.currentDepth
-        : (plan ? plan.depthByFenKey[fenKey] : -1);
-      if (!Number.isFinite(currentDepth)) {
-        currentDepth = -1;
+      const isInitialPosition = this.chess
+        && this.chess.fen().startsWith("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR");
+      if (isInitialPosition) {
+        const fenKey = normalizeFen(this.chess.fen());
+        if (!this.state.promptHistoryByFenBySide[fenKey]) {
+          this.state.promptHistoryByFenBySide[fenKey] = {};
+        }
+        this.state.promptHistoryByFenBySide[fenKey][opponentSide] = { current: "", previous: "" };
+        this.state.promptChainBySide[opponentSide] = { current: "", previous: "" };
       }
-      const nextKey = plan && currentDepth >= 0 ? plan.order[currentDepth + 1] : null;
-      const nextNode = nextKey ? this.data.nodesById[nextKey] : null;
-      const nextPrompt = nextNode && nextNode.learn_prompt ? nextNode.learn_prompt : "";
-      const nextSide = nextNode ? (getSideFromFen(nextNode._fen_before) || opponentSide) : opponentSide;
-      this.setPromptForCurrentFen(nextPrompt, { side: nextSide });
+      this.setPromptForCurrentFen(prompt, { side: expectedSide });
     }
   },
   showLearningExplain(row) {
