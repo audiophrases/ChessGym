@@ -270,6 +270,7 @@ body {
   margin-bottom: 12px;
   line-height: 1.4;
   font-size: 1.42rem;
+  text-align: left;
 }
 
 .comment-box .coach-message-stack {

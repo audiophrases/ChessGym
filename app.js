@@ -1695,8 +1695,8 @@ const App = {
       let base = sideOverride || fallbackCurrent;
       if (useLearningPrompts) {
         base = side === studiedSide
-          ? (promptCurrent || fallbackCurrent)
-          : (promptPrevious || promptCurrent || fallbackPrevious || fallbackCurrent);
+          ? promptCurrent
+          : (promptPrevious || promptCurrent);
       }
       const previous = useLearningPrompts ? "" : fallbackPrevious;
       return { base, previous };
@@ -1707,19 +1707,19 @@ const App = {
       const { base, previous } = buildCoachMessage(side);
       const plainBase = base.replace(/<[^>]*>/g, "").trim();
       const plainPrevious = previous.replace(/<[^>]*>/g, "").trim();
-      const includeWinProb = rowClass === "coach-message-studied";
+      const includeWinProb = rowClass === "coach-message-studied" && plainBase;
       if (!plainBase && !plainPrevious && !includeWinProb) {
         return "";
       }
       const currentParts = [];
       if (plainBase) {
-        currentParts.push(`<span class="coach-message-text">${prefix}${base}</span>`);
-      }
-      if (includeWinProb) {
-        currentParts.push(winProbHtml);
+        const winProbSuffix = includeWinProb ? ` <strong class="win-probability" id="winProbText">${this.state.winProbText}</strong>` : "";
+        currentParts.push(`<span class="coach-message-text">${prefix}${base}${winProbSuffix}</span>`);
+      } else if (includeWinProb) {
+        currentParts.push(`<span class="coach-message-text">${prefix}${winProbHtml}</span>`);
       }
       const currentHtml = currentParts.length
-        ? `<div class="coach-message-current${includeWinProb ? " coach-message-current-with-win" : ""}">${currentParts.join("")}</div>`
+        ? `<div class="coach-message-current">${currentParts.join("")}</div>`
         : "";
       const previousHtml = plainPrevious
         ? `<div class="coach-message-previous"><span class="coach-message-text">${prefix}${plainPrevious}</span></div>`
