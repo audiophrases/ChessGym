@@ -294,6 +294,8 @@ body {
 
 .comment-box {
   min-height: 100px;
+  height: 140px;
+  max-height: 140px;
   padding: 12px;
   border-radius: 12px;
   background: var(--panel-muted);
@@ -309,12 +311,13 @@ body {
 }
 
 .comment-box .coach-message-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 12px;
+  height: 100%;
 }
 
-.comment-box.single-prompt .coach-message-stack {
+.comment-box.single-prompt .coach-message-rows {
   margin-top: auto;
 }
 
@@ -354,14 +357,21 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
+  min-width: 0;
 }
 
-.comment-box .coach-message-row-meta-only {
-  justify-content: flex-start;
+.comment-box .coach-message-meta-column {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.comment-box .coach-message-row-meta-only .coach-message-content {
-  display: none;
+.comment-box .coach-message-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  overflow: auto;
 }
 
 .comment-box .coach-message-content {
@@ -372,9 +382,8 @@ body {
   min-width: 0;
 }
 
-.comment-box .coach-message-meta {
-  display: flex;
-  align-items: center;
+.comment-box .coach-message-text {
+  white-space: nowrap;
 }
 
 .comment-box .coach-message-studied .coach-message-current {
