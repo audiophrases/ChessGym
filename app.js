@@ -1324,6 +1324,7 @@ const App = {
     }
     if (this.state.mode === "learning") {
       this.syncPromptChainForCurrentFen();
+      this.showLearningPrompt();
       this.clearCoachOverride();
     }
     this.setStatus("Reviewing moves.");
