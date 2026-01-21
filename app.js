@@ -1307,7 +1307,7 @@ const App = {
         this.state.promptChainBySide[opponentSide] = { current: "", previous: "" };
       } else {
         const plan = this.state.sessionPlan;
-        const currentDepth = Number.isFinite(this.state.currentDepth) ? this.state.currentDepth : -1;
+        const currentDepth = Number.isFinite(this.state.currentDepth) ? this.state.currentDepth : 0;
         const nextNodeKey = plan && plan.order ? plan.order[currentDepth + 1] : null;
         const nextNode = nextNodeKey ? this.data.nodesById[nextNodeKey] : null;
         const nextPrompt = nextNode && nextNode.learn_prompt ? nextNode.learn_prompt : "";
