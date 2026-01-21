@@ -11,16 +11,6 @@
   <div id="app">
     <header class="top-bar">
       <div class="top-bar-row">
-        <button id="sessionSummary" class="session-summary" type="button" aria-expanded="false" aria-controls="sessionSelectors">
-          <div class="session-main">
-            <p id="lineStatus">Selecting your next line…</p>
-          </div>
-          <div class="session-stats">
-            <div class="progress" id="progressInfo">
-              <span id="progressText"></span>
-            </div>
-          </div>
-        </button>
         <div class="top-bar-controls">
           <div class="field" id="strengthField">
             <select id="strengthSelect" aria-label="Engine strength">
@@ -38,6 +28,16 @@
             <button id="lichessBtn" class="ghost">Lichess</button>
           </div>
         </div>
+        <button id="sessionSummary" class="session-summary" type="button" aria-expanded="false" aria-controls="sessionSelectors">
+          <div class="session-main">
+            <p id="lineStatus">Selecting your next line…</p>
+          </div>
+          <div class="session-stats">
+            <div class="progress" id="progressInfo">
+              <span id="progressText"></span>
+            </div>
+          </div>
+        </button>
       </div>
       <div class="session-selectors" id="sessionSelectors" hidden>
         <div class="field">
