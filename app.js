@@ -1260,6 +1260,7 @@ const App = {
   },
   stepMove(direction) {
     let moved = false;
+    this.stopPendingActions();
     if (direction < 0) {
       const lastMove = this.state.moveHistory.pop();
       if (!lastMove) {
