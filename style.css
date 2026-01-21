@@ -315,6 +315,14 @@ body {
   align-items: baseline;
 }
 
+.comment-box .coach-message-current-with-win {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+}
+
 .comment-box .coach-message-studied .coach-message-current {
   font-weight: 700;
   font-size: calc(1.42rem + 2px);

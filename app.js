@@ -1181,7 +1181,7 @@ const App = {
     if (this.state.mode === "learning") {
       const expectedSide = getSideFromFen(expected._fen_before)
         || (this.chess && this.chess.turn() === "w" ? "white" : "black");
-      const prompt = expected.learn_prompt ? expected.learn_prompt : "Find the best move.";
+      const prompt = expected.learn_prompt ? expected.learn_prompt : "";
       this.setPromptForCurrentFen(prompt, { side: expectedSide });
     }
     const move = applyMoveUCI(this.chess, expected.move_uci);
@@ -1301,7 +1301,7 @@ const App = {
       const expectedSide = getSideFromFen(expected._fen_before)
         || (this.chess && this.chess.turn() === "w" ? "white" : "black");
       const opponentSide = expectedSide === "white" ? "black" : "white";
-      const prompt = expected.learn_prompt ? expected.learn_prompt : "Find the best move.";
+      const prompt = expected.learn_prompt ? expected.learn_prompt : "";
       const isInitialPosition = this.chess
         && this.chess.fen().startsWith("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR");
       if (isInitialPosition) {
@@ -1707,12 +1707,22 @@ const App = {
       const { base, previous } = buildCoachMessage(side);
       const plainBase = base.replace(/<[^>]*>/g, "").trim();
       const plainPrevious = previous.replace(/<[^>]*>/g, "").trim();
-      if (!plainBase && !plainPrevious) {
+      const includeWinProb = rowClass === "coach-message-opponent";
+      if (!plainBase && !plainPrevious && !includeWinProb) {
         return "";
       }
-      const currentHtml = plainBase ? `<div class="coach-message-current">${prefix}${base}</div>` : "";
+      const currentParts = [];
+      if (plainBase) {
+        currentParts.push(`<span class="coach-message-text">${prefix}${base}</span>`);
+      }
+      if (includeWinProb) {
+        currentParts.push(winProbHtml);
+      }
+      const currentHtml = currentParts.length
+        ? `<div class="coach-message-current${includeWinProb ? " coach-message-current-with-win" : ""}">${currentParts.join("")}</div>`
+        : "";
       const previousHtml = plainPrevious
-        ? `<div class="coach-message-previous"><span class="coach-message-text">${prefix}${plainPrevious}</span>${winProbHtml}</div>`
+        ? `<div class="coach-message-previous"><span class="coach-message-text">${prefix}${plainPrevious}</span></div>`
         : "";
       return `<div class="coach-message-row ${rowClass}">${currentHtml}${previousHtml}</div>`;
     };
