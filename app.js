@@ -1690,7 +1690,7 @@ const App = {
       if (useLearningPrompts) {
         base = side === studiedSide
           ? (promptCurrent || fallbackCurrent)
-          : (promptPrevious || fallbackPrevious);
+          : (promptPrevious || promptCurrent || fallbackPrevious || fallbackCurrent);
       }
       const previous = useLearningPrompts ? "" : fallbackPrevious;
       return { base, previous };
