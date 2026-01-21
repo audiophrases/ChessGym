@@ -64,7 +64,7 @@ const App = {
     lastCoachComment: "",
     winProbText: "50%",
     coachCommentBySide: {
-      white: { current: "Welcome to ChessGym.", previous: "" },
+      white: { current: "", previous: "" },
       black: { current: "", previous: "" }
     },
     promptHistoryByFenBySide: {},
@@ -1707,7 +1707,7 @@ const App = {
       const { base, previous } = buildCoachMessage(side);
       const plainBase = base.replace(/<[^>]*>/g, "").trim();
       const plainPrevious = previous.replace(/<[^>]*>/g, "").trim();
-      const includeWinProb = rowClass === "coach-message-opponent";
+      const includeWinProb = rowClass === "coach-message-studied";
       if (!plainBase && !plainPrevious && !includeWinProb) {
         return "";
       }
@@ -1726,10 +1726,10 @@ const App = {
         : "";
       return `<div class="coach-message-row ${rowClass}">${currentHtml}${previousHtml}</div>`;
     };
-    const studiedRow = buildRow(studiedSide, "coach-message-studied");
     const opponentRow = buildRow(opponentSide, "coach-message-opponent");
+    const studiedRow = buildRow(studiedSide, "coach-message-studied");
     this.$comment.html(
-      `<div class="coach-message-stack coach-message-fade">${studiedRow}${opponentRow}</div>`
+      `<div class="coach-message-stack coach-message-fade">${opponentRow}${studiedRow}</div>`
     );
     this.$winProbText = this.$comment.find("#winProbText");
   },
