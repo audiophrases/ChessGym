@@ -1678,19 +1678,33 @@ const App = {
     const opponentSide = studiedSide === "white" ? "black" : "white";
     const useSideLabel = useLearningPrompts || this.state.mode === "practice";
     const winProbHtml = `<span class="win-probability" id="winProbText">${this.state.winProbText}</span>`;
+    const getLastMoveForSide = (side) => {
+      if (!this.chess) {
+        return null;
+      }
+      const history = this.chess.history({ verbose: true });
+      for (let i = history.length - 1; i >= 0; i -= 1) {
+        const moveSide = history[i].color === "w" ? "white" : "black";
+        if (moveSide === side) {
+          return history[i];
+        }
+      }
+      return null;
+    };
     const buildCoachMessage = (side) => {
       const promptChain = this.state.promptChainBySide[side] || { current: "", previous: "" };
       const fallback = this.state.coachCommentBySide[side] || { current: "", previous: "" };
       const promptCurrent = promptChain.current || "";
-      const promptPrevious = promptChain.previous || "";
       const fallbackCurrent = fallback.current || "";
       const fallbackPrevious = fallback.previous || "";
       const sideOverride = override && side === studiedSide ? override : "";
-      const base = sideOverride || (useLearningPrompts ? promptCurrent : fallbackCurrent);
-      let previous = fallbackPrevious;
-      if (useLearningPrompts) {
-        previous = "";
-      }
+      const lastOpponentMove = side === opponentSide && useLearningPrompts ? getLastMoveForSide(opponentSide) : null;
+      const opponentPrompt = lastOpponentMove ? `${lastOpponentMove.san}` : "";
+      const base = sideOverride
+        || (useLearningPrompts
+          ? (side === studiedSide ? promptCurrent : opponentPrompt)
+          : fallbackCurrent);
+      const previous = useLearningPrompts ? "" : fallbackPrevious;
       return { base, previous };
     };
     const buildRow = (side, rowClass) => {
