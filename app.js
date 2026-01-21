@@ -1664,7 +1664,7 @@ const App = {
   updateWinProbability(probability) {
     const clamped = Math.max(0, Math.min(1, probability));
     const percent = Math.round(clamped * 100);
-    const label = `${percent}%`;
+    const label = `${percent}`;
     this.state.winProbText = label;
     if (!this.$winProbText || !this.$winProbText.length) {
       this.$winProbText = $("#winProbText");
@@ -1807,8 +1807,8 @@ const App = {
       return { base, previous };
     };
     const buildRow = (side, rowClass) => {
-      const sideLabel = side === "black" ? "Black" : "White";
-      const prefix = useSideLabel ? `<strong>${sideLabel}:</strong> ` : "";
+      const sideEmoji = side === "black" ? "♟" : "♙";
+      const prefix = useSideLabel ? `<span class="side-emoji" aria-hidden="true">${sideEmoji}</span> ` : "";
       const { base, previous } = buildCoachMessage(side);
       const plainBase = base.replace(/<[^>]*>/g, "").trim();
       const plainPrevious = previous.replace(/<[^>]*>/g, "").trim();
