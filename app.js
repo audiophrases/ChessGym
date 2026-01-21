@@ -134,6 +134,32 @@ const App = {
         this.toggleSessionSelectors();
       }
     });
+    $(document).on("keydown", (event) => {
+      if (this.shouldIgnoreNavigationKey(event)) {
+        return;
+      }
+      if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        this.stepMove(-1);
+      } else if (event.key === "ArrowRight") {
+        event.preventDefault();
+        this.stepMove(1);
+      }
+    });
+  },
+  shouldIgnoreNavigationKey(event) {
+    const target = event.target;
+    if (!target) {
+      return false;
+    }
+    if (target.isContentEditable) {
+      return true;
+    }
+    const tag = target.tagName ? target.tagName.toLowerCase() : "";
+    if (tag === "input" || tag === "textarea" || tag === "select") {
+      return true;
+    }
+    return $(target).closest("[contenteditable='true']").length > 0;
   },
   openLichessGame() {
     const fen = this.chess ? this.chess.fen() : "start";
@@ -1233,6 +1259,7 @@ const App = {
     this.state.hintActive = false;
   },
   stepMove(direction) {
+    let moved = false;
     if (direction < 0) {
       const lastMove = this.state.moveHistory.pop();
       if (!lastMove) {
@@ -1250,19 +1277,37 @@ const App = {
         this.state.inBook = false;
         this.state.bookPlyIndex = Math.max(0, this.state.bookPlyIndex - 1);
       }
+      moved = true;
     } else {
       const redoMove = this.state.redoMoves.pop();
-      if (!redoMove) {
-        return;
+      if (redoMove) {
+        const move = applyMoveUCI(this.chess, redoMove);
+        if (!move) {
+          return;
+        }
+        this.state.moveHistory.push(redoMove);
+        if (this.state.mode === "game") {
+          this.state.inBook = false;
+        }
+        moved = true;
+      } else if (this.canAdvanceLearning()) {
+        const expected = this.getExpectedNodeFromPlan();
+        const move = expected ? applyMoveUCI(this.chess, expected.move_uci) : null;
+        if (!move) {
+          return;
+        }
+        this.recordMove(expected.move_uci, move);
+        this.syncCurrentDepthFromFen();
+        this.state.revealStage = 0;
+        this.state.wrongAttemptsForPly = 0;
+        if (this.state.mode === "learning") {
+          this.showLearningExplain(expected);
+        }
+        moved = true;
       }
-      const move = applyMoveUCI(this.chess, redoMove);
-      if (!move) {
-        return;
-      }
-      this.state.moveHistory.push(redoMove);
-      if (this.state.mode === "game") {
-        this.state.inBook = false;
-      }
+    }
+    if (!moved) {
+      return;
     }
     if (this.state.mode === "learning" || this.state.mode === "practice") {
       this.updateTrainingPositionState();
@@ -1282,6 +1327,24 @@ const App = {
       this.clearCoachOverride();
     }
     this.setStatus("Reviewing moves.");
+  },
+  canAdvanceLearning() {
+    if (this.state.mode !== "learning") {
+      return false;
+    }
+    const expected = this.getExpectedNodeFromPlan();
+    if (!expected) {
+      return false;
+    }
+    return this.isMoveUciLegal(expected.move_uci);
+  },
+  isMoveUciLegal(uci) {
+    if (!uci) {
+      return false;
+    }
+    const normalizedUci = uci.toLowerCase();
+    const moves = this.chess.moves({ verbose: true });
+    return moves.some((move) => (moveToUci(move) || "").toLowerCase() === normalizedUci);
   },
   updateTrainingPositionState() {
     const fenKey = normalizeFen(this.chess.fen());
@@ -1542,7 +1605,8 @@ const App = {
     const hasHistory = this.state.moveHistory.length > 0;
     const hasRedo = this.state.redoMoves.length > 0;
     this.$prev.prop("disabled", !hasHistory);
-    this.$next.prop("disabled", !hasRedo);
+    const hasLearningAdvance = this.canAdvanceLearning();
+    this.$next.prop("disabled", !(hasRedo || hasLearningAdvance));
   },
   updateWinProbabilityFromEval(evalData) {
     if (evalData && evalData.type === "mate") {
