@@ -1295,7 +1295,7 @@ const App = {
       const expectedSide = getSideFromFen(expected._fen_before)
         || (this.chess && this.chess.turn() === "w" ? "white" : "black");
       const opponentSide = expectedSide === "white" ? "black" : "white";
-      const prompt = expected.learn_prompt || "Find the next move.";
+      const prompt = expected.learn_prompt ? expected.learn_prompt : "Find the best move.";
       const isInitialPosition = this.chess
         && this.chess.fen().startsWith("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR");
       if (isInitialPosition) {
@@ -1305,6 +1305,13 @@ const App = {
         }
         this.state.promptHistoryByFenBySide[fenKey][opponentSide] = { current: "", previous: "" };
         this.state.promptChainBySide[opponentSide] = { current: "", previous: "" };
+      } else {
+        const plan = this.state.sessionPlan;
+        const currentDepth = Number.isFinite(this.state.currentDepth) ? this.state.currentDepth : -1;
+        const nextNodeKey = plan && plan.order ? plan.order[currentDepth + 1] : null;
+        const nextNode = nextNodeKey ? this.data.nodesById[nextNodeKey] : null;
+        const nextPrompt = nextNode && nextNode.learn_prompt ? nextNode.learn_prompt : "";
+        this.setPromptForCurrentFen(nextPrompt, { side: opponentSide });
       }
       this.setPromptForCurrentFen(prompt, { side: expectedSide });
     }
