@@ -1686,11 +1686,13 @@ const App = {
       const fallbackCurrent = fallback.current || "";
       const fallbackPrevious = fallback.previous || "";
       const sideOverride = override && side === studiedSide ? override : "";
-      const base = sideOverride || (useLearningPrompts ? promptCurrent : fallbackCurrent);
-      let previous = fallbackPrevious;
+      let base = sideOverride || fallbackCurrent;
       if (useLearningPrompts) {
-        previous = side === studiedSide ? "" : (promptPrevious || fallbackPrevious);
+        base = side === studiedSide
+          ? (promptCurrent || fallbackCurrent)
+          : (promptPrevious || fallbackPrevious);
       }
+      const previous = useLearningPrompts ? "" : fallbackPrevious;
       return { base, previous };
     };
     const buildRow = (side, rowClass) => {
