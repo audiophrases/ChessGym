@@ -257,6 +257,7 @@ const App = {
       if (!lineId) {
         return;
       }
+      node.move_uci = normalizeUci(node.move_uci);
       const nodeKey = getNodeKey(lineId, node.node_id);
       node._key = nodeKey;
       node._parent_key = node.parent_node_id ? getNodeKey(lineId, node.parent_node_id) : null;
@@ -916,8 +917,8 @@ const App = {
     }
 
     const playedUci = moveToUci(legalMove);
-    const normalizedPlayedUci = playedUci.toLowerCase();
-    const normalizedExpectedUci = expected.move_uci.toLowerCase();
+    const normalizedPlayedUci = normalizeUci(playedUci);
+    const normalizedExpectedUci = normalizeUci(expected.move_uci);
     const fenKeyAfter = normalizeFen(this.chess.fen());
     const plan = this.state.sessionPlan;
     const planDepth = plan ? plan.depthByFenKey[fenKeyAfter] : undefined;
@@ -978,8 +979,8 @@ const App = {
     const openingId = this.state.openingId;
     const { mode = this.state.mode, currentLineId = this.state.sessionLineId } = options;
     const candidates = this.getCandidateNodesForFen(openingId, fenKeyBefore, mode, currentLineId);
-    const normalizedUci = uci.toLowerCase();
-    const matches = candidates.filter((node) => node.move_uci.toLowerCase() === normalizedUci);
+    const normalizedUci = normalizeUci(uci);
+    const matches = candidates.filter((node) => normalizeUci(node.move_uci) === normalizedUci);
     if (!matches.length) {
       return null;
     }
@@ -1181,10 +1182,11 @@ const App = {
     if (!row.mistake_map) {
       return "";
     }
+    const normalizedUci = normalizeUci(uci);
     const mapEntries = row.mistake_map.split("|").map((entry) => entry.trim()).filter(Boolean);
     for (const entry of mapEntries) {
       const [move, code] = entry.split(">");
-      if (move && code && move.trim() === uci) {
+      if (move && code && normalizeUci(move.trim()) === normalizedUci) {
         const tmpl = this.data.mistakeTemplatesByCode[code.trim()];
         if (!tmpl) {
           return "";
@@ -1352,9 +1354,9 @@ const App = {
     if (!uci) {
       return false;
     }
-    const normalizedUci = uci.toLowerCase();
+    const normalizedUci = normalizeUci(uci);
     const moves = this.chess.moves({ verbose: true });
-    return moves.some((move) => (moveToUci(move) || "").toLowerCase() === normalizedUci);
+    return moves.some((move) => normalizeUci(moveToUci(move)) === normalizedUci);
   },
   updateTrainingPositionState() {
     const fenKey = normalizeFen(this.chess.fen());
@@ -1951,8 +1953,8 @@ const App = {
   },
   isMoveInOtherLine(fenKey, uci, currentLineId) {
     const candidates = this.getNodesForOpeningFenKey(this.state.openingId, fenKey);
-    const normalizedUci = uci.toLowerCase();
-    return candidates.some((node) => node.move_uci.toLowerCase() === normalizedUci && node.line_id !== currentLineId);
+    const normalizedUci = normalizeUci(uci);
+    return candidates.some((node) => normalizeUci(node.move_uci) === normalizedUci && node.line_id !== currentLineId);
   },
   isLineCompletePosition() {
     const plan = this.state.sessionPlan;
@@ -2185,16 +2187,27 @@ function isPublished(value) {
   return normalized === "true" || normalized === "yes" || normalized === "1";
 }
 
+function normalizeUci(uci) {
+  if (!uci) {
+    return "";
+  }
+  let normalized = String(uci).trim().toLowerCase();
+  normalized = normalized.replace(/[+#?!]+$/g, "");
+  normalized = normalized.replace(/=([qrbn])$/i, "$1");
+  return normalized;
+}
+
 function applyMoveUCI(chess, uci) {
-  if (!uci || uci.length < 4) {
+  const normalized = normalizeUci(uci);
+  if (!normalized || normalized.length < 4) {
     return null;
   }
   const move = {
-    from: uci.slice(0, 2),
-    to: uci.slice(2, 4)
+    from: normalized.slice(0, 2),
+    to: normalized.slice(2, 4)
   };
-  if (uci.length > 4) {
-    move.promotion = uci[4];
+  if (normalized.length > 4 && /[qrbn]/.test(normalized[4])) {
+    move.promotion = normalized[4];
   }
   return chess.move(move);
 }
