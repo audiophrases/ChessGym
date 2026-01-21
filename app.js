@@ -134,6 +134,14 @@ const App = {
         this.toggleSessionSelectors();
       }
     });
+    this.$comment.on("click", "#winProbPill", (event) => {
+      event.preventDefault();
+      this.restartLiveAnalysis();
+    });
+    this.$comment.on("touchstart", "#winProbPill", (event) => {
+      event.preventDefault();
+      this.restartLiveAnalysis();
+    });
     $(document).on("keydown", (event) => {
       if (this.shouldIgnoreNavigationKey(event)) {
         return;
@@ -1774,7 +1782,12 @@ const App = {
     const studiedSide = this.state.userSide;
     const opponentSide = studiedSide === "white" ? "black" : "white";
     const useSideLabel = useLearningPrompts || this.state.mode === "practice";
-    const winProbHtml = `<span class="win-probability" id="winProbText">${this.state.winProbText}</span>`;
+    const winProbHtml = `
+      <button class="win-probability-pill" id="winProbPill" type="button" aria-label="Restart engine analysis">
+        <span class="win-probability-label">Win %</span>
+        <span class="win-probability" id="winProbText">${this.state.winProbText}</span>
+      </button>
+    `;
     const buildCoachMessage = (side) => {
       const promptChain = this.state.promptChainBySide[side] || { current: "", previous: "" };
       const fallback = this.state.coachCommentBySide[side] || { current: "", previous: "" };
@@ -1798,24 +1811,23 @@ const App = {
       const { base, previous } = buildCoachMessage(side);
       const plainBase = base.replace(/<[^>]*>/g, "").trim();
       const plainPrevious = previous.replace(/<[^>]*>/g, "").trim();
-      const includeWinProb = rowClass === "coach-message-studied" && plainBase;
+      const includeWinProb = rowClass === "coach-message-studied";
       if (!plainBase && !plainPrevious && !includeWinProb) {
         return "";
       }
-      const currentParts = [];
-      if (plainBase) {
-        const winProbSuffix = includeWinProb ? ` <strong class="win-probability" id="winProbText">${this.state.winProbText}</strong>` : "";
-        currentParts.push(`<span class="coach-message-text">${prefix}${base}${winProbSuffix}</span>`);
-      } else if (includeWinProb) {
-        currentParts.push(`<span class="coach-message-text">${prefix}${winProbHtml}</span>`);
-      }
-      const currentHtml = currentParts.length
-        ? `<div class="coach-message-current">${currentParts.join("")}</div>`
+      const metaOnly = !plainBase && !plainPrevious;
+      const currentHtml = plainBase
+        ? `<div class="coach-message-current"><span class="coach-message-text">${prefix}${base}</span></div>`
         : "";
       const previousHtml = plainPrevious
         ? `<div class="coach-message-previous"><span class="coach-message-text">${prefix}${plainPrevious}</span></div>`
         : "";
-      return `<div class="coach-message-row ${rowClass}">${currentHtml}${previousHtml}</div>`;
+      const contentHtml = (currentHtml || previousHtml)
+        ? `<div class="coach-message-content">${currentHtml}${previousHtml}</div>`
+        : `<div class="coach-message-content"></div>`;
+      const metaHtml = includeWinProb ? `<div class="coach-message-meta">${winProbHtml}</div>` : "";
+      const rowClasses = metaOnly ? `${rowClass} coach-message-row-meta-only` : rowClass;
+      return `<div class="coach-message-row ${rowClasses}">${contentHtml}${metaHtml}</div>`;
     };
     const opponentRow = buildRow(opponentSide, "coach-message-opponent");
     const studiedRow = buildRow(studiedSide, "coach-message-studied");
@@ -1979,6 +1991,14 @@ const App = {
     }
     const fen = this.chess.fen();
     if (this.state.analysisActive && this.state.analysisFen === fen) {
+      if (!this.engine.analysisListener) {
+        this.engine.startAnalysis(fen, (evalText, evalData) => {
+          this.$engineEval.text(evalText);
+          if (evalData) {
+            this.updateWinProbabilityFromEval(evalData);
+          }
+        });
+      }
       return;
     }
     this.state.analysisFen = fen;
@@ -1996,6 +2016,10 @@ const App = {
     }
     this.state.analysisActive = false;
     this.state.analysisFen = null;
+  },
+  restartLiveAnalysis() {
+    this.stopLiveAnalysis();
+    this.startLiveAnalysis();
   },
   ensureEngine() {
     if (this.engine) {
