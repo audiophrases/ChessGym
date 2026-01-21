@@ -1178,6 +1178,9 @@ const App = {
       this.checkLineComplete();
       return;
     }
+    if (this.state.mode === "learning") {
+      this.showLearningPrompt();
+    }
     const move = applyMoveUCI(this.chess, expected.move_uci);
     if (!move) {
       this.setStatus("Opponent move failed.");
