@@ -1325,7 +1325,11 @@ const App = {
     }
     if (this.state.mode === "learning") {
       this.syncPromptChainForCurrentFen();
-      this.showLearningPrompt();
+      if (direction > 0) {
+        this.showLearningPromptForReviewedMove();
+      } else {
+        this.showLearningPrompt();
+      }
       this.clearCoachOverride();
     }
     this.setStatus("Reviewing moves.");
@@ -1390,6 +1394,27 @@ const App = {
       }
       this.setPromptForCurrentFen(prompt, { side: expectedSide });
     }
+  },
+  showLearningPromptForReviewedMove() {
+    if (this.state.mode !== "learning") {
+      return;
+    }
+    const plan = this.state.sessionPlan;
+    const currentDepth = Number.isFinite(this.state.currentDepth) ? this.state.currentDepth : -1;
+    if (!plan || currentDepth <= 0) {
+      this.showLearningPrompt();
+      return;
+    }
+    const previousNodeKey = plan.order[currentDepth - 1];
+    const previousNode = previousNodeKey ? this.data.nodesById[previousNodeKey] : null;
+    if (!previousNode) {
+      this.showLearningPrompt();
+      return;
+    }
+    const previousSide = getSideFromFen(previousNode._fen_before)
+      || (this.chess && this.chess.turn() === "w" ? "black" : "white");
+    const prompt = previousNode.learn_prompt ? previousNode.learn_prompt : "";
+    this.setPromptForCurrentFen(prompt, { side: previousSide });
   },
   showLearningExplain(row) {
     this.setCoachOverride("Good move. Continue.", { durationMs: 2000 });
