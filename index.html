@@ -9,68 +9,70 @@
 </head>
 <body>
   <div id="app">
-    <header class="top-bar">
-      <div class="top-bar-row">
-        <div class="top-bar-controls">
-          <div class="field" id="strengthField">
-            <select id="strengthSelect" aria-label="Engine strength">
-              <option value="beginner">Beginner</option>
-              <option value="intermediate">Intermediate</option>
-              <option value="strong">Strong</option>
-            </select>
-          </div>
-          <div class="header-actions">
-            <button id="prevBtn" class="ghost">Prev</button>
-            <button id="nextBtn" class="ghost">Next</button>
-            <button id="boardZoomOut" class="ghost" aria-label="Reduce board size">-</button>
-            <button id="boardZoomIn" class="ghost" aria-label="Increase board size">+</button>
-            <button id="hintBtn" class="ghost" title="Hints alternate between highlighting the piece and showing the prompt.">Hint</button>
-            <button id="lichessBtn" class="ghost">Lichess</button>
-          </div>
-        </div>
-        <button id="sessionSummary" class="session-summary" type="button" aria-expanded="false" aria-controls="sessionSelectors">
-          <div class="session-main">
-            <p id="lineStatus">Selecting your next line…</p>
-          </div>
-          <div class="session-stats">
-            <div class="progress" id="progressInfo">
-              <span id="progressText"></span>
-            </div>
-          </div>
-        </button>
-      </div>
-      <div class="session-selectors" id="sessionSelectors" hidden>
-        <div class="field">
-          <label for="openingSelect">Opening</label>
-          <select id="openingSelect" aria-label="Opening"></select>
-        </div>
-        <div class="field">
-          <label for="lineSelect">Line</label>
-          <select id="lineSelect" aria-label="Line"></select>
-          <button id="dueBtn" class="ghost">Study Due Lines</button>
-        </div>
-        <div class="field">
-          <label for="modeSelect">Mode</label>
-          <select id="modeSelect" aria-label="Mode">
-            <option value="learning">Learning</option>
-            <option value="practice">Practice</option>
-            <option value="game">Game</option>
-          </select>
-        </div>
-      </div>
-      <div class="coach-header">
-        <div id="commentBox" class="comment-box header-comment"></div>
-      </div>
-    </header>
-
     <main class="main">
       <div class="main-column board-column">
         <section class="board-panel">
           <div id="board"></div>
         </section>
       </div>
-
     </main>
+
+    <footer class="footer-bar">
+      <div class="footer-controls">
+        <div class="header-actions">
+          <button id="prevBtn" class="ghost">Prev</button>
+          <button id="nextBtn" class="ghost">Next</button>
+          <button id="boardZoomOut" class="ghost" aria-label="Reduce board size">-</button>
+          <button id="boardZoomIn" class="ghost" aria-label="Increase board size">+</button>
+          <button id="hintBtn" class="ghost" title="Hints alternate between highlighting the piece and showing the prompt.">Hint</button>
+          <button id="lichessBtn" class="ghost">Lichess</button>
+        </div>
+      </div>
+      <div class="footer-prompt">
+        <div id="commentBox" class="comment-box footer-comment"></div>
+      </div>
+      <div class="footer-stats">
+        <div class="footer-stats-row">
+          <div class="field" id="strengthField">
+            <label for="strengthSelect">Engine strength</label>
+            <select id="strengthSelect" aria-label="Engine strength">
+              <option value="beginner">Beginner</option>
+              <option value="intermediate">Intermediate</option>
+              <option value="strong">Strong</option>
+            </select>
+          </div>
+          <button id="sessionSummary" class="session-summary" type="button" aria-expanded="false" aria-controls="sessionSelectors">
+            <div class="session-main">
+              <p id="lineStatus">Selecting your next line…</p>
+            </div>
+            <div class="session-stats">
+              <div class="progress" id="progressInfo">
+                <span id="progressText"></span>
+              </div>
+            </div>
+          </button>
+        </div>
+        <div class="session-selectors" id="sessionSelectors" hidden>
+          <div class="field">
+            <label for="openingSelect">Opening</label>
+            <select id="openingSelect" aria-label="Opening"></select>
+          </div>
+          <div class="field">
+            <label for="lineSelect">Line</label>
+            <select id="lineSelect" aria-label="Line"></select>
+            <button id="dueBtn" class="ghost">Study Due Lines</button>
+          </div>
+          <div class="field">
+            <label for="modeSelect">Mode</label>
+            <select id="modeSelect" aria-label="Mode">
+              <option value="learning">Learning</option>
+              <option value="practice">Practice</option>
+              <option value="game">Game</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </footer>
   </div>
 
   <div id="loadingOverlay" class="overlay">
