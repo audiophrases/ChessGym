@@ -537,6 +537,7 @@ body {
   }
   .board-column,
   .side-column {
+    flex: 0 0 auto;
     max-width: none;
     width: 100%;
   }
