@@ -76,7 +76,8 @@ body {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
-  align-items: center;
+  align-items: flex-start;
+  justify-content: flex-start;
 }
 
 .footer-bar .field {
@@ -207,6 +208,8 @@ body {
   gap: 16px;
   padding-top: 6px;
   border-top: 1px dashed var(--border);
+  align-items: flex-start;
+  justify-content: flex-start;
 }
 
 .session-selectors[hidden] {
@@ -215,7 +218,7 @@ body {
 
 .footer-prompt {
   display: flex;
-  align-items: stretch;
+  align-items: flex-start;
   width: 100%;
 }
 
@@ -225,6 +228,8 @@ body {
   width: 100%;
   font-size: 1.1rem;
   flex: 1;
+  height: auto;
+  min-height: auto;
 }
 
 .main {
