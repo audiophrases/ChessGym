@@ -308,12 +308,12 @@ body {
   min-height: 80px;
   height: auto;
   max-height: none;
-  padding: 12px;
+  padding: 8px 12px;
   border-radius: 12px;
   background: var(--panel-muted);
   color: var(--text);
   border: 1px solid var(--border);
-  margin-bottom: 12px;
+  margin-bottom: 8px;
   line-height: 1.4;
   --prompt-font-size: calc(1.42rem - 2px);
   font-size: var(--prompt-font-size);
