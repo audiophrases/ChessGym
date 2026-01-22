@@ -50,20 +50,38 @@ body {
   flex-direction: column;
 }
 
-.field {
+.top-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: stretch;
+  padding: 6px 12px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 2px 8px rgba(28, 35, 51, 0.04);
+}
+
+.top-bar-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.top-bar .field {
   display: flex;
   flex-direction: column;
   gap: 6px;
   min-width: 150px;
 }
 
-label {
+.top-bar label {
   font-size: 0.8rem;
   color: var(--muted);
 }
 
-select,
-button {
+.top-bar select,
+.top-bar button {
   padding: 8px 10px;
   font-size: 0.95rem;
   border-radius: 8px;
@@ -72,9 +90,16 @@ button {
   color: var(--text);
 }
 
-select:disabled {
+.top-bar select:disabled {
   background: var(--surface-muted);
   color: var(--muted);
+}
+
+.top-bar-controls {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  margin-left: 0;
 }
 
 .header-actions {
@@ -185,13 +210,26 @@ select:disabled {
   display: none;
 }
 
+.coach-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.header-comment {
+  margin: 0;
+  min-height: 0;
+  width: 100%;
+  font-size: 1.15rem;
+  flex: 1;
+}
+
 .main {
   display: flex;
   gap: 12px;
   padding: 0 24px 16px;
   flex: 1;
   align-items: flex-start;
-  justify-content: flex-start;
 }
 
 .main-column {
@@ -203,8 +241,6 @@ select:disabled {
 .board-column {
   flex: 1 1 520px;
   max-width: 640px;
-  align-items: flex-start;
-  gap: 0;
 }
 
 .side-column {
@@ -220,53 +256,7 @@ select:disabled {
   display: flex;
   flex-direction: column;
   gap: 0;
-  align-items: flex-start;
-}
-
-.footer-bar {
-  width: min(100%, var(--board-size, 520px));
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-top: none;
-  border-radius: 0 0 12px 12px;
-  box-shadow: 0 8px 24px rgba(28, 35, 51, 0.08);
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 12px;
-}
-
-.footer-controls {
-  display: flex;
-  justify-content: flex-start;
-}
-
-.footer-prompts {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.footer-comment {
-  margin: 0;
-  min-height: 0;
-  width: 100%;
-  height: auto;
-  max-height: none;
-  font-size: 1.1rem;
-}
-
-.footer-stats {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.footer-summary {
-  display: flex;
-  gap: 12px;
   align-items: center;
-  flex-wrap: wrap;
 }
 
 #board {
@@ -304,7 +294,9 @@ select:disabled {
 }
 
 .comment-box {
-  min-height: 0;
+  min-height: 100px;
+  height: 140px;
+  max-height: 140px;
   padding: 12px;
   border-radius: 12px;
   background: var(--panel-muted);
@@ -324,7 +316,6 @@ select:disabled {
   grid-template-columns: min-content minmax(0, 1fr);
   gap: 0;
   height: 100%;
-  align-items: center;
 }
 
 .comment-box.single-prompt .coach-message-rows {
@@ -376,7 +367,6 @@ select:disabled {
   justify-content: center;
   margin: 0;
   padding: 0;
-  align-self: center;
 }
 
 .comment-box .coach-message-rows {
@@ -384,7 +374,7 @@ select:disabled {
   flex-direction: column;
   gap: 8px;
   min-width: 0;
-  overflow: visible;
+  overflow: auto;
 }
 
 .comment-box .coach-message-content {
@@ -396,7 +386,7 @@ select:disabled {
 }
 
 .comment-box .coach-message-text {
-  white-space: normal;
+  white-space: nowrap;
 }
 
 .comment-box .side-emoji {
@@ -505,11 +495,6 @@ select:disabled {
     width: 100%;
   }
 
-  .footer-bar {
-    width: 100%;
-    border-radius: 0 0 10px 10px;
-  }
-
   .coach-panel {
     order: 3;
     margin-top: 0;
@@ -549,6 +534,23 @@ select:disabled {
 }
 
 @media (max-width: 600px) {
+  .top-bar {
+    gap: 8px;
+    padding: 6px 10px;
+  }
+
+  .top-bar-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .top-bar-controls {
+    margin-left: 0;
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: space-between;
+  }
+
   .header-actions {
     flex-wrap: wrap;
   }
@@ -562,11 +564,6 @@ select:disabled {
     border-radius: 0;
     padding: 0;
     gap: 12px;
-  }
-
-  .footer-bar {
-    border-radius: 0;
-    padding: 10px;
   }
 
   .info-card {

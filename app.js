@@ -1826,8 +1826,8 @@ const App = {
         : `<div class="coach-message-content"></div>`;
       return `<div class="coach-message-row ${rowClass}">${contentHtml}</div>`;
     };
-    const studiedRow = buildRow(studiedSide, "coach-message-studied");
     const opponentRow = buildRow(opponentSide, "coach-message-opponent");
+    const studiedRow = buildRow(studiedSide, "coach-message-studied");
     const hasOpponentRow = opponentRow.trim().length > 0;
     const hasStudiedRow = studiedRow.trim().length > 0;
     const isSinglePrompt = Number(hasOpponentRow) + Number(hasStudiedRow) === 1;
@@ -1835,7 +1835,7 @@ const App = {
     this.$comment.html(
       `<div class="coach-message-stack coach-message-fade">
         <div class="coach-message-meta-column">${winProbHtml}</div>
-        <div class="coach-message-rows">${studiedRow}${opponentRow}</div>
+        <div class="coach-message-rows">${opponentRow}${studiedRow}</div>
       </div>`
     );
     this.$winProbText = this.$comment.find("#winProbText");
