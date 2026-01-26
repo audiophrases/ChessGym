@@ -57,16 +57,22 @@
         <div class="session-selectors" id="sessionSelectors" hidden>
           <div class="field">
             <label for="openingSelect">Opening</label>
-            <div class="select-with-thumb">
-              <img id="openingThumb" class="select-thumb hidden" alt="" />
-              <select id="openingSelect" aria-label="Opening"></select>
+            <div class="select-with-thumb custom-select">
+              <img id="openingThumb" class="select-thumb is-placeholder" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==" alt="" />
+              <button id="openingSelectBtn" class="select-trigger" type="button" aria-haspopup="listbox" aria-expanded="false">
+                Select opening
+              </button>
+              <div id="openingSelectList" class="select-list" role="listbox" aria-label="Opening options"></div>
             </div>
           </div>
           <div class="field">
             <label for="lineSelect">Line</label>
-            <div class="select-with-thumb">
-              <img id="lineThumb" class="select-thumb hidden" alt="" />
-              <select id="lineSelect" aria-label="Line"></select>
+            <div class="select-with-thumb custom-select">
+              <img id="lineThumb" class="select-thumb is-placeholder" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==" alt="" />
+              <button id="lineSelectBtn" class="select-trigger" type="button" aria-haspopup="listbox" aria-expanded="false">
+                Select line
+              </button>
+              <div id="lineSelectList" class="select-list" role="listbox" aria-label="Line options"></div>
             </div>
             <button id="dueBtn" class="ghost">Study Due Lines</button>
           </div>

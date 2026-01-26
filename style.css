@@ -108,27 +108,112 @@ body {
   position: relative;
 }
 
-.select-with-thumb select {
+.select-with-thumb .select-trigger {
   flex: 1;
   min-width: 0;
+  padding-left: 78px;
 }
 
-.select-with-thumb.with-thumb select {
-  padding-left: 52px;
+.select-with-thumb.with-thumb .select-trigger {
+  padding-left: 78px;
 }
 
 .select-thumb {
   position: absolute;
-  left: 10px;
+  left: 12px;
   top: 50%;
-  width: 34px;
-  height: 34px;
-  border-radius: 8px;
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
   border: 1px solid var(--border);
   background: var(--surface-muted);
   object-fit: cover;
   transform: translateY(-50%);
   pointer-events: none;
+}
+
+.select-thumb.is-placeholder {
+  border-style: dashed;
+  opacity: 0.7;
+}
+
+.select-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  width: 100%;
+  min-height: 44px;
+  text-align: left;
+  gap: 8px;
+  position: relative;
+  padding-right: 32px;
+}
+
+.select-trigger::after {
+  content: "▾";
+  position: absolute;
+  right: 12px;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.select-list {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 8px 20px rgba(28, 35, 51, 0.15);
+  padding: 6px;
+  max-height: 280px;
+  overflow-y: auto;
+  display: none;
+  z-index: 20;
+}
+
+.select-list.is-open {
+  display: block;
+}
+
+.select-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+}
+
+.select-option:hover,
+.select-option:focus-visible {
+  background: var(--ghost-hover);
+  outline: none;
+}
+
+.select-option.is-selected {
+  background: var(--panel-muted);
+}
+
+.select-option .option-thumb {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface-muted);
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.select-option .option-thumb.is-placeholder {
+  border-style: dashed;
+  opacity: 0.7;
 }
 
 .footer-bar select,
