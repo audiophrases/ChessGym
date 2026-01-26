@@ -93,6 +93,11 @@ body {
   color: var(--muted);
 }
 
+.footer-bar .field-label {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
 .footer-bar select,
 .footer-bar button {
   padding: 8px 10px;
@@ -106,6 +111,24 @@ body {
 .footer-bar select:disabled {
   background: var(--surface-muted);
   color: var(--muted);
+}
+
+.elo-filter {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(64px, 1fr));
+  gap: 6px 10px;
+}
+
+.elo-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: var(--text);
+}
+
+.elo-option input {
+  margin: 0;
 }
 
 .header-actions {
