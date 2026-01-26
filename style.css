@@ -37,6 +37,10 @@
   box-sizing: border-box;
 }
 
+.hidden {
+  display: none !important;
+}
+
 body {
   margin: 0;
   font-family: "Inter", "Segoe UI", sans-serif;
@@ -96,6 +100,26 @@ body {
 .footer-bar .field-label {
   font-size: 0.8rem;
   color: var(--muted);
+}
+
+.select-with-thumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.select-with-thumb select {
+  flex: 1;
+  min-width: 0;
+}
+
+.select-thumb {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface-muted);
+  object-fit: cover;
 }
 
 .footer-bar select,
@@ -430,7 +454,8 @@ body {
 .comment-box .side-emoji {
   display: inline-flex;
   align-items: center;
-  font-size: 0.9em;
+  font-size: calc(1em + 2px);
+  font-weight: 400;
   margin-right: 4px;
 }
 

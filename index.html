@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ChessGym</title>
+  <link rel="icon" href="favicon.ico" />
   <link rel="stylesheet" href="libs/chessboard-1.0.0.min.css" />
   <link rel="stylesheet" href="style.css" />
 </head>
@@ -56,11 +57,17 @@
         <div class="session-selectors" id="sessionSelectors" hidden>
           <div class="field">
             <label for="openingSelect">Opening</label>
-            <select id="openingSelect" aria-label="Opening"></select>
+            <div class="select-with-thumb">
+              <img id="openingThumb" class="select-thumb hidden" alt="" />
+              <select id="openingSelect" aria-label="Opening"></select>
+            </div>
           </div>
           <div class="field">
             <label for="lineSelect">Line</label>
-            <select id="lineSelect" aria-label="Line"></select>
+            <div class="select-with-thumb">
+              <img id="lineThumb" class="select-thumb hidden" alt="" />
+              <select id="lineSelect" aria-label="Line"></select>
+            </div>
             <button id="dueBtn" class="ghost">Study Due Lines</button>
           </div>
           <div class="field">

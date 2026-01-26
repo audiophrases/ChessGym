@@ -87,6 +87,7 @@ const App = {
   board: null,
   engine: null,
   sounds: {},
+  thumbnailCache: new Map(),
   init() {
     this.cacheElements();
     this.bindEvents();
@@ -119,6 +120,8 @@ const App = {
     this.$board = $("#board");
     this.$boardZoomIn = $("#boardZoomIn");
     this.$boardZoomOut = $("#boardZoomOut");
+    this.$openingThumb = $("#openingThumb");
+    this.$lineThumb = $("#lineThumb");
   },
   bindEvents() {
     this.$opening.on("change", () => this.onOpeningChange());
@@ -625,6 +628,7 @@ const App = {
     this.state.lineId = nextSelection;
     this.updateProgress();
     this.updateSideSelector();
+    this.updateSelectorThumbnails();
   },
   onOpeningChange() {
     this.state.openingId = this.$opening.val();
@@ -635,7 +639,54 @@ const App = {
     this.state.lineId = this.$line.val();
     this.updateProgress();
     this.updateSideSelector();
+    this.updateSelectorThumbnails();
     this.prepareSession();
+  },
+  updateSelectorThumbnails() {
+    this.setThumbnail(this.$openingThumb, this.state.openingId, "Opening thumbnail");
+    const lineId = this.state.lineId;
+    if (lineId && lineId !== "any") {
+      this.setThumbnail(this.$lineThumb, lineId, "Line thumbnail");
+    } else {
+      this.clearThumbnail(this.$lineThumb);
+    }
+  },
+  setThumbnail($img, id, label) {
+    if (!$img || !id) {
+      return;
+    }
+    const cached = this.thumbnailCache.get(id);
+    if (cached === true) {
+      this.applyThumbnail($img, id, label);
+      return;
+    }
+    if (cached === false) {
+      this.clearThumbnail($img);
+      return;
+    }
+    this.clearThumbnail($img);
+    const url = `Thumbnails/${id}.png`;
+    const probe = new Image();
+    probe.onload = () => {
+      this.thumbnailCache.set(id, true);
+      this.applyThumbnail($img, id, label);
+    };
+    probe.onerror = () => {
+      this.thumbnailCache.set(id, false);
+      this.clearThumbnail($img);
+    };
+    probe.src = url;
+  },
+  applyThumbnail($img, id, label) {
+    const url = `Thumbnails/${id}.png`;
+    $img.attr("src", url);
+    $img.attr("alt", `${label} ${id}`);
+    $img.removeClass("hidden");
+  },
+  clearThumbnail($img) {
+    $img.attr("alt", "");
+    $img.attr("src", "");
+    $img.addClass("hidden");
   },
   onStudyDueToggle() {
     this.state.studyDueOnly = !this.state.studyDueOnly;
