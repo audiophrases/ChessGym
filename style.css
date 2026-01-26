@@ -221,6 +221,7 @@ body {
 .win-probability-pill {
   display: inline-flex;
   align-items: center;
+  gap: 6px;
   border-radius: 999px;
   padding: 4px 6px;
   border: 1px solid var(--border);
