@@ -1,7 +1,7 @@
 /*
   ChessGym uses four CSV feeds:
   - openings: core opening metadata (opening_id, starting_fen, book_max_plies_game_mode, etc.).
-  - lines: named training lines (opening_id, line_id, drill_side, start_fen, moves_pgn).
+  - lines: named training lines (opening_id, line_id, line_name, line_group, line_priority, drill_side, start_fen, elo, moves_pgn).
   - nodes: streamlined per-node instructions (opening_id, line_id, node_id, parent_node_id, move_uci, learn_prompt, mistake_map).
   - mistake_templates: global messaging for mapped mistakes (mistake_code -> coach_message, why_wrong, hint).
 */
@@ -12,6 +12,7 @@ const NODES_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQNmZYrVE9U7B
 const MISTAKE_TEMPLATES_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQNmZYrVE9U7BynLzoijjgIVSd6Mm2zP_blPqogiQ8zcmvFz4LJi7ADUiM6vdbyc1HZ9oHMBhUR4AHT/pub?gid=1251282566&single=true&output=csv";
 
 const OPPONENT_DELAY_MS = 500;
+const LINE_ELO_OPTIONS = ["900", "1200", "1500", "1800", "2100", "2400", "2700", "3000"];
 
 const App = {
   data: {
@@ -79,7 +80,8 @@ const App = {
     freeModeActive: false,
     freeModeSnapshot: null,
     boardSizeIndex: 2,
-    outOfLine: false
+    outOfLine: false,
+    eloFilters: new Set()
   },
   chess: null,
   board: null,
@@ -95,6 +97,7 @@ const App = {
     this.$opening = $("#openingSelect");
     this.$line = $("#lineSelect");
     this.$dueBtn = $("#dueBtn");
+    this.$eloFilters = $("input[name='eloFilter']");
     this.$mode = $("#modeSelect");
     this.$strength = $("#strengthSelect");
     this.$prev = $("#prevBtn");
@@ -121,6 +124,7 @@ const App = {
     this.$opening.on("change", () => this.onOpeningChange());
     this.$line.on("change", () => this.onLineChange());
     this.$dueBtn.on("click", () => this.onStudyDueToggle());
+    this.$eloFilters.on("change", () => this.onEloFilterChange());
     this.$mode.on("change", () => this.onModeChange());
     this.$strength.on("change", () => this.onStrengthChange());
     this.$prev.on("click", () => this.stepMove(-1));
@@ -601,8 +605,8 @@ const App = {
   },
   populateLines(preferredLineId) {
     const lines = this.data.linesByOpeningId[this.state.openingId] || [];
-    const filteredLines = this.getFilteredLines(lines);
-    const displayLines = filteredLines.length ? filteredLines : lines;
+    const filteredLines = this.getManualSelectionLines(lines);
+    const displayLines = filteredLines;
     const currentSelection = preferredLineId || this.$line.val();
 
     this.$line.empty();
@@ -638,6 +642,18 @@ const App = {
     const label = this.state.studyDueOnly ? "Study All Lines" : "Study Due Lines";
     this.$dueBtn.text(label);
     this.populateLines();
+    this.prepareSession();
+  },
+  onEloFilterChange() {
+    const selected = new Set();
+    this.$eloFilters.filter(":checked").each((_, input) => {
+      const value = $(input).val();
+      if (LINE_ELO_OPTIONS.includes(value)) {
+        selected.add(value);
+      }
+    });
+    this.state.eloFilters = selected;
+    this.populateLines(this.state.lineId);
     this.prepareSession();
   },
   onModeChange() {
@@ -1715,6 +1731,17 @@ const App = {
     }
     const dueLines = this.getDueLines(lines);
     return dueLines.length ? dueLines : lines;
+  },
+  getManualSelectionLines(lines) {
+    const dueLines = this.getFilteredLines(lines);
+    return this.getLinesMatchingEloFilter(dueLines);
+  },
+  getLinesMatchingEloFilter(lines) {
+    const selected = this.state.eloFilters;
+    if (!selected || selected.size === 0) {
+      return lines;
+    }
+    return lines.filter((line) => selected.has(String(line.elo || "").trim()));
   },
   getDueLines(lines) {
     const srData = loadSR();
