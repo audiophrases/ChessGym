@@ -64,6 +64,7 @@ const App = {
     statusText: "",
     lastCoachComment: "",
     winProbText: "50%",
+    winProbSide: "white",
     coachCommentBySide: {
       white: { current: "", previous: "" },
       black: { current: "", previous: "" }
@@ -1857,6 +1858,7 @@ const App = {
     this.$next.prop("disabled", !(hasRedo || hasLearningAdvance));
   },
   updateWinProbabilityFromEval(evalData) {
+    this.state.winProbSide = "white";
     if (evalData && evalData.type === "mate") {
       const mateScore = evalData.value;
       const mateLabel = `#${mateScore > 0 ? Math.abs(mateScore) : `-${Math.abs(mateScore)}`}`;
@@ -1875,7 +1877,7 @@ const App = {
   updateWinProbability(probability) {
     const clamped = Math.max(0, Math.min(1, probability));
     const percent = Math.round(clamped * 100);
-    const label = `${percent}`;
+    const label = `${percent}%`;
     this.state.winProbText = label;
     if (!this.$winProbText || !this.$winProbText.length) {
       this.$winProbText = $("#winProbText");
@@ -1995,8 +1997,10 @@ const App = {
     const studiedSide = this.state.userSide;
     const opponentSide = studiedSide === "white" ? "black" : "white";
     const useSideLabel = useLearningPrompts || this.state.mode === "practice";
+    const winProbSideLabel = this.state.winProbSide === "black" ? "Black win" : "White win";
     const winProbHtml = `
       <button class="win-probability-pill" id="winProbPill" type="button" aria-label="Restart engine analysis">
+        <span class="win-probability-label">${winProbSideLabel}</span>
         <span class="win-probability" id="winProbText">${this.state.winProbText}</span>
       </button>
     `;
