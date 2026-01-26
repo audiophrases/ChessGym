@@ -63,7 +63,7 @@ const App = {
     analysisActive: false,
     statusText: "",
     lastCoachComment: "",
-    winProbText: "50%",
+    winProbText: "50",
     winProbSide: "white",
     coachCommentBySide: {
       white: { current: "", previous: "" },
@@ -566,6 +566,9 @@ const App = {
     const nextState = typeof force === "boolean" ? force : !isOpen;
     this.$sessionSelectors.prop("hidden", !nextState);
     this.$sessionSummary.attr("aria-expanded", nextState);
+    if (nextState) {
+      this.updateSelectorThumbnails();
+    }
   },
   pickDefaultLine() {
     const openings = this.data.openings.filter((o) => isPublished(o.published));
@@ -683,11 +686,13 @@ const App = {
     $img.attr("src", url);
     $img.attr("alt", `${label} ${id}`);
     $img.removeClass("hidden");
+    $img.closest(".select-with-thumb").addClass("with-thumb");
   },
   clearThumbnail($img) {
     $img.attr("alt", "");
     $img.attr("src", "");
     $img.addClass("hidden");
+    $img.closest(".select-with-thumb").removeClass("with-thumb");
   },
   onStudyDueToggle() {
     this.state.studyDueOnly = !this.state.studyDueOnly;
@@ -1877,7 +1882,7 @@ const App = {
   updateWinProbability(probability) {
     const clamped = Math.max(0, Math.min(1, probability));
     const percent = Math.round(clamped * 100);
-    const label = `${percent}%`;
+    const label = `${percent}`;
     this.state.winProbText = label;
     if (!this.$winProbText || !this.$winProbText.length) {
       this.$winProbText = $("#winProbText");
@@ -1997,10 +2002,8 @@ const App = {
     const studiedSide = this.state.userSide;
     const opponentSide = studiedSide === "white" ? "black" : "white";
     const useSideLabel = useLearningPrompts || this.state.mode === "practice";
-    const winProbSideLabel = this.state.winProbSide === "black" ? "Black win" : "White win";
     const winProbHtml = `
       <button class="win-probability-pill" id="winProbPill" type="button" aria-label="Restart engine analysis">
-        <span class="win-probability-label">${winProbSideLabel}</span>
         <span class="win-probability" id="winProbText">${this.state.winProbText}</span>
       </button>
     `;
