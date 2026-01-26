@@ -13,6 +13,7 @@ const MISTAKE_TEMPLATES_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1v
 
 const OPPONENT_DELAY_MS = 500;
 const LINE_ELO_OPTIONS = ["900", "1200", "1500", "1800", "2100", "2400", "2700", "3000"];
+const THUMBNAIL_PLACEHOLDER_SRC = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==";
 
 const App = {
   data: {
@@ -96,8 +97,10 @@ const App = {
     this.loadData();
   },
   cacheElements() {
-    this.$opening = $("#openingSelect");
-    this.$line = $("#lineSelect");
+    this.$openingButton = $("#openingSelectBtn");
+    this.$openingList = $("#openingSelectList");
+    this.$lineButton = $("#lineSelectBtn");
+    this.$lineList = $("#lineSelectList");
     this.$dueBtn = $("#dueBtn");
     this.$eloFilters = $("input[name='eloFilter']");
     this.$mode = $("#modeSelect");
@@ -125,8 +128,10 @@ const App = {
     this.$lineThumb = $("#lineThumb");
   },
   bindEvents() {
-    this.$opening.on("change", () => this.onOpeningChange());
-    this.$line.on("change", () => this.onLineChange());
+    this.$openingButton.on("click", () => this.toggleSelectList("opening"));
+    this.$lineButton.on("click", () => this.toggleSelectList("line"));
+    this.$openingList.on("click", ".select-option", (event) => this.handleSelectOption(event, "opening"));
+    this.$lineList.on("click", ".select-option", (event) => this.handleSelectOption(event, "line"));
     this.$dueBtn.on("click", () => this.onStudyDueToggle());
     this.$eloFilters.on("change", () => this.onEloFilterChange());
     this.$mode.on("change", () => this.onModeChange());
@@ -146,6 +151,7 @@ const App = {
         this.toggleSessionSelectors();
       }
     });
+    $(document).on("click", (event) => this.handleDocumentClick(event));
     this.$comment.on("click", "#winProbPill", (event) => {
       event.preventDefault();
       this.restartLiveAnalysis();
@@ -177,6 +183,9 @@ const App = {
     }
     const tag = target.tagName ? target.tagName.toLowerCase() : "";
     if (tag === "input" || tag === "textarea" || tag === "select") {
+      return true;
+    }
+    if ($(target).closest(".custom-select").length) {
       return true;
     }
     return $(target).closest("[contenteditable='true']").length > 0;
@@ -503,7 +512,7 @@ const App = {
     const { announce = false } = options;
     this.state.sessionLineId = node.line_id;
     this.state.lineId = node.line_id;
-    this.$line.val(node.line_id);
+    this.updateLineSelectionDisplay();
     const line = this.data.linesById[node.line_id] || null;
     const plan = this.buildSessionPlanFromNode(node._key);
     this.state.sessionPlan = plan;
@@ -568,6 +577,8 @@ const App = {
     this.$sessionSummary.attr("aria-expanded", nextState);
     if (nextState) {
       this.updateSelectorThumbnails();
+    } else {
+      this.closeAllSelectLists();
     }
   },
   pickDefaultLine() {
@@ -595,18 +606,13 @@ const App = {
   },
   populateSelectors(defaults = {}) {
     const openings = this.data.openings.filter((o) => isPublished(o.published));
-    this.$opening.empty();
-    openings.forEach((opening) => {
-      this.$opening.append(
-        $("<option>").val(opening.opening_id).text(opening.opening_name || opening.opening_id)
-      );
-    });
     if (openings.length === 0) {
       return;
     }
     const openingId = defaults.openingId || openings[0].opening_id;
     this.state.openingId = openingId;
-    this.$opening.val(openingId);
+    this.renderOpeningOptions(openings);
+    this.updateOpeningSelectionDisplay();
     this.state.lineId = defaults.lineId || "any";
     this.populateLines(defaults.lineId);
   },
@@ -614,37 +620,162 @@ const App = {
     const lines = this.data.linesByOpeningId[this.state.openingId] || [];
     const filteredLines = this.getManualSelectionLines(lines);
     const displayLines = filteredLines;
-    const currentSelection = preferredLineId || this.$line.val();
-
-    this.$line.empty();
-    this.$line.append($("<option>").val("any").text("Any line (weighted)"));
-    displayLines.forEach((line) => {
-      const label = line.line_name || line.line_id;
-      this.$line.append($("<option>").val(line.line_id).text(label));
-    });
+    const currentSelection = preferredLineId || this.state.lineId;
     let nextSelection = "any";
     if (currentSelection && currentSelection !== "any" && displayLines.some((line) => line.line_id === currentSelection)) {
       nextSelection = currentSelection;
     } else if (currentSelection === "any") {
       nextSelection = "any";
     }
-    this.$line.val(nextSelection);
     this.state.lineId = nextSelection;
+    this.renderLineOptions(displayLines);
+    this.updateLineSelectionDisplay();
     this.updateProgress();
     this.updateSideSelector();
     this.updateSelectorThumbnails();
   },
-  onOpeningChange() {
-    this.state.openingId = this.$opening.val();
+  onOpeningChange(nextOpeningId) {
+    if (!nextOpeningId) {
+      return;
+    }
+    this.state.openingId = nextOpeningId;
+    this.updateOpeningSelectionDisplay();
     this.populateLines();
     this.prepareSession();
   },
-  onLineChange() {
-    this.state.lineId = this.$line.val();
+  onLineChange(nextLineId) {
+    if (!nextLineId) {
+      return;
+    }
+    this.state.lineId = nextLineId;
+    this.updateLineSelectionDisplay();
     this.updateProgress();
     this.updateSideSelector();
     this.updateSelectorThumbnails();
     this.prepareSession();
+  },
+  renderOpeningOptions(openings) {
+    this.$openingList.empty();
+    openings.forEach((opening) => {
+      const optionId = opening.opening_id;
+      const label = opening.opening_name || optionId;
+      this.$openingList.append(
+        this.buildSelectOption(optionId, label, optionId, "Opening option thumbnail", this.state.openingId)
+      );
+    });
+  },
+  renderLineOptions(lines) {
+    this.$lineList.empty();
+    this.$lineList.append(
+      this.buildSelectOption("any", "Any line (weighted)", null, "Line option thumbnail", this.state.lineId)
+    );
+    lines.forEach((line) => {
+      const optionId = line.line_id;
+      const label = line.line_name || optionId;
+      this.$lineList.append(
+        this.buildSelectOption(optionId, label, optionId, "Line option thumbnail", this.state.lineId)
+      );
+    });
+  },
+  buildSelectOption(value, label, thumbnailId, thumbnailLabel, selectedValue) {
+    const $option = $("<button>")
+      .addClass("select-option")
+      .attr("type", "button")
+      .attr("role", "option")
+      .attr("data-value", value);
+    if (selectedValue && value === selectedValue) {
+      $option.addClass("is-selected");
+    }
+    const $thumb = $("<img>")
+      .addClass("option-thumb is-placeholder")
+      .attr("src", THUMBNAIL_PLACEHOLDER_SRC)
+      .attr("alt", "");
+    const $label = $("<span>").addClass("option-label").text(label);
+    $option.append($thumb, $label);
+    if (thumbnailId) {
+      this.setThumbnail($thumb, thumbnailId, thumbnailLabel);
+    } else {
+      this.clearThumbnail($thumb);
+    }
+    return $option;
+  },
+  updateOpeningSelectionDisplay() {
+    const opening = this.data.openingsById[this.state.openingId];
+    const label = opening ? opening.opening_name || opening.opening_id : "Select opening";
+    this.$openingButton.text(label);
+    this.updateSelectedOption(this.$openingList, this.state.openingId);
+  },
+  updateLineSelectionDisplay() {
+    const lineLabel = this.state.lineId === "any"
+      ? "Any line (weighted)"
+      : (this.data.linesById[this.state.lineId]?.line_name || this.state.lineId || "Select line");
+    this.$lineButton.text(lineLabel);
+    this.updateSelectedOption(this.$lineList, this.state.lineId);
+  },
+  updateSelectedOption($list, selectedValue) {
+    if (!$list) {
+      return;
+    }
+    $list.find(".select-option").each((_, option) => {
+      const $option = $(option);
+      const value = $option.data("value");
+      $option.toggleClass("is-selected", value === selectedValue);
+    });
+  },
+  handleSelectOption(event, type) {
+    const value = $(event.currentTarget).data("value");
+    if (type === "opening") {
+      this.closeSelectList("opening");
+      this.onOpeningChange(value);
+      return;
+    }
+    this.closeSelectList("line");
+    this.onLineChange(value);
+  },
+  toggleSelectList(type) {
+    const { button, list } = this.getSelectElements(type);
+    if (!button || !list) {
+      return;
+    }
+    const isOpen = list.hasClass("is-open");
+    this.closeAllSelectLists();
+    if (!isOpen) {
+      list.addClass("is-open");
+      button.attr("aria-expanded", "true");
+    }
+  },
+  closeSelectList(type) {
+    const { button, list } = this.getSelectElements(type);
+    if (!button || !list) {
+      return;
+    }
+    list.removeClass("is-open");
+    button.attr("aria-expanded", "false");
+  },
+  closeAllSelectLists() {
+    this.$openingList.removeClass("is-open");
+    this.$lineList.removeClass("is-open");
+    this.$openingButton.attr("aria-expanded", "false");
+    this.$lineButton.attr("aria-expanded", "false");
+  },
+  handleDocumentClick(event) {
+    const target = event.target;
+    if (!target) {
+      return;
+    }
+    if ($(target).closest(".custom-select").length) {
+      return;
+    }
+    this.closeAllSelectLists();
+  },
+  getSelectElements(type) {
+    if (type === "opening") {
+      return { button: this.$openingButton, list: this.$openingList };
+    }
+    if (type === "line") {
+      return { button: this.$lineButton, list: this.$lineList };
+    }
+    return { button: null, list: null };
   },
   updateSelectorThumbnails() {
     this.setThumbnail(this.$openingThumb, this.state.openingId, "Opening thumbnail");
@@ -656,7 +787,11 @@ const App = {
     }
   },
   setThumbnail($img, id, label) {
-    if (!$img || !id) {
+    if (!$img) {
+      return;
+    }
+    if (!id) {
+      this.clearThumbnail($img);
       return;
     }
     const cached = this.thumbnailCache.get(id);
@@ -685,14 +820,18 @@ const App = {
     const url = `Thumbnails/${id}.png`;
     $img.attr("src", url);
     $img.attr("alt", `${label} ${id}`);
-    $img.removeClass("hidden");
-    $img.closest(".select-with-thumb").addClass("with-thumb");
+    $img.removeClass("is-placeholder");
+    if ($img.hasClass("select-thumb")) {
+      $img.closest(".select-with-thumb").addClass("with-thumb");
+    }
   },
   clearThumbnail($img) {
     $img.attr("alt", "");
-    $img.attr("src", "");
-    $img.addClass("hidden");
-    $img.closest(".select-with-thumb").removeClass("with-thumb");
+    $img.attr("src", THUMBNAIL_PLACEHOLDER_SRC);
+    $img.addClass("is-placeholder");
+    if ($img.hasClass("select-thumb")) {
+      $img.closest(".select-with-thumb").removeClass("with-thumb");
+    }
   },
   onStudyDueToggle() {
     this.state.studyDueOnly = !this.state.studyDueOnly;
@@ -1820,7 +1959,7 @@ const App = {
   },
   resolveSessionLine(forceStart) {
     const lines = this.data.linesByOpeningId[this.state.openingId] || [];
-    const selection = this.$line.val();
+    const selection = this.state.lineId;
     let line = null;
     if (selection && selection !== "any") {
       line = lines.find((item) => item.line_id === selection) || null;
@@ -1835,7 +1974,7 @@ const App = {
     if (this.state.sessionLineId) {
       return this.data.linesById[this.state.sessionLineId] || null;
     }
-    const selection = this.$line.val();
+    const selection = this.state.lineId;
     if (!selection || selection === "any") {
       return null;
     }
