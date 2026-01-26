@@ -13,6 +13,7 @@ const MISTAKE_TEMPLATES_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1v
 
 const OPPONENT_DELAY_MS = 500;
 const LINE_ELO_OPTIONS = ["900", "1200", "1500", "1800", "2100", "2400", "2700", "3000"];
+const THUMBNAIL_PLACEHOLDER_SRC = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==";
 
 const App = {
   data: {
@@ -656,7 +657,11 @@ const App = {
     }
   },
   setThumbnail($img, id, label) {
-    if (!$img || !id) {
+    if (!$img) {
+      return;
+    }
+    if (!id) {
+      this.clearThumbnail($img);
       return;
     }
     const cached = this.thumbnailCache.get(id);
@@ -685,13 +690,13 @@ const App = {
     const url = `Thumbnails/${id}.png`;
     $img.attr("src", url);
     $img.attr("alt", `${label} ${id}`);
-    $img.removeClass("hidden");
+    $img.removeClass("is-placeholder");
     $img.closest(".select-with-thumb").addClass("with-thumb");
   },
   clearThumbnail($img) {
     $img.attr("alt", "");
-    $img.attr("src", "");
-    $img.addClass("hidden");
+    $img.attr("src", THUMBNAIL_PLACEHOLDER_SRC);
+    $img.addClass("is-placeholder");
     $img.closest(".select-with-thumb").removeClass("with-thumb");
   },
   onStudyDueToggle() {
