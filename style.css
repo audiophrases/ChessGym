@@ -105,7 +105,7 @@ body {
 .select-with-thumb {
   display: flex;
   align-items: center;
-  gap: 8px;
+  position: relative;
 }
 
 .select-with-thumb select {
@@ -113,13 +113,22 @@ body {
   min-width: 0;
 }
 
+.select-with-thumb.with-thumb select {
+  padding-left: 52px;
+}
+
 .select-thumb {
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
   border: 1px solid var(--border);
   background: var(--surface-muted);
   object-fit: cover;
+  transform: translateY(-50%);
+  pointer-events: none;
 }
 
 .footer-bar select,
