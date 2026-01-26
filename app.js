@@ -76,6 +76,8 @@ const App = {
     coachOverrideTimer: null,
     coachOverrideActive: false,
     hintActive: false,
+    freeModeActive: false,
+    freeModeSnapshot: null,
     boardSizeIndex: 2,
     outOfLine: false
   },
@@ -104,6 +106,7 @@ const App = {
     this.$progressText = $("#progressText");
     this.$comment = $("#commentBox");
     this.$hint = $("#hintBtn");
+    this.$free = $("#freeBtn");
     this.$reveal = $("#revealBtn");
     this.$lichess = $("#lichessBtn");
     this.$engineEval = $("#engineEval");
@@ -123,6 +126,7 @@ const App = {
     this.$prev.on("click", () => this.stepMove(-1));
     this.$next.on("click", () => this.stepMove(1));
     this.$hint.on("click", () => this.handleHint());
+    this.$free.on("click", () => this.handleFreeModeToggle());
     this.$reveal.on("click", () => this.handleRevealMove());
     this.$lichess.on("click", () => this.openLichessGame());
     this.$boardZoomIn.on("click", () => this.adjustBoardSize(1));
@@ -703,6 +707,8 @@ const App = {
     this.state.completed = false;
     this.state.inBook = false;
     this.state.hintActive = false;
+    this.state.freeModeActive = false;
+    this.state.freeModeSnapshot = null;
     this.state.bookPlyIndex = 0;
     this.state.bookMaxPlies = 0;
     this.state.engineBusy = false;
@@ -805,6 +811,131 @@ const App = {
     this.setComment("Play through the opening book, then test yourself against Stockfish.");
     this.setLineStatus(selectedLine);
   },
+  handleFreeModeToggle() {
+    if (!this.state.freeModeActive) {
+      this.startFreeMode();
+      return;
+    }
+    this.copyFreeMovesToClipboard()
+      .finally(() => {
+        this.endFreeMode();
+      });
+  },
+  startFreeMode() {
+    this.stopPendingActions();
+    this.state.sessionActive = true;
+    this.state.engineBusy = false;
+    this.state.freeModeActive = true;
+    this.state.freeModeSnapshot = {
+      fen: this.chess ? this.chess.fen() : "start",
+      moveHistory: [...this.state.moveHistory],
+      redoMoves: [...this.state.redoMoves],
+      currentDepth: this.state.currentDepth,
+      inBook: this.state.inBook,
+      bookPlyIndex: this.state.bookPlyIndex,
+      statusText: this.state.statusText,
+      lastCoachComment: this.state.lastCoachComment,
+      coachCommentBySide: JSON.parse(JSON.stringify(this.state.coachCommentBySide))
+    };
+    this.clearSelection();
+    this.setStatus("Free play: both sides.");
+    this.setComment("Free play enabled. Click Free again to copy the UCI move list.");
+  },
+  endFreeMode() {
+    const snapshot = this.state.freeModeSnapshot;
+    this.state.freeModeActive = false;
+    if (snapshot) {
+      this.state.moveHistory = [...snapshot.moveHistory];
+      this.state.redoMoves = [...snapshot.redoMoves];
+      this.state.currentDepth = snapshot.currentDepth;
+      this.state.inBook = snapshot.inBook;
+      this.state.bookPlyIndex = snapshot.bookPlyIndex;
+      this.state.statusText = snapshot.statusText;
+      this.state.lastCoachComment = snapshot.lastCoachComment;
+      this.state.coachCommentBySide = snapshot.coachCommentBySide;
+      this.state.freeModeSnapshot = null;
+      this.chess.reset();
+      if (snapshot.fen && snapshot.fen !== "start") {
+        this.chess.load(snapshot.fen);
+      }
+      this.board.position(this.chess.fen());
+    }
+    this.clearSelection();
+    this.updateLastMoveHighlight();
+    this.updateNavigationControls();
+    this.updateProgress();
+    if (!snapshot) {
+      if (this.state.mode === "learning") {
+        this.showLearningPrompt();
+      }
+      if (this.state.mode === "learning" || this.state.mode === "practice") {
+        this.setStatus("Your move.");
+      }
+    }
+    this.renderCoachComment();
+  },
+  copyFreeMovesToClipboard() {
+    const movesText = this.state.moveHistory.join(" ").trim();
+    if (!movesText) {
+      this.setStatus("No moves to copy yet.");
+      this.setComment("Play some moves, then click Free again to copy.");
+      return Promise.resolve();
+    }
+    const onSuccess = () => {
+      this.setStatus("UCI move list copied.");
+      this.setComment(`Copied ${this.state.moveHistory.length} moves to clipboard.`);
+    };
+    const onFailure = () => {
+      this.setStatus("Unable to copy to clipboard.");
+      this.setComment("Clipboard access failed. Try again or copy from the console.");
+      console.warn("Failed to copy UCI moves to clipboard.");
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(movesText)
+        .then(() => {
+          onSuccess();
+        })
+        .catch(() => {
+          onFailure();
+        });
+    }
+    return new Promise((resolve) => {
+      const textarea = document.createElement("textarea");
+      textarea.value = movesText;
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
+      document.body.appendChild(textarea);
+      textarea.select();
+      try {
+        const succeeded = document.execCommand("copy");
+        if (succeeded) {
+          onSuccess();
+        } else {
+          onFailure();
+        }
+      } catch (error) {
+        onFailure();
+      } finally {
+        document.body.removeChild(textarea);
+        resolve();
+      }
+    });
+  },
+  handleFreeMove(uci, promotion) {
+    const legalMove = this.chess.move({
+      from: uci.slice(0, 2),
+      to: uci.slice(2, 4),
+      promotion
+    });
+    if (!legalMove) {
+      return "snapback";
+    }
+    this.playMoveSound(legalMove);
+    this.recordMove(moveToUci(legalMove), legalMove);
+    this.updateLastMoveHighlight();
+    this.setStatus("Free play: move played.");
+    return null;
+  },
   handleSquareClick(squareElement) {
     const square = squareElement.data("square");
     if (!square) {
@@ -824,13 +955,13 @@ const App = {
       }
       const pieceCode = `${piece.color}${piece.type.toUpperCase()}`;
       const turn = this.chess.turn() === "w" ? "white" : "black";
-      if (turn !== this.state.userSide) {
+      if (!this.state.freeModeActive && turn !== this.state.userSide) {
         return;
       }
-      if (this.state.mode !== "game" && this.state.mode !== "learning" && this.state.mode !== "practice") {
+      if (!this.state.freeModeActive && this.state.mode !== "game" && this.state.mode !== "learning" && this.state.mode !== "practice") {
         return;
       }
-      if (this.state.mode === "learning" || this.state.mode === "practice") {
+      if (!this.state.freeModeActive && (this.state.mode === "learning" || this.state.mode === "practice")) {
         const expected = this.getExpectedNode();
         if (!expected) {
           return;
@@ -851,7 +982,9 @@ const App = {
     const promotion = needsPromotion(source, target, this.chess) ? "q" : undefined;
     const uci = `${source}${target}${promotion || ""}`;
 
-    if (this.state.mode === "learning" || this.state.mode === "practice") {
+    if (this.state.freeModeActive) {
+      this.handleFreeMove(uci, promotion);
+    } else if (this.state.mode === "learning" || this.state.mode === "practice") {
       this.handleTrainingMove(uci, promotion);
     } else if (this.state.mode === "game") {
       this.handleGameMove(uci, promotion);
