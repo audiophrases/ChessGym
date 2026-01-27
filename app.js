@@ -2091,7 +2091,9 @@ const App = {
       }
       return;
     }
-    const probability = evalToWinProbability(evalData);
+    const probability = Number.isFinite(evalData && evalData.whiteWinProb)
+      ? evalData.whiteWinProb
+      : evalToWinProbability(evalData);
     this.updateWinProbability(probability);
   },
   updateWinProbability(probability) {
@@ -2491,6 +2493,7 @@ class StockfishEngine {
     };
 
     this.send("uci");
+    this.send("setoption name UCI_ShowWDL value true");
     this.send("isready");
   }
 
@@ -2924,14 +2927,41 @@ function parseEvalData(text, fen, perspective = "white") {
   const turn = fen.split(" ")[1];
   const turnSide = turn === "b" ? "black" : "white";
   const adjusted = perspective === turnSide ? rawValue : -rawValue;
+  const wdlMatch = text.match(/wdl (\d+) (\d+) (\d+)/);
+  const wdl = wdlMatch
+    ? {
+      win: parseInt(wdlMatch[1], 10),
+      draw: parseInt(wdlMatch[2], 10),
+      loss: parseInt(wdlMatch[3], 10)
+    }
+    : null;
+  const whiteWinProb = wdl
+    ? (turnSide === "white"
+      ? (wdl.win + 0.5 * wdl.draw) / 1000
+      : (wdl.loss + 0.5 * wdl.draw) / 1000)
+    : null;
   const depthMatch = text.match(/depth (\d+)/);
   const nodesMatch = text.match(/nodes (\d+)/);
   const depth = depthMatch ? parseInt(depthMatch[1], 10) : null;
   const nodes = nodesMatch ? parseInt(nodesMatch[1], 10) : null;
   if (type === "mate") {
-    return { type, value: adjusted, depth, nodes };
+    return {
+      type,
+      value: adjusted,
+      depth,
+      nodes,
+      wdl,
+      whiteWinProb
+    };
   }
-  return { type, value: adjusted / 100, depth, nodes };
+  return {
+    type,
+    value: adjusted / 100,
+    depth,
+    nodes,
+    wdl,
+    whiteWinProb
+  };
 }
 
 function formatEvalText(evalData) {
