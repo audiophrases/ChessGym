@@ -691,7 +691,7 @@ const App = {
   renderLineOptions(lines) {
     this.$lineList.empty();
     this.$lineList.append(
-      this.buildSelectOption("any", "Any line (weighted)", null, "Line option thumbnail", this.state.lineId)
+      this.buildSelectOption("any", "Any line (weighted)", "Any_line", "Line option thumbnail", this.state.lineId)
     );
     lines.forEach((line) => {
       const optionId = line.line_id;
@@ -849,9 +849,13 @@ const App = {
     const lineId = this.state.lineId;
     if (lineId && lineId !== "any") {
       this.setThumbnail(this.$lineThumb, lineId, "Line thumbnail");
-    } else {
-      this.clearThumbnail(this.$lineThumb);
+      return;
     }
+    if (lineId === "any") {
+      this.setThumbnail(this.$lineThumb, "Any_line", "Line thumbnail");
+      return;
+    }
+    this.clearThumbnail(this.$lineThumb);
   },
   setThumbnail($img, id, label) {
     if (!$img) {
