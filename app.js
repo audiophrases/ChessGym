@@ -2086,7 +2086,7 @@ const App = {
       }
       return;
     }
-    const probability = evalToWinProbability(evalData, "white");
+    const probability = evalToWinProbability(evalData);
     this.updateWinProbability(probability);
   },
   updateWinProbability(probability) {
@@ -2464,6 +2464,8 @@ class StockfishEngine {
     this.pending = [];
     this.listeners = [];
     this.analysisListener = null;
+    this.lastDepth = null;
+    this.lastScore = null;
     this.init(path);
   }
 
@@ -2493,13 +2495,36 @@ class StockfishEngine {
     }
   }
 
+  resetInfoState() {
+    this.lastDepth = null;
+    this.lastScore = null;
+  }
+
+  shouldEmitInfo(evalData) {
+    const depthOk = Number.isFinite(evalData.depth) && evalData.depth >= 10;
+    let stableOk = false;
+    if (this.lastScore) {
+      if (evalData.type === "cp" && this.lastScore.type === "cp") {
+        stableOk = Math.abs(evalData.value - this.lastScore.value) <= 0.1;
+      } else if (evalData.type === "mate" && this.lastScore.type === "mate") {
+        stableOk = evalData.value === this.lastScore.value;
+      }
+    }
+    this.lastScore = { type: evalData.type, value: evalData.value };
+    if (Number.isFinite(evalData.depth)) {
+      this.lastDepth = evalData.depth;
+    }
+    return depthOk || stableOk;
+  }
+
   startAnalysis(fen, onInfo) {
     this.stopAnalysis();
+    this.resetInfoState();
     const listener = (text) => {
       if (text.startsWith("info") && onInfo) {
-        const evalText = parseEval(text, fen);
-        if (evalText) {
-          const evalData = parseEvalData(text, fen);
+        const evalData = parseEvalData(text, fen, "white");
+        if (evalData && this.shouldEmitInfo(evalData)) {
+          const evalText = formatEvalText(evalData);
           onInfo(evalText, evalData);
         }
       }
@@ -2520,11 +2545,12 @@ class StockfishEngine {
 
   getBestMove(fen, movetime, onBestmove, onInfo) {
     this.stopAnalysis();
+    this.resetInfoState();
     const listener = (text) => {
       if (text.startsWith("info") && onInfo) {
-        const evalText = parseEval(text, fen);
-        if (evalText) {
-          const evalData = parseEvalData(text, fen);
+        const evalData = parseEvalData(text, fen, "white");
+        if (evalData && this.shouldEmitInfo(evalData)) {
+          const evalText = formatEvalText(evalData);
           onInfo(evalText, evalData);
         }
       }
@@ -2870,32 +2896,14 @@ function getEngineMoveTime(level) {
 }
 
 function parseEval(text, fen) {
-  if (!text.includes("score")) {
+  const evalData = parseEvalData(text, fen, "white");
+  if (!evalData) {
     return "";
   }
-  const scoreMatch = text.match(/score (cp|mate) (-?\d+)/);
-  if (!scoreMatch) {
-    return "";
-  }
-  const type = scoreMatch[1];
-  const value = parseInt(scoreMatch[2], 10);
-  if (!Number.isFinite(value)) {
-    return "";
-  }
-  if (type === "mate") {
-    const turn = fen.split(" ")[1];
-    const adjusted = turn === "b" ? -value : value;
-    const mateText = adjusted > 0 ? Math.abs(adjusted) : `-${Math.abs(adjusted)}`;
-    return `Engine eval: #${mateText}`;
-  }
-  const cp = (value / 100).toFixed(2);
-  const turn = fen.split(" ")[1];
-  const adjusted = turn === "b" ? -value : value;
-  const adjustedCp = (adjusted / 100).toFixed(2);
-  return `Engine eval: ${adjustedCp}`;
+  return formatEvalText(evalData);
 }
 
-function parseEvalData(text, fen) {
+function parseEvalData(text, fen, perspective = "white") {
   if (!text.includes("score")) {
     return null;
   }
@@ -2909,25 +2917,39 @@ function parseEvalData(text, fen) {
     return null;
   }
   const turn = fen.split(" ")[1];
-  const adjusted = turn === "b" ? -rawValue : rawValue;
+  const turnSide = turn === "b" ? "black" : "white";
+  const adjusted = perspective === turnSide ? rawValue : -rawValue;
+  const depthMatch = text.match(/depth (\d+)/);
+  const nodesMatch = text.match(/nodes (\d+)/);
+  const depth = depthMatch ? parseInt(depthMatch[1], 10) : null;
+  const nodes = nodesMatch ? parseInt(nodesMatch[1], 10) : null;
   if (type === "mate") {
-    return { type, value: adjusted };
+    return { type, value: adjusted, depth, nodes };
   }
-  return { type, value: adjusted / 100 };
+  return { type, value: adjusted / 100, depth, nodes };
 }
 
-function evalToWinProbability(evalData, userSide) {
+function formatEvalText(evalData) {
+  if (!evalData) {
+    return "";
+  }
+  if (evalData.type === "mate") {
+    const mateText = evalData.value > 0
+      ? Math.abs(evalData.value)
+      : `-${Math.abs(evalData.value)}`;
+    return `Engine eval: #${mateText}`;
+  }
+  return `Engine eval: ${evalData.value.toFixed(2)}`;
+}
+
+function evalToWinProbability(evalData) {
   if (!evalData) {
     return 0.5;
   }
-  let score = evalData.value;
-  if (userSide === "black") {
-    score = -score;
-  }
   if (evalData.type === "mate") {
-    return score > 0 ? 0.99 : 0.01;
+    return evalData.value > 0 ? 0.99 : 0.01;
   }
-  const winProb = 1 / (1 + Math.exp(-0.8 * score));
+  const winProb = 1 / (1 + Math.exp(-0.8 * evalData.value));
   return Math.max(0.01, Math.min(0.99, winProb));
 }
 
