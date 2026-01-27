@@ -83,7 +83,8 @@ const App = {
     freeModeSnapshot: null,
     boardSizeIndex: 2,
     outOfLine: false,
-    eloFilters: new Set()
+    eloFilters: new Set(),
+    winProbTouchTime: 0
   },
   chess: null,
   board: null,
@@ -177,11 +178,15 @@ const App = {
     });
     $(document).on("click", (event) => this.handleDocumentClick(event));
     this.$comment.on("click", "#winProbPill", (event) => {
+      if (Date.now() - this.state.winProbTouchTime < 500) {
+        return;
+      }
       event.preventDefault();
       this.restartLiveAnalysis();
     });
     this.$comment.on("touchstart", "#winProbPill", (event) => {
       event.preventDefault();
+      this.state.winProbTouchTime = Date.now();
       this.restartLiveAnalysis();
     });
     $(document).on("keydown", (event) => {
