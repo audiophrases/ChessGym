@@ -2291,7 +2291,7 @@ const App = {
     if (this.state.engineEnabled) {
       this.state.engineEnabled = false;
       this.stopLiveAnalysis();
-      this.setWinProbDisplay("⏻");
+      this.setWinProbDisplay("⭘");
     } else {
       this.state.engineEnabled = true;
       this.setWinProbDisplay(this.state.winProbLastText || "50");
