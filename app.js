@@ -92,6 +92,7 @@ const App = {
   thumbnailCache: new Map(),
   init() {
     this.cacheElements();
+    this.initThumbnailPreview();
     this.bindEvents();
     this.showLoading(true);
     this.loadData();
@@ -127,11 +128,34 @@ const App = {
     this.$openingThumb = $("#openingThumb");
     this.$lineThumb = $("#lineThumb");
   },
+  initThumbnailPreview() {
+    let $preview = $("#thumbnailPreview");
+    if (!$preview.length) {
+      $preview = $("<div>")
+        .attr("id", "thumbnailPreview")
+        .addClass("thumbnail-preview hidden")
+        .append(
+          $("<img>")
+            .addClass("thumbnail-preview-image")
+            .attr("src", THUMBNAIL_PLACEHOLDER_SRC)
+            .attr("alt", "")
+        );
+      $("body").append($preview);
+    }
+    this.$thumbnailPreview = $preview;
+    this.$thumbnailPreviewImage = $preview.find("img");
+  },
   bindEvents() {
     this.$openingButton.on("click", () => this.toggleSelectList("opening"));
     this.$lineButton.on("click", () => this.toggleSelectList("line"));
     this.$openingList.on("click", ".select-option", (event) => this.handleSelectOption(event, "opening"));
     this.$lineList.on("click", ".select-option", (event) => this.handleSelectOption(event, "line"));
+    this.$openingList.on("mouseenter", ".select-option", (event) => this.showThumbnailPreview(event));
+    this.$lineList.on("mouseenter", ".select-option", (event) => this.showThumbnailPreview(event));
+    this.$openingList.on("mousemove", ".select-option", (event) => this.positionThumbnailPreview(event));
+    this.$lineList.on("mousemove", ".select-option", (event) => this.positionThumbnailPreview(event));
+    this.$openingList.on("mouseleave", ".select-option", () => this.hideThumbnailPreview());
+    this.$lineList.on("mouseleave", ".select-option", () => this.hideThumbnailPreview());
     this.$dueBtn.on("click", () => this.onStudyDueToggle());
     this.$eloFilters.on("change", () => this.onEloFilterChange());
     this.$mode.on("change", () => this.onModeChange());
@@ -683,6 +707,9 @@ const App = {
       .attr("type", "button")
       .attr("role", "option")
       .attr("data-value", value);
+    if (thumbnailId) {
+      $option.attr("data-thumbnail-id", thumbnailId);
+    }
     if (selectedValue && value === selectedValue) {
       $option.addClass("is-selected");
     }
@@ -698,6 +725,44 @@ const App = {
       this.clearThumbnail($thumb);
     }
     return $option;
+  },
+  showThumbnailPreview(event) {
+    const $option = $(event.currentTarget);
+    const thumbnailId = $option.data("thumbnailId");
+    if (!thumbnailId) {
+      this.hideThumbnailPreview();
+      return;
+    }
+    if (this.thumbnailCache.get(thumbnailId) === false) {
+      this.hideThumbnailPreview();
+      return;
+    }
+    this.setThumbnail(this.$thumbnailPreviewImage, thumbnailId, "Thumbnail preview");
+    this.$thumbnailPreview.removeClass("hidden");
+    this.positionThumbnailPreview(event);
+  },
+  positionThumbnailPreview(event) {
+    if (!this.$thumbnailPreview || this.$thumbnailPreview.hasClass("hidden")) {
+      return;
+    }
+    const offset = 16;
+    const previewWidth = this.$thumbnailPreview.outerWidth() || 0;
+    const previewHeight = this.$thumbnailPreview.outerHeight() || 0;
+    let left = event.clientX + offset;
+    let top = event.clientY + offset;
+    if (previewWidth && left + previewWidth > window.innerWidth - 8) {
+      left = event.clientX - previewWidth - offset;
+    }
+    if (previewHeight && top + previewHeight > window.innerHeight - 8) {
+      top = event.clientY - previewHeight - offset;
+    }
+    this.$thumbnailPreview.css({ left: `${left}px`, top: `${top}px` });
+  },
+  hideThumbnailPreview() {
+    if (!this.$thumbnailPreview) {
+      return;
+    }
+    this.$thumbnailPreview.addClass("hidden");
   },
   updateOpeningSelectionDisplay() {
     const opening = this.data.openingsById[this.state.openingId];
@@ -751,12 +816,14 @@ const App = {
     }
     list.removeClass("is-open");
     button.attr("aria-expanded", "false");
+    this.hideThumbnailPreview();
   },
   closeAllSelectLists() {
     this.$openingList.removeClass("is-open");
     this.$lineList.removeClass("is-open");
     this.$openingButton.attr("aria-expanded", "false");
     this.$lineButton.attr("aria-expanded", "false");
+    this.hideThumbnailPreview();
   },
   handleDocumentClick(event) {
     const target = event.target;
