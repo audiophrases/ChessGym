@@ -65,7 +65,9 @@ const App = {
     statusText: "",
     lastCoachComment: "",
     winProbText: "50",
+    winProbLastText: "50",
     winProbSide: "white",
+    engineEnabled: true,
     coachCommentBySide: {
       white: { current: "", previous: "" },
       black: { current: "", previous: "" }
@@ -182,12 +184,12 @@ const App = {
         return;
       }
       event.preventDefault();
-      this.restartLiveAnalysis();
+      this.toggleEngineAnalysis();
     });
     this.$comment.on("touchstart", "#winProbPill", (event) => {
       event.preventDefault();
       this.state.winProbTouchTime = Date.now();
-      this.restartLiveAnalysis();
+      this.toggleEngineAnalysis();
     });
     $(document).on("keydown", (event) => {
       if (this.shouldIgnoreNavigationKey(event)) {
@@ -2082,12 +2084,9 @@ const App = {
     if (evalData && evalData.type === "mate") {
       const mateScore = evalData.value;
       const mateLabel = `#${mateScore > 0 ? Math.abs(mateScore) : `-${Math.abs(mateScore)}`}`;
-      this.state.winProbText = mateLabel;
-      if (!this.$winProbText || !this.$winProbText.length) {
-        this.$winProbText = $("#winProbText");
-      }
-      if (this.$winProbText.length) {
-        this.$winProbText.text(mateLabel);
+      this.state.winProbLastText = mateLabel;
+      if (this.state.engineEnabled) {
+        this.setWinProbDisplay(mateLabel);
       }
       return;
     }
@@ -2100,12 +2099,18 @@ const App = {
     const clamped = Math.max(0, Math.min(1, probability));
     const percent = Math.round(clamped * 100);
     const label = `${percent}`;
-    this.state.winProbText = label;
+    this.state.winProbLastText = label;
+    if (this.state.engineEnabled) {
+      this.setWinProbDisplay(label);
+    }
+  },
+  setWinProbDisplay(text) {
+    this.state.winProbText = text;
     if (!this.$winProbText || !this.$winProbText.length) {
       this.$winProbText = $("#winProbText");
     }
     if (this.$winProbText.length) {
-      this.$winProbText.text(label);
+      this.$winProbText.text(text);
     }
   },
   setStatus(text) {
@@ -2219,8 +2224,9 @@ const App = {
     const studiedSide = this.state.userSide;
     const opponentSide = studiedSide === "white" ? "black" : "white";
     const useSideLabel = useLearningPrompts || this.state.mode === "practice";
+    const winProbLabel = this.state.engineEnabled ? "Turn engine off" : "Turn engine on";
     const winProbHtml = `
-      <button class="win-probability-pill" id="winProbPill" type="button" aria-label="Restart engine analysis">
+      <button class="win-probability-pill" id="winProbPill" type="button" aria-label="${winProbLabel}">
         <span class="win-probability" id="winProbText">${this.state.winProbText}</span>
       </button>
     `;
@@ -2274,6 +2280,24 @@ const App = {
       </div>`
     );
     this.$winProbText = this.$comment.find("#winProbText");
+  },
+  updateWinProbButtonLabel() {
+    const $pill = this.$comment.find("#winProbPill");
+    if ($pill.length) {
+      $pill.attr("aria-label", this.state.engineEnabled ? "Turn engine off" : "Turn engine on");
+    }
+  },
+  toggleEngineAnalysis() {
+    if (this.state.engineEnabled) {
+      this.state.engineEnabled = false;
+      this.stopLiveAnalysis();
+      this.setWinProbDisplay("⏻");
+    } else {
+      this.state.engineEnabled = true;
+      this.setWinProbDisplay(this.state.winProbLastText || "50");
+      this.startLiveAnalysis();
+    }
+    this.updateWinProbButtonLabel();
   },
   setLineStatus(line) {
     if (!line) {
@@ -2420,6 +2444,9 @@ const App = {
     }
   },
   startLiveAnalysis() {
+    if (!this.state.engineEnabled) {
+      return;
+    }
     this.ensureEngine();
     if (!this.engine) {
       return;
