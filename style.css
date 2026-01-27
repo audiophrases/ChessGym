@@ -111,19 +111,19 @@ body {
 .select-with-thumb .select-trigger {
   flex: 1;
   min-width: 0;
-  padding-left: 78px;
+  padding-left: 88px;
 }
 
 .select-with-thumb.with-thumb .select-trigger {
-  padding-left: 78px;
+  padding-left: 88px;
 }
 
 .select-thumb {
   position: absolute;
   left: 12px;
   top: 50%;
-  width: 56px;
-  height: 56px;
+  width: 64px;
+  height: 64px;
   border-radius: 12px;
   border: 1px solid var(--border);
   background: var(--surface-muted);
@@ -202,9 +202,9 @@ body {
 }
 
 .select-option .option-thumb {
-  width: 44px;
-  height: 44px;
-  border-radius: 10px;
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
   border: 1px solid var(--border);
   background: var(--surface-muted);
   object-fit: cover;
