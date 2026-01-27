@@ -130,6 +130,7 @@ body {
   object-fit: cover;
   transform: translateY(-50%);
   pointer-events: none;
+  z-index: 2;
 }
 
 .select-thumb.is-placeholder {
@@ -147,6 +148,7 @@ body {
   gap: 8px;
   position: relative;
   padding-right: 32px;
+  z-index: 1;
 }
 
 .select-trigger::after {
