@@ -3059,10 +3059,14 @@ function evalToWinProbability(evalData) {
     return 0.5;
   }
   if (evalData.type === "mate") {
-    return evalData.value > 0 ? 0.99 : 0.01;
+    return evalData.value > 0 ? 1 : 0;
   }
-  const winProb = 1 / (1 + Math.exp(-0.8 * evalData.value));
-  return Math.max(0.01, Math.min(0.99, winProb));
+  const rawValue = evalData.value;
+  const isCentipawns = Math.abs(rawValue) > 50;
+  const centipawns = isCentipawns ? rawValue : rawValue * 100;
+  const clampedCp = Math.max(-2000, Math.min(2000, centipawns));
+  const winProb = 1 / (1 + Math.exp(-0.00368208 * clampedCp));
+  return Math.max(0, Math.min(1, winProb));
 }
 
 function formatModeLabel(mode) {
