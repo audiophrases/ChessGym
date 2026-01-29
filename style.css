@@ -352,6 +352,17 @@ body {
   justify-content: center;
 }
 
+.win-probability-source {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.win-probability-source.is-hidden {
+  display: none;
+}
+
 .win-probability-pill:focus {
   outline: 2px solid rgba(255, 255, 255, 0.35);
   outline-offset: 2px;
