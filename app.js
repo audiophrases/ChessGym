@@ -67,6 +67,8 @@ const App = {
     winProbText: "50",
     winProbLastText: "50",
     winProbSide: "white",
+    winProbSourceLabel: "",
+    winProbSourceHint: "",
     engineEnabled: true,
     coachCommentBySide: {
       white: { current: "", previous: "" },
@@ -1017,6 +1019,7 @@ const App = {
     this.clearLastMoveHighlight();
     this.updateNavigationControls();
     this.updateWinProbability(0.5);
+    this.setWinProbSource("", "");
 
     const opening = this.getSelectedOpening();
     const line = this.resolveSessionLine(forceStart);
@@ -1042,11 +1045,17 @@ const App = {
       fen = opening.starting_fen;
     }
 
-    this.chess.reset();
-    if (fen && fen !== "start") {
-      this.chess.load(fen);
-    }
+    const fenLoaded = loadFenForChess(this.chess, fen);
     this.board.position(this.chess.fen());
+    if (!fenLoaded) {
+      this.state.sessionActive = false;
+      this.stopLiveAnalysis();
+      this.setLineStatus(line);
+      this.setStatus("Invalid line/opening FEN. Session start stopped.");
+      this.setComment(`Invalid line/opening FEN: <code>${fen}</code>. Fix the line/opening data before starting.`);
+      console.error("Invalid line/opening FEN while resetting session:", fen);
+      return;
+    }
     this.startLiveAnalysis();
 
     if (this.state.mode === "learning" || this.state.mode === "practice") {
@@ -2085,14 +2094,21 @@ const App = {
       const mateScore = evalData.value;
       const mateLabel = `#${mateScore > 0 ? Math.abs(mateScore) : `-${Math.abs(mateScore)}`}`;
       this.state.winProbLastText = mateLabel;
+      this.setWinProbSource("", "");
       if (this.state.engineEnabled) {
         this.setWinProbDisplay(mateLabel);
       }
       return;
     }
-    const probability = Number.isFinite(evalData && evalData.whiteWinProb)
+    const hasValidWdl = Boolean(evalData && evalData.wdlValid && Number.isFinite(evalData.whiteWinProb));
+    const probability = hasValidWdl
       ? evalData.whiteWinProb
       : evalToWinProbability(evalData);
+    if (hasValidWdl) {
+      this.setWinProbSource("", "");
+    } else {
+      this.setWinProbSource("CP", "Win% derived from centipawn conversion (engine WDL unavailable).");
+    }
     this.updateWinProbability(probability);
   },
   updateWinProbability(probability) {
@@ -2111,6 +2127,24 @@ const App = {
     }
     if (this.$winProbText.length) {
       this.$winProbText.text(text);
+    }
+  },
+  setWinProbSource(label, hint) {
+    this.state.winProbSourceLabel = label;
+    this.state.winProbSourceHint = hint;
+    const $source = this.$comment ? this.$comment.find("#winProbSource") : $();
+    if (!$source.length) {
+      return;
+    }
+    if (label) {
+      $source.text(label).removeClass("is-hidden");
+      if (hint) {
+        $source.attr("title", hint);
+      } else {
+        $source.removeAttr("title");
+      }
+    } else {
+      $source.text("").addClass("is-hidden").removeAttr("title");
     }
   },
   setStatus(text) {
@@ -2225,9 +2259,14 @@ const App = {
     const opponentSide = studiedSide === "white" ? "black" : "white";
     const useSideLabel = useLearningPrompts || this.state.mode === "practice";
     const winProbLabel = this.state.engineEnabled ? "Turn engine off" : "Turn engine on";
+    const winProbSourceLabel = this.state.winProbSourceLabel || "";
+    const winProbSourceHint = this.state.winProbSourceHint || "";
+    const winProbSourceClass = winProbSourceLabel ? "" : " is-hidden";
+    const winProbSourceTitle = winProbSourceHint ? ` title="${winProbSourceHint}"` : "";
     const winProbHtml = `
       <button class="win-probability-pill" id="winProbPill" type="button" aria-label="${winProbLabel}">
         <span class="win-probability" id="winProbText">${this.state.winProbText}</span>
+        <span class="win-probability-source${winProbSourceClass}" id="winProbSource"${winProbSourceTitle}>${winProbSourceLabel}</span>
       </button>
     `;
     const buildCoachMessage = (side) => {
@@ -2955,14 +2994,21 @@ function parseEvalData(text, fen, perspective = "white") {
   const turnSide = turn === "b" ? "black" : "white";
   const adjusted = perspective === turnSide ? rawValue : -rawValue;
   const wdlMatch = text.match(/wdl (\d+) (\d+) (\d+)/);
-  const wdl = wdlMatch
-    ? {
-      win: parseInt(wdlMatch[1], 10),
-      draw: parseInt(wdlMatch[2], 10),
-      loss: parseInt(wdlMatch[3], 10)
+  let wdl = null;
+  let wdlPresent = false;
+  let wdlValid = false;
+  if (wdlMatch) {
+    wdlPresent = true;
+    const win = parseInt(wdlMatch[1], 10);
+    const draw = parseInt(wdlMatch[2], 10);
+    const loss = parseInt(wdlMatch[3], 10);
+    if (Number.isFinite(win) && Number.isFinite(draw) && Number.isFinite(loss)) {
+      const total = win + draw + loss;
+      wdlValid = Math.abs(total - 1000) <= 10;
+      wdl = { win, draw, loss, total };
     }
-    : null;
-  const whiteWinProb = wdl
+  }
+  const whiteWinProb = wdlValid
     ? (turnSide === "white"
       ? (wdl.win + 0.5 * wdl.draw) / 1000
       : (wdl.loss + 0.5 * wdl.draw) / 1000)
@@ -2978,6 +3024,8 @@ function parseEvalData(text, fen, perspective = "white") {
       depth,
       nodes,
       wdl,
+      wdlPresent,
+      wdlValid,
       whiteWinProb
     };
   }
@@ -2987,6 +3035,8 @@ function parseEvalData(text, fen, perspective = "white") {
     depth,
     nodes,
     wdl,
+    wdlPresent,
+    wdlValid,
     whiteWinProb
   };
 }
