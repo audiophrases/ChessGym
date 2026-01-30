@@ -1554,11 +1554,15 @@ const App = {
     }
     this.state.engineBusy = true;
     this.stopLiveAnalysis();
+    const expectedFen = this.chess.fen();
     const movetime = getEngineMoveTime(this.$strength.val());
     const sessionId = this.state.engineSessionId;
-    this.engine.getBestMove(this.chess.fen(), movetime, (bestmove) => {
+    this.engine.getBestMove(expectedFen, movetime, (bestmove) => {
       this.state.engineBusy = false;
       if (sessionId !== this.state.engineSessionId || !this.state.engineEnabled) {
+        return;
+      }
+      if (this.chess.fen() !== expectedFen) {
         return;
       }
       if (!bestmove || bestmove === "(none)") {
@@ -1580,6 +1584,9 @@ const App = {
       this.nextGameTurn();
     }, (evalText, evalData) => {
       if (sessionId !== this.state.engineSessionId || !this.state.engineEnabled) {
+        return;
+      }
+      if (this.chess.fen() !== expectedFen) {
         return;
       }
       this.$engineEval.text(evalText);
@@ -2506,6 +2513,9 @@ const App = {
     if (this.state.analysisActive && this.state.analysisFen === fen) {
       if (!this.engine.analysisListener) {
         this.engine.startAnalysis(fen, (evalText, evalData) => {
+          if (!this.state.analysisActive || this.state.analysisFen !== fen) {
+            return;
+          }
           this.$engineEval.text(evalText);
           if (evalData) {
             this.updateWinProbabilityFromEval(evalData);
@@ -2517,6 +2527,9 @@ const App = {
     this.state.analysisFen = fen;
     this.state.analysisActive = true;
     this.engine.startAnalysis(fen, (evalText, evalData) => {
+      if (!this.state.analysisActive || this.state.analysisFen !== fen) {
+        return;
+      }
       this.$engineEval.text(evalText);
       if (evalData) {
         this.updateWinProbabilityFromEval(evalData);
