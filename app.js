@@ -70,6 +70,7 @@ const App = {
     winProbSourceLabel: "",
     winProbSourceHint: "",
     engineEnabled: true,
+    engineSessionId: 0,
     coachCommentBySide: {
       white: { current: "", previous: "" },
       black: { current: "", previous: "" }
@@ -1554,8 +1555,12 @@ const App = {
     this.state.engineBusy = true;
     this.stopLiveAnalysis();
     const movetime = getEngineMoveTime(this.$strength.val());
+    const sessionId = this.state.engineSessionId;
     this.engine.getBestMove(this.chess.fen(), movetime, (bestmove) => {
       this.state.engineBusy = false;
+      if (sessionId !== this.state.engineSessionId || !this.state.engineEnabled) {
+        return;
+      }
       if (!bestmove || bestmove === "(none)") {
         this.setStatus("Engine found no move.");
         return;
@@ -1574,6 +1579,9 @@ const App = {
       this.setStatus("Opponent move played.");
       this.nextGameTurn();
     }, (evalText, evalData) => {
+      if (sessionId !== this.state.engineSessionId || !this.state.engineEnabled) {
+        return;
+      }
       this.$engineEval.text(evalText);
       if (evalData) {
         this.updateWinProbabilityFromEval(evalData);
@@ -2329,11 +2337,15 @@ const App = {
   toggleEngineAnalysis() {
     if (this.state.engineEnabled) {
       this.state.engineEnabled = false;
-      this.stopLiveAnalysis();
+      this.state.engineSessionId += 1;
+      this.stopLiveAnalysis({ clearAllListeners: true });
       this.setWinProbDisplay("⭘");
     } else {
       this.state.engineEnabled = true;
-      this.setWinProbDisplay(this.state.winProbLastText || "50");
+      this.state.analysisActive = false;
+      this.state.analysisFen = null;
+      this.$engineEval.text("");
+      this.setWinProbDisplay("⭘");
       this.startLiveAnalysis();
     }
     this.updateWinProbButtonLabel();
@@ -2511,9 +2523,10 @@ const App = {
       }
     });
   },
-  stopLiveAnalysis() {
+  stopLiveAnalysis(options = {}) {
+    const { clearAllListeners = false } = options;
     if (this.engine) {
-      this.engine.stopAnalysis();
+      this.engine.stopAnalysis(clearAllListeners);
     }
     this.state.analysisActive = false;
     this.state.analysisFen = null;
@@ -2574,6 +2587,13 @@ class StockfishEngine {
     this.lastScore = null;
   }
 
+  clearAllListeners() {
+    this.pending = [];
+    this.listeners = [];
+    this.analysisListener = null;
+    this.resetInfoState();
+  }
+
   shouldEmitInfo(evalData) {
     const depthOk = Number.isFinite(evalData.depth) && evalData.depth >= 10;
     let stableOk = false;
@@ -2609,8 +2629,10 @@ class StockfishEngine {
     this.send("go infinite");
   }
 
-  stopAnalysis() {
-    if (this.analysisListener) {
+  stopAnalysis(clearAll = false) {
+    if (clearAll) {
+      this.clearAllListeners();
+    } else if (this.analysisListener) {
       this.listeners = this.listeners.filter((item) => item !== this.analysisListener);
       this.analysisListener = null;
     }
