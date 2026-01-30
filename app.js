@@ -59,6 +59,7 @@ const App = {
     sessionActive: false,
     pendingAutoPlayTimer: null,
     pendingOpponentTimer: null,
+    pendingAnalysisTimer: null,
     lastHintSquare: null,
     analysisFen: null,
     analysisActive: false,
@@ -942,6 +943,10 @@ const App = {
     this.$reveal.prop("disabled", this.state.mode !== "practice");
     this.$dueBtn.toggle(this.state.mode === "practice");
     this.$dueBtn.text(this.state.studyDueOnly ? "Study All Lines" : "Study Due Lines");
+    if (this.state.mode !== "game") {
+      this.$engineEval.text("");
+      this.setWinProbSource("", "");
+    }
     this.setComment("Session ready.");
     this.prepareSession();
   },
@@ -1095,6 +1100,10 @@ const App = {
     if (this.state.pendingOpponentTimer) {
       clearTimeout(this.state.pendingOpponentTimer);
       this.state.pendingOpponentTimer = null;
+    }
+    if (this.state.pendingAnalysisTimer) {
+      clearTimeout(this.state.pendingAnalysisTimer);
+      this.state.pendingAnalysisTimer = null;
     }
   },
   prepareGameMode(selectedLine) {
@@ -1589,7 +1598,9 @@ const App = {
       if (this.chess.fen() !== expectedFen) {
         return;
       }
-      this.$engineEval.text(evalText);
+      if (this.state.mode === "game") {
+        this.$engineEval.text(evalText);
+      }
       if (evalData) {
         this.updateWinProbabilityFromEval(evalData);
       }
@@ -1714,6 +1725,9 @@ const App = {
   stepMove(direction) {
     let moved = false;
     this.stopPendingActions();
+    this.state.engineSessionId += 1;
+    this.state.engineBusy = false;
+    this.stopLiveAnalysis({ clearAllListeners: true });
     if (direction < 0) {
       const lastMove = this.state.moveHistory.pop();
       if (!lastMove) {
@@ -1767,7 +1781,7 @@ const App = {
       this.updateTrainingPositionState();
     }
     this.board.position(this.chess.fen());
-    this.startLiveAnalysis();
+    this.queueLiveAnalysis();
     this.updateNavigationControls();
     this.updateLastMoveHighlight();
     this.clearHintHighlight();
@@ -2119,10 +2133,14 @@ const App = {
     const probability = hasValidWdl
       ? evalData.whiteWinProb
       : evalToWinProbability(evalData);
-    if (hasValidWdl) {
-      this.setWinProbSource("", "");
+    if (this.state.mode === "game") {
+      if (hasValidWdl) {
+        this.setWinProbSource("", "");
+      } else {
+        this.setWinProbSource("CP", "Win% derived from centipawn conversion (engine WDL unavailable).");
+      }
     } else {
-      this.setWinProbSource("CP", "Win% derived from centipawn conversion (engine WDL unavailable).");
+      this.setWinProbSource("", "");
     }
     this.updateWinProbability(probability);
   },
@@ -2345,6 +2363,10 @@ const App = {
     if (this.state.engineEnabled) {
       this.state.engineEnabled = false;
       this.state.engineSessionId += 1;
+      if (this.state.pendingAnalysisTimer) {
+        clearTimeout(this.state.pendingAnalysisTimer);
+        this.state.pendingAnalysisTimer = null;
+      }
       this.stopLiveAnalysis({ clearAllListeners: true });
       this.setWinProbDisplay("⭘");
     } else {
@@ -2501,6 +2523,19 @@ const App = {
       sound.play().catch(() => {});
     }
   },
+  queueLiveAnalysis(options = {}) {
+    const { delayMs = 75 } = options;
+    if (!this.state.engineEnabled) {
+      return;
+    }
+    if (this.state.pendingAnalysisTimer) {
+      clearTimeout(this.state.pendingAnalysisTimer);
+    }
+    this.state.pendingAnalysisTimer = setTimeout(() => {
+      this.state.pendingAnalysisTimer = null;
+      this.restartLiveAnalysis();
+    }, delayMs);
+  },
   startLiveAnalysis() {
     if (!this.state.engineEnabled) {
       return;
@@ -2509,6 +2544,9 @@ const App = {
     if (!this.engine) {
       return;
     }
+    if (this.state.mode !== "game") {
+      this.$engineEval.text("");
+    }
     const fen = this.chess.fen();
     if (this.state.analysisActive && this.state.analysisFen === fen) {
       if (!this.engine.analysisListener) {
@@ -2516,7 +2554,9 @@ const App = {
           if (!this.state.analysisActive || this.state.analysisFen !== fen) {
             return;
           }
-          this.$engineEval.text(evalText);
+          if (this.state.mode === "game") {
+            this.$engineEval.text(evalText);
+          }
           if (evalData) {
             this.updateWinProbabilityFromEval(evalData);
           }
@@ -2530,7 +2570,9 @@ const App = {
       if (!this.state.analysisActive || this.state.analysisFen !== fen) {
         return;
       }
-      this.$engineEval.text(evalText);
+      if (this.state.mode === "game") {
+        this.$engineEval.text(evalText);
+      }
       if (evalData) {
         this.updateWinProbabilityFromEval(evalData);
       }
