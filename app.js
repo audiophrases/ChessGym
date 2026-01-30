@@ -66,11 +66,7 @@ const App = {
     analysisSessionId: 0,
     statusText: "",
     lastCoachComment: "",
-    winProbText: "50",
-    winProbLastText: "50",
-    winProbSide: "white",
-    winProbSourceLabel: "",
-    winProbSourceHint: "",
+    winProbText: "⭘",
     engineEnabled: true,
     engineSessionId: 0,
     coachCommentBySide: {
@@ -91,7 +87,6 @@ const App = {
     boardSizeIndex: 2,
     outOfLine: false,
     eloFilters: new Set(),
-    winProbTouchTime: 0
   },
   chess: null,
   board: null,
@@ -184,18 +179,6 @@ const App = {
       }
     });
     $(document).on("click", (event) => this.handleDocumentClick(event));
-    this.$comment.on("click", "#winProbPill", (event) => {
-      if (Date.now() - this.state.winProbTouchTime < 500) {
-        return;
-      }
-      event.preventDefault();
-      this.toggleEngineAnalysis();
-    });
-    this.$comment.on("touchstart", "#winProbPill", (event) => {
-      event.preventDefault();
-      this.state.winProbTouchTime = Date.now();
-      this.toggleEngineAnalysis();
-    });
     $(document).on("keydown", (event) => {
       if (this.shouldIgnoreNavigationKey(event)) {
         return;
@@ -1602,9 +1585,6 @@ const App = {
       if (this.state.mode === "game") {
         this.$engineEval.text(evalText);
       }
-      if (evalData) {
-        this.updateWinProbabilityFromEval(evalData);
-      }
     });
   },
   handleWrongMove(uci, row, options = {}) {
@@ -2118,69 +2098,6 @@ const App = {
     const hasLearningAdvance = this.canAdvanceLearning();
     this.$next.prop("disabled", !(hasRedo || hasLearningAdvance));
   },
-  updateWinProbabilityFromEval(evalData) {
-    this.state.winProbSide = "white";
-    if (evalData && evalData.type === "mate") {
-      const mateScore = evalData.value;
-      const mateLabel = `#${mateScore > 0 ? Math.abs(mateScore) : `-${Math.abs(mateScore)}`}`;
-      this.state.winProbLastText = mateLabel;
-      this.setWinProbSource("", "");
-      if (this.state.engineEnabled) {
-        this.setWinProbDisplay(mateLabel);
-      }
-      return;
-    }
-    const hasValidWdl = Boolean(evalData && evalData.wdlValid && Number.isFinite(evalData.whiteWinProb));
-    const probability = hasValidWdl
-      ? evalData.whiteWinProb
-      : evalToWinProbability(evalData);
-    if (this.state.mode === "game") {
-      if (hasValidWdl) {
-        this.setWinProbSource("", "");
-      } else {
-        this.setWinProbSource("CP", "Win% derived from centipawn conversion (engine WDL unavailable).");
-      }
-    } else {
-      this.setWinProbSource("", "");
-    }
-    this.updateWinProbability(probability);
-  },
-  updateWinProbability(probability) {
-    const clamped = Math.max(0, Math.min(1, probability));
-    const percent = Math.round(clamped * 100);
-    const label = `${percent}`;
-    this.state.winProbLastText = label;
-    if (this.state.engineEnabled) {
-      this.setWinProbDisplay(label);
-    }
-  },
-  setWinProbDisplay(text) {
-    this.state.winProbText = text;
-    if (!this.$winProbText || !this.$winProbText.length) {
-      this.$winProbText = $("#winProbText");
-    }
-    if (this.$winProbText.length) {
-      this.$winProbText.text(text);
-    }
-  },
-  setWinProbSource(label, hint) {
-    this.state.winProbSourceLabel = label;
-    this.state.winProbSourceHint = hint;
-    const $source = this.$comment ? this.$comment.find("#winProbSource") : $();
-    if (!$source.length) {
-      return;
-    }
-    if (label) {
-      $source.text(label).removeClass("is-hidden");
-      if (hint) {
-        $source.attr("title", hint);
-      } else {
-        $source.removeAttr("title");
-      }
-    } else {
-      $source.text("").addClass("is-hidden").removeAttr("title");
-    }
-  },
   setStatus(text) {
     this.state.statusText = text;
     this.renderCoachComment();
@@ -2292,15 +2209,9 @@ const App = {
     const studiedSide = this.state.userSide;
     const opponentSide = studiedSide === "white" ? "black" : "white";
     const useSideLabel = useLearningPrompts || this.state.mode === "practice";
-    const winProbLabel = this.state.engineEnabled ? "Turn engine off" : "Turn engine on";
-    const winProbSourceLabel = this.state.winProbSourceLabel || "";
-    const winProbSourceHint = this.state.winProbSourceHint || "";
-    const winProbSourceClass = winProbSourceLabel ? "" : " is-hidden";
-    const winProbSourceTitle = winProbSourceHint ? ` title="${winProbSourceHint}"` : "";
     const winProbHtml = `
-      <button class="win-probability-pill" id="winProbPill" type="button" aria-label="${winProbLabel}">
+      <button class="win-probability-pill" id="winProbPill" type="button" aria-label="Win probability unavailable" disabled>
         <span class="win-probability" id="winProbText">${this.state.winProbText}</span>
-        <span class="win-probability-source${winProbSourceClass}" id="winProbSource"${winProbSourceTitle}>${winProbSourceLabel}</span>
       </button>
     `;
     const buildCoachMessage = (side) => {
@@ -2353,32 +2264,6 @@ const App = {
       </div>`
     );
     this.$winProbText = this.$comment.find("#winProbText");
-  },
-  updateWinProbButtonLabel() {
-    const $pill = this.$comment.find("#winProbPill");
-    if ($pill.length) {
-      $pill.attr("aria-label", this.state.engineEnabled ? "Turn engine off" : "Turn engine on");
-    }
-  },
-  toggleEngineAnalysis() {
-    if (this.state.engineEnabled) {
-      this.state.engineEnabled = false;
-      this.state.engineSessionId += 1;
-      if (this.state.pendingAnalysisTimer) {
-        clearTimeout(this.state.pendingAnalysisTimer);
-        this.state.pendingAnalysisTimer = null;
-      }
-      this.stopLiveAnalysis({ clearAllListeners: true });
-      this.setWinProbDisplay("⭘");
-    } else {
-      this.state.engineEnabled = true;
-      this.state.analysisActive = false;
-      this.state.analysisFen = null;
-      this.$engineEval.text("");
-      this.setWinProbDisplay("⭘");
-      this.startLiveAnalysis();
-    }
-    this.updateWinProbButtonLabel();
   },
   setLineStatus(line) {
     if (!line) {
@@ -2561,9 +2446,6 @@ const App = {
           if (this.state.mode === "game") {
             this.$engineEval.text(evalText);
           }
-          if (evalData) {
-            this.updateWinProbabilityFromEval(evalData);
-          }
         });
         this.state.analysisSessionId = analysisToken;
       }
@@ -2580,9 +2462,6 @@ const App = {
       }
       if (this.state.mode === "game") {
         this.$engineEval.text(evalText);
-      }
-      if (evalData) {
-        this.updateWinProbabilityFromEval(evalData);
       }
     });
     this.state.analysisSessionId = analysisToken;
@@ -2638,7 +2517,6 @@ class StockfishEngine {
     };
 
     this.send("uci");
-    this.send("setoption name UCI_ShowWDL value true");
     this.send("isready");
   }
 
@@ -3088,26 +2966,6 @@ function parseEvalData(text, fen, perspective = "white") {
   const turn = fen.split(" ")[1];
   const turnSide = turn === "b" ? "black" : "white";
   const adjusted = perspective === turnSide ? rawValue : -rawValue;
-  const wdlMatch = text.match(/wdl (\d+) (\d+) (\d+)/);
-  let wdl = null;
-  let wdlPresent = false;
-  let wdlValid = false;
-  if (wdlMatch) {
-    wdlPresent = true;
-    const win = parseInt(wdlMatch[1], 10);
-    const draw = parseInt(wdlMatch[2], 10);
-    const loss = parseInt(wdlMatch[3], 10);
-    if (Number.isFinite(win) && Number.isFinite(draw) && Number.isFinite(loss)) {
-      const total = win + draw + loss;
-      wdlValid = Math.abs(total - 1000) <= 10;
-      wdl = { win, draw, loss, total };
-    }
-  }
-  const whiteWinProb = wdlValid
-    ? (turnSide === "white"
-      ? (wdl.win + 0.5 * wdl.draw) / 1000
-      : (wdl.loss + 0.5 * wdl.draw) / 1000)
-    : null;
   const depthMatch = text.match(/depth (\d+)/);
   const nodesMatch = text.match(/nodes (\d+)/);
   const depth = depthMatch ? parseInt(depthMatch[1], 10) : null;
@@ -3117,22 +2975,14 @@ function parseEvalData(text, fen, perspective = "white") {
       type,
       value: adjusted,
       depth,
-      nodes,
-      wdl,
-      wdlPresent,
-      wdlValid,
-      whiteWinProb
+      nodes
     };
   }
   return {
     type,
     value: adjusted / 100,
     depth,
-    nodes,
-    wdl,
-    wdlPresent,
-    wdlValid,
-    whiteWinProb
+    nodes
   };
 }
 
@@ -3149,20 +2999,6 @@ function formatEvalText(evalData) {
   return `Engine eval: ${evalData.value.toFixed(2)}`;
 }
 
-function evalToWinProbability(evalData) {
-  if (!evalData) {
-    return 0.5;
-  }
-  if (evalData.type === "mate") {
-    return evalData.value > 0 ? 1 : 0;
-  }
-  const rawValue = evalData.value;
-  const isCentipawns = Math.abs(rawValue) > 50;
-  const centipawns = isCentipawns ? rawValue : rawValue * 100;
-  const clampedCp = Math.max(-2000, Math.min(2000, centipawns));
-  const winProb = 1 / (1 + Math.exp(-clampedCp / 400));
-  return Math.max(0, Math.min(1, winProb));
-}
 
 function formatModeLabel(mode) {
   switch (mode) {
