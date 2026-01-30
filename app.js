@@ -63,6 +63,7 @@ const App = {
     lastHintSquare: null,
     analysisFen: null,
     analysisActive: false,
+    analysisSessionId: 0,
     statusText: "",
     lastCoachComment: "",
     winProbText: "50",
@@ -2550,8 +2551,11 @@ const App = {
     const fen = this.chess.fen();
     if (this.state.analysisActive && this.state.analysisFen === fen) {
       if (!this.engine.analysisListener) {
-        this.engine.startAnalysis(fen, (evalText, evalData) => {
+        const analysisToken = this.engine.startAnalysis(fen, (evalText, evalData) => {
           if (!this.state.analysisActive || this.state.analysisFen !== fen) {
+            return;
+          }
+          if (analysisToken !== this.state.analysisSessionId) {
             return;
           }
           if (this.state.mode === "game") {
@@ -2561,13 +2565,17 @@ const App = {
             this.updateWinProbabilityFromEval(evalData);
           }
         });
+        this.state.analysisSessionId = analysisToken;
       }
       return;
     }
     this.state.analysisFen = fen;
     this.state.analysisActive = true;
-    this.engine.startAnalysis(fen, (evalText, evalData) => {
+    const analysisToken = this.engine.startAnalysis(fen, (evalText, evalData) => {
       if (!this.state.analysisActive || this.state.analysisFen !== fen) {
+        return;
+      }
+      if (analysisToken !== this.state.analysisSessionId) {
         return;
       }
       if (this.state.mode === "game") {
@@ -2577,6 +2585,7 @@ const App = {
         this.updateWinProbabilityFromEval(evalData);
       }
     });
+    this.state.analysisSessionId = analysisToken;
   },
   stopLiveAnalysis(options = {}) {
     const { clearAllListeners = false } = options;
@@ -2585,6 +2594,7 @@ const App = {
     }
     this.state.analysisActive = false;
     this.state.analysisFen = null;
+    this.state.analysisSessionId = 0;
   },
   restartLiveAnalysis() {
     this.stopLiveAnalysis();
@@ -2605,6 +2615,7 @@ class StockfishEngine {
     this.pending = [];
     this.listeners = [];
     this.analysisListener = null;
+    this.analysisToken = 0;
     this.lastDepth = null;
     this.lastScore = null;
     this.init(path);
@@ -2669,7 +2680,12 @@ class StockfishEngine {
   startAnalysis(fen, onInfo) {
     this.stopAnalysis();
     this.resetInfoState();
+    this.analysisToken += 1;
+    const analysisToken = this.analysisToken;
     const listener = (text) => {
+      if (analysisToken !== this.analysisToken) {
+        return;
+      }
       if (text.startsWith("info") && onInfo) {
         const evalData = parseEvalData(text, fen, "white");
         if (evalData && this.shouldEmitInfo(evalData)) {
@@ -2682,6 +2698,7 @@ class StockfishEngine {
     this.listeners.push(listener);
     this.send(`position fen ${fen}`);
     this.send("go infinite");
+    return analysisToken;
   }
 
   stopAnalysis(clearAll = false) {
@@ -2691,6 +2708,7 @@ class StockfishEngine {
       this.listeners = this.listeners.filter((item) => item !== this.analysisListener);
       this.analysisListener = null;
     }
+    this.analysisToken += 1;
     this.send("stop");
   }
 
