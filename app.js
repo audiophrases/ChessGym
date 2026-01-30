@@ -2284,6 +2284,7 @@ const App = {
       this.state.winProbValue = clamped;
       this.state.winProbText = `${Math.round(clamped * 100)}`;
     }
+    this.state.winProbText = this.state.winProbText.replace("%", "");
     if (this.$winProbText && this.$winProbText.length) {
       this.$winProbText.text(this.state.winProbText);
     }
