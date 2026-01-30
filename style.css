@@ -480,7 +480,7 @@ body {
 }
 
 .comment-box {
-  min-height: 80px;
+  min-height: 30px;
   height: auto;
   max-height: none;
   padding: 8px 12px;
