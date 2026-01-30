@@ -67,6 +67,10 @@ const App = {
     statusText: "",
     lastCoachComment: "",
     winProbText: "⭘",
+    winProbValue: null,
+    winProbSourceLabel: "",
+    winProbSourceDetail: "",
+    analysisEnabled: false,
     engineEnabled: true,
     engineSessionId: 0,
     coachCommentBySide: {
@@ -171,6 +175,10 @@ const App = {
     this.$lichess.on("click", () => this.openLichessGame());
     this.$boardZoomIn.on("click", () => this.adjustBoardSize(1));
     this.$boardZoomOut.on("click", () => this.adjustBoardSize(-1));
+    this.$comment.on("click", "#winProbPill", (event) => {
+      event.preventDefault();
+      this.toggleWinProbAnalysis();
+    });
     this.$sessionSummary.on("click", () => this.toggleSessionSelectors());
     this.$sessionSummary.on("keydown", (event) => {
       if (event.key === "Enter" || event.key === " ") {
@@ -1008,7 +1016,7 @@ const App = {
     this.clearHintHighlight();
     this.clearLastMoveHighlight();
     this.updateNavigationControls();
-    this.updateWinProbability(0.5);
+    this.updateWinProbability(null);
     this.setWinProbSource("", "");
 
     const opening = this.getSelectedOpening();
@@ -2210,7 +2218,7 @@ const App = {
     const opponentSide = studiedSide === "white" ? "black" : "white";
     const useSideLabel = useLearningPrompts || this.state.mode === "practice";
     const winProbHtml = `
-      <button class="win-probability-pill" id="winProbPill" type="button" aria-label="Win probability unavailable" disabled>
+      <button class="win-probability-pill" id="winProbPill" type="button" aria-label="Win probability unavailable" aria-pressed="${this.state.analysisEnabled ? "true" : "false"}">
         <span class="win-probability" id="winProbText">${this.state.winProbText}</span>
       </button>
     `;
@@ -2264,6 +2272,63 @@ const App = {
       </div>`
     );
     this.$winProbText = this.$comment.find("#winProbText");
+    this.$winProbPill = this.$comment.find("#winProbPill");
+    this.updateWinProbPillState();
+  },
+  updateWinProbability(probability) {
+    if (!Number.isFinite(probability)) {
+      this.state.winProbValue = null;
+      this.state.winProbText = "⭘";
+    } else {
+      const clamped = Math.min(Math.max(probability, 0), 1);
+      this.state.winProbValue = clamped;
+      this.state.winProbText = `${Math.round(clamped * 100)}%`;
+    }
+    if (this.$winProbText && this.$winProbText.length) {
+      this.$winProbText.text(this.state.winProbText);
+    }
+    this.updateWinProbPillState();
+  },
+  setWinProbSource(label, detail) {
+    this.state.winProbSourceLabel = label || "";
+    this.state.winProbSourceDetail = detail || "";
+    this.updateWinProbPillState();
+  },
+  updateWinProbPillState() {
+    if (!this.$winProbPill || !this.$winProbPill.length) {
+      return;
+    }
+    const isEnabled = this.state.engineEnabled;
+    const isActive = this.state.analysisEnabled;
+    this.$winProbPill.prop("disabled", !isEnabled);
+    this.$winProbPill.attr("aria-pressed", isActive ? "true" : "false");
+    this.$winProbPill.attr("aria-label", this.buildWinProbAriaLabel());
+  },
+  buildWinProbAriaLabel() {
+    if (!this.state.engineEnabled) {
+      return "Win probability unavailable. Engine disabled.";
+    }
+    const status = this.state.analysisEnabled ? "Win probability analysis on." : "Win probability analysis off.";
+    const value = this.state.winProbValue === null ? "Win probability unavailable." : `Win probability ${this.state.winProbText}.`;
+    const sourceParts = [this.state.winProbSourceLabel, this.state.winProbSourceDetail].filter(Boolean);
+    const source = sourceParts.length ? `Source: ${sourceParts.join(" ")}.` : "";
+    return `${status} ${value} ${source}`.trim();
+  },
+  toggleWinProbAnalysis() {
+    if (!this.state.engineEnabled) {
+      return;
+    }
+    this.state.analysisEnabled = !this.state.analysisEnabled;
+    if (this.state.analysisEnabled) {
+      this.updateWinProbability(null);
+      this.setWinProbSource("Stockfish", "Depth 0");
+      this.queueLiveAnalysis({ delayMs: 0 });
+    } else {
+      this.stopLiveAnalysis({ clearAllListeners: true });
+      this.updateWinProbability(null);
+      this.setWinProbSource("", "");
+    }
+    this.updateWinProbPillState();
   },
   setLineStatus(line) {
     if (!line) {
@@ -2411,7 +2476,7 @@ const App = {
   },
   queueLiveAnalysis(options = {}) {
     const { delayMs = 75 } = options;
-    if (!this.state.engineEnabled) {
+    if (!this.state.engineEnabled || !this.state.analysisEnabled) {
       return;
     }
     if (this.state.pendingAnalysisTimer) {
@@ -2423,7 +2488,7 @@ const App = {
     }, delayMs);
   },
   startLiveAnalysis() {
-    if (!this.state.engineEnabled) {
+    if (!this.state.engineEnabled || !this.state.analysisEnabled) {
       return;
     }
     this.ensureEngine();
@@ -2434,36 +2499,41 @@ const App = {
       this.$engineEval.text("");
     }
     const fen = this.chess.fen();
+    const maxDepth = 24;
+    const buildInfoHandler = (getToken) => (evalText, evalData) => {
+      if (!this.state.analysisActive || this.state.analysisFen !== fen) {
+        return;
+      }
+      if (getToken() !== this.state.analysisSessionId) {
+        return;
+      }
+      if (this.state.mode === "game") {
+        this.$engineEval.text(evalText);
+      }
+      if (evalData) {
+        const winProb = calculateWinProbability(evalData);
+        this.updateWinProbability(winProb);
+        const depthLabel = Number.isFinite(evalData.depth) ? `Depth ${evalData.depth}` : "";
+        this.setWinProbSource("Stockfish", depthLabel);
+        if (Number.isFinite(evalData.depth) && evalData.depth >= maxDepth) {
+          this.stopLiveAnalysis();
+        }
+      }
+    };
     if (this.state.analysisActive && this.state.analysisFen === fen) {
       if (!this.engine.analysisListener) {
-        const analysisToken = this.engine.startAnalysis(fen, (evalText, evalData) => {
-          if (!this.state.analysisActive || this.state.analysisFen !== fen) {
-            return;
-          }
-          if (analysisToken !== this.state.analysisSessionId) {
-            return;
-          }
-          if (this.state.mode === "game") {
-            this.$engineEval.text(evalText);
-          }
-        });
+        let analysisToken = 0;
+        const handler = buildInfoHandler(() => analysisToken);
+        analysisToken = this.engine.startAnalysis(fen, handler);
         this.state.analysisSessionId = analysisToken;
       }
       return;
     }
     this.state.analysisFen = fen;
     this.state.analysisActive = true;
-    const analysisToken = this.engine.startAnalysis(fen, (evalText, evalData) => {
-      if (!this.state.analysisActive || this.state.analysisFen !== fen) {
-        return;
-      }
-      if (analysisToken !== this.state.analysisSessionId) {
-        return;
-      }
-      if (this.state.mode === "game") {
-        this.$engineEval.text(evalText);
-      }
-    });
+    let analysisToken = 0;
+    const handler = buildInfoHandler(() => analysisToken);
+    analysisToken = this.engine.startAnalysis(fen, handler);
     this.state.analysisSessionId = analysisToken;
   },
   stopLiveAnalysis(options = {}) {
@@ -2948,6 +3018,19 @@ function parseEval(text, fen) {
     return "";
   }
   return formatEvalText(evalData);
+}
+
+function calculateWinProbability(evalData) {
+  if (!evalData) {
+    return null;
+  }
+  if (evalData.type === "mate") {
+    return evalData.value > 0 ? 1 : 0;
+  }
+  const evalValue = Number.isFinite(evalData.value) ? evalData.value : 0;
+  const clamped = Math.max(-10, Math.min(10, evalValue));
+  const winProb = 1 / (1 + Math.pow(10, -clamped / 4));
+  return Math.max(0, Math.min(1, winProb));
 }
 
 function parseEvalData(text, fen, perspective = "white") {
