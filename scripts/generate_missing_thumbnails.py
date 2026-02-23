@@ -1,11 +1,11 @@
+import argparse
 import csv
 import io
-import os
 from pathlib import Path
 
-import requests
 import chess
 import chess.pgn
+import requests
 from PIL import Image, ImageDraw
 
 OPENINGS_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQNmZYrVE9U7BynLzoijjgIVSd6Mm2zP_blPqogiQ8zcmvFz4LJi7ADUiM6vdbyc1HZ9oHMBhUR4AHT/pub?gid=0&single=true&output=csv"
@@ -37,6 +37,15 @@ PIECE_MAP = {
     "q": "black-queen.png",
     "k": "black-king.png",
 }
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Generate ChessGym thumbnails for missing or selected lines/openings.")
+    parser.add_argument("--refresh-lines", choices=["missing", "all"], default="missing")
+    parser.add_argument("--line-ids", default="", help="Comma-separated line_id list to regenerate (overwrites existing).")
+    parser.add_argument("--skip-lines", action="store_true")
+    parser.add_argument("--skip-openings", action="store_true")
+    return parser.parse_args()
 
 
 def fetch_openings():
@@ -72,9 +81,13 @@ def board_at_mid_position(start_fen: str, moves_pgn: str):
         if mv in board.legal_moves:
             board.push(mv)
         else:
-            # fallback: stop safely if corrupted line
             break
     return board
+
+
+def is_black_study(row):
+    side = (row.get("drill_side") or "").strip().lower()
+    return side.startswith("b")
 
 
 def load_piece_images():
@@ -86,11 +99,10 @@ def load_piece_images():
     return out
 
 
-def render_board_png(board: chess.Board, out_path: Path, piece_imgs):
+def render_board_png(board: chess.Board, out_path: Path, piece_imgs, flip=False):
     img = Image.new("RGB", (CANVAS_SIZE, CANVAS_SIZE), (245, 245, 245))
     draw = ImageDraw.Draw(img)
 
-    # border
     draw.rectangle([MARGIN - 2, MARGIN - 2, MARGIN + BOARD_SIZE + 1, MARGIN + BOARD_SIZE + 1], outline=BORDER, width=2)
 
     for rank in range(8):
@@ -100,7 +112,11 @@ def render_board_png(board: chess.Board, out_path: Path, piece_imgs):
             color = LIGHT if (rank + file) % 2 == 0 else DARK
             draw.rectangle([x0, y0, x0 + SQUARE, y0 + SQUARE], fill=color)
 
-            sq = chess.square(file, 7 - rank)
+            if flip:
+                sq = chess.square(7 - file, rank)
+            else:
+                sq = chess.square(file, 7 - rank)
+
             piece = board.piece_at(sq)
             if piece:
                 pimg = piece_imgs[piece.symbol()]
@@ -110,46 +126,56 @@ def render_board_png(board: chess.Board, out_path: Path, piece_imgs):
 
 
 def main():
+    args = parse_args()
+
     THUMB_DIR.mkdir(parents=True, exist_ok=True)
     openings = fetch_openings()
     lines = fetch_lines()
     existing = existing_thumbnail_ids()
     piece_imgs = load_piece_images()
 
-    # Missing line thumbnails
-    missing_lines = []
-    for row in lines:
-        line_id = (row.get("line_id") or "").strip()
-        if not line_id:
-            continue
-        if line_id in existing:
-            continue
-        missing_lines.append(row)
+    selected_line_ids = {item.strip() for item in args.line_ids.split(",") if item.strip()}
+    known_line_ids = {(row.get("line_id") or "").strip() for row in lines}
+    unknown_selected = sorted(selected_line_ids - known_line_ids)
+    if unknown_selected:
+        print(f"Warning: unknown line_ids ignored: {', '.join(unknown_selected)}")
 
-    # Missing opening thumbnails (opening_id names)
-    missing_openings = []
-    for row in openings:
-        opening_id = (row.get("opening_id") or "").strip()
-        if not opening_id:
-            continue
-        if opening_id in existing:
-            continue
-        missing_openings.append(row)
+    target_lines = []
+    if not args.skip_lines:
+        for row in lines:
+            line_id = (row.get("line_id") or "").strip()
+            if not line_id:
+                continue
+            if selected_line_ids:
+                if line_id in selected_line_ids:
+                    target_lines.append(row)
+            elif args.refresh_lines == "all" or line_id not in existing:
+                target_lines.append(row)
 
-    print(f"Missing line thumbnails: {len(missing_lines)}")
-    print(f"Missing opening thumbnails: {len(missing_openings)}")
+    target_openings = []
+    if not args.skip_openings:
+        for row in openings:
+            opening_id = (row.get("opening_id") or "").strip()
+            if not opening_id:
+                continue
+            if opening_id not in existing:
+                target_openings.append(row)
+
+    print(f"Line thumbnails to render: {len(target_lines)}")
+    print(f"Opening thumbnails to render: {len(target_openings)}")
 
     created = 0
     failed = []
 
-    for row in missing_lines:
+    for row in target_lines:
         line_id = row["line_id"].strip()
         try:
             board = board_at_mid_position(row.get("start_fen", ""), row.get("moves_pgn", ""))
             out_path = THUMB_DIR / f"{line_id}.png"
-            render_board_png(board, out_path, piece_imgs)
+            flip = is_black_study(row)
+            render_board_png(board, out_path, piece_imgs, flip=flip)
             created += 1
-            print(f"+ line {line_id}")
+            print(f"+ line {line_id} ({'black' if flip else 'white'} view)")
         except Exception as exc:
             failed.append((line_id, str(exc)))
             print(f"! line {line_id}: {exc}")
@@ -157,34 +183,27 @@ def main():
     lines_by_opening = {}
     for row in lines:
         opening_id = (row.get("opening_id") or "").strip()
-        if not opening_id:
-            continue
-        lines_by_opening.setdefault(opening_id, []).append(row)
+        if opening_id:
+            lines_by_opening.setdefault(opening_id, []).append(row)
 
     def line_complexity(row):
         return len(parse_game(row.get("moves_pgn", "")))
 
-    for opening in missing_openings:
+    for opening in target_openings:
         opening_id = opening["opening_id"].strip()
         try:
-            candidates = lines_by_opening.get(opening_id, [])
-            candidates = sorted(candidates, key=line_complexity, reverse=True)
+            candidates = sorted(lines_by_opening.get(opening_id, []), key=line_complexity, reverse=True)
             rep = candidates[0] if candidates else None
-
-            if rep:
-                board = board_at_mid_position(rep.get("start_fen", ""), rep.get("moves_pgn", ""))
-            else:
-                board = board_at_mid_position(opening.get("start_fen", ""), "")
-
+            board = board_at_mid_position(rep.get("start_fen", ""), rep.get("moves_pgn", "")) if rep else board_at_mid_position(opening.get("start_fen", ""), "")
             out_path = THUMB_DIR / f"{opening_id}.png"
-            render_board_png(board, out_path, piece_imgs)
+            render_board_png(board, out_path, piece_imgs, flip=False)
             created += 1
             print(f"+ opening {opening_id}")
         except Exception as exc:
             failed.append((opening_id, str(exc)))
             print(f"! opening {opening_id}: {exc}")
 
-    print(f"Created: {created}")
+    print(f"Created/updated: {created}")
     print(f"Failed: {len(failed)}")
     if failed:
         for item_id, err in failed:
