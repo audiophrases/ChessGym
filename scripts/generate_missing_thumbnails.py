@@ -8,6 +8,7 @@ import chess
 import chess.pgn
 from PIL import Image, ImageDraw
 
+OPENINGS_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQNmZYrVE9U7BynLzoijjgIVSd6Mm2zP_blPqogiQ8zcmvFz4LJi7ADUiM6vdbyc1HZ9oHMBhUR4AHT/pub?gid=0&single=true&output=csv"
 LINES_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQNmZYrVE9U7BynLzoijjgIVSd6Mm2zP_blPqogiQ8zcmvFz4LJi7ADUiM6vdbyc1HZ9oHMBhUR4AHT/pub?gid=10969022&single=true&output=csv"
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -36,6 +37,11 @@ PIECE_MAP = {
     "q": "black-queen.png",
     "k": "black-king.png",
 }
+
+
+def fetch_openings():
+    text = requests.get(OPENINGS_CSV, timeout=40).text
+    return list(csv.DictReader(io.StringIO(text)))
 
 
 def fetch_lines():
@@ -105,40 +111,84 @@ def render_board_png(board: chess.Board, out_path: Path, piece_imgs):
 
 def main():
     THUMB_DIR.mkdir(parents=True, exist_ok=True)
-    rows = fetch_lines()
+    openings = fetch_openings()
+    lines = fetch_lines()
     existing = existing_thumbnail_ids()
     piece_imgs = load_piece_images()
 
-    missing = []
-    for row in rows:
+    # Missing line thumbnails
+    missing_lines = []
+    for row in lines:
         line_id = (row.get("line_id") or "").strip()
         if not line_id:
             continue
         if line_id in existing:
             continue
-        missing.append(row)
+        missing_lines.append(row)
 
-    print(f"Missing thumbnails: {len(missing)}")
+    # Missing opening thumbnails (opening_id names)
+    missing_openings = []
+    for row in openings:
+        opening_id = (row.get("opening_id") or "").strip()
+        if not opening_id:
+            continue
+        if opening_id in existing:
+            continue
+        missing_openings.append(row)
+
+    print(f"Missing line thumbnails: {len(missing_lines)}")
+    print(f"Missing opening thumbnails: {len(missing_openings)}")
 
     created = 0
     failed = []
-    for row in missing:
+
+    for row in missing_lines:
         line_id = row["line_id"].strip()
         try:
             board = board_at_mid_position(row.get("start_fen", ""), row.get("moves_pgn", ""))
             out_path = THUMB_DIR / f"{line_id}.png"
             render_board_png(board, out_path, piece_imgs)
             created += 1
-            print(f"+ {line_id}")
+            print(f"+ line {line_id}")
         except Exception as exc:
             failed.append((line_id, str(exc)))
-            print(f"! {line_id}: {exc}")
+            print(f"! line {line_id}: {exc}")
+
+    lines_by_opening = {}
+    for row in lines:
+        opening_id = (row.get("opening_id") or "").strip()
+        if not opening_id:
+            continue
+        lines_by_opening.setdefault(opening_id, []).append(row)
+
+    def line_complexity(row):
+        return len(parse_game(row.get("moves_pgn", "")))
+
+    for opening in missing_openings:
+        opening_id = opening["opening_id"].strip()
+        try:
+            candidates = lines_by_opening.get(opening_id, [])
+            candidates = sorted(candidates, key=line_complexity, reverse=True)
+            rep = candidates[0] if candidates else None
+
+            if rep:
+                board = board_at_mid_position(rep.get("start_fen", ""), rep.get("moves_pgn", ""))
+            else:
+                board = board_at_mid_position(opening.get("start_fen", ""), "")
+
+            out_path = THUMB_DIR / f"{opening_id}.png"
+            render_board_png(board, out_path, piece_imgs)
+            created += 1
+            print(f"+ opening {opening_id}")
+        except Exception as exc:
+            failed.append((opening_id, str(exc)))
+            print(f"! opening {opening_id}: {exc}")
 
     print(f"Created: {created}")
     print(f"Failed: {len(failed)}")
     if failed:
-        for line_id, err in failed:
-            print(f"  - {line_id}: {err}")
+        for item_id, err in failed:
+            print(f"  - {item_id}: {err}")
 
 
 if __name__ == "__main__":
