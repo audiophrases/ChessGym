@@ -873,9 +873,9 @@ const App = {
       this.applyThumbnail($img, id, label);
       return;
     }
+    // Do not hard-cache misses forever: thumbnails can be generated after page load.
     if (cached === false) {
-      this.clearThumbnail($img);
-      return;
+      this.thumbnailCache.delete(id);
     }
     this.clearThumbnail($img);
     const url = `Thumbnails/${id}.png`;
@@ -885,7 +885,6 @@ const App = {
       this.applyThumbnail($img, id, label);
     };
     probe.onerror = () => {
-      this.thumbnailCache.set(id, false);
       this.clearThumbnail($img);
     };
     probe.src = url;
