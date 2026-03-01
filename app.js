@@ -2589,6 +2589,9 @@ class StockfishEngine {
     };
 
     this.send("uci");
+    // Ask Stockfish for WDL triplets so win probability can come directly
+    // from engine output when available.
+    this.send("setoption name UCI_ShowWDL value true");
     this.send("isready");
   }
 
@@ -3027,17 +3030,21 @@ function calculateWinProbability(evalData) {
     return null;
   }
 
+  // Prefer Stockfish WDL-derived probability when present.
+  if (Number.isFinite(evalData.winProb)) {
+    return Math.max(0, Math.min(1, evalData.winProb));
+  }
+
   if (evalData.type === "mate") {
     return evalData.value > 0 ? 1 : 0;
   }
 
-  // Convert white-perspective centipawns to white win probability.
-  // Coefficient from commonly used Stockfish win-rate logistic mapping.
+  // Fallback: logistic cp->win% estimate (white perspective centipawns).
   const cp = Number.isFinite(evalData.cp)
     ? evalData.cp
     : (Number.isFinite(evalData.value) ? Math.round(evalData.value * 100) : 0);
   const clampedCp = Math.max(-2000, Math.min(2000, cp));
-  const winPct = 100 / (1 + Math.exp(-0.00368208 * clampedCp));
+  const winPct = 100 / (1 + Math.exp(-0.0045 * clampedCp));
   return Math.max(0, Math.min(1, winPct / 100));
 }
 
@@ -3055,21 +3062,38 @@ function parseEvalData(text, fen, perspective = "white") {
     return null;
   }
 
-  // Treat incoming score as white-perspective by default.
-  // If black perspective is explicitly requested, invert sign.
-  const adjusted = perspective === "black" ? -rawValue : rawValue;
+  // UCI score is for side-to-move. Convert to requested perspective.
+  const turn = fen.split(" ")[1];
+  const turnSide = turn === "b" ? "black" : "white";
+  const adjusted = perspective === turnSide ? rawValue : -rawValue;
 
   const depthMatch = text.match(/depth (\d+)/);
   const nodesMatch = text.match(/nodes (\d+)/);
   const depth = depthMatch ? parseInt(depthMatch[1], 10) : null;
   const nodes = nodesMatch ? parseInt(nodesMatch[1], 10) : null;
+
+  let winProb = null;
+  const wdlMatch = text.match(/\bwdl\s+(\d+)\s+(\d+)\s+(\d+)/);
+  if (wdlMatch) {
+    const w = parseInt(wdlMatch[1], 10);
+    const d = parseInt(wdlMatch[2], 10);
+    const l = parseInt(wdlMatch[3], 10);
+    const total = w + d + l;
+    if (total > 0) {
+      const sideToMoveWin = w / total;
+      const sideToMoveLoss = l / total;
+      winProb = perspective === turnSide ? sideToMoveWin : sideToMoveLoss;
+    }
+  }
+
   if (type === "mate") {
     return {
       type,
       value: adjusted,
       cp: adjusted,
       depth,
-      nodes
+      nodes,
+      winProb
     };
   }
   return {
@@ -3077,7 +3101,8 @@ function parseEvalData(text, fen, perspective = "white") {
     value: adjusted / 100,
     cp: adjusted,
     depth,
-    nodes
+    nodes,
+    winProb
   };
 }
 
