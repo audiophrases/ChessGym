@@ -2281,15 +2281,7 @@ const App = {
     } else {
       const clamped = Math.min(Math.max(probability, 0), 1);
       this.state.winProbValue = clamped;
-
-      // Display centered edge points (0 = equal, +3 means ~53% for side to move)
-      // instead of raw absolute percentage, which looked inflated/confusing.
-      const edgePoints = Math.round((clamped - 0.5) * 100);
-      if (edgePoints > 0) {
-        this.state.winProbText = `+${edgePoints}`;
-      } else {
-        this.state.winProbText = `${edgePoints}`;
-      }
+      this.state.winProbText = `${Math.round(clamped * 100)}%`;
     }
 
     if (this.$winProbText && this.$winProbText.length) {
@@ -2318,8 +2310,8 @@ const App = {
     }
     const status = this.state.analysisEnabled ? "Win probability analysis on." : "Win probability analysis off.";
     const value = this.state.winProbValue === null
-      ? "Win probability unavailable."
-      : `Win edge ${this.state.winProbText}. Estimated win probability ${Math.round(this.state.winProbValue * 100)} percent.`;
+      ? "White win probability unavailable."
+      : `White win probability ${Math.round(this.state.winProbValue * 100)} percent.`;
     const sourceParts = [this.state.winProbSourceLabel, this.state.winProbSourceDetail].filter(Boolean);
     const source = sourceParts.length ? `Source: ${sourceParts.join(" ")}.` : "";
     return `${status} ${value} ${source}`.trim();
@@ -3034,13 +3026,19 @@ function calculateWinProbability(evalData) {
   if (!evalData) {
     return null;
   }
+
   if (evalData.type === "mate") {
     return evalData.value > 0 ? 1 : 0;
   }
-  const evalValue = Number.isFinite(evalData.value) ? evalData.value : 0;
-  const clamped = Math.max(-10, Math.min(10, evalValue));
-  const winProb = 1 / (1 + Math.pow(10, -clamped / 4));
-  return Math.max(0, Math.min(1, winProb));
+
+  // Convert white-perspective centipawns to white win probability.
+  // Coefficient from commonly used Stockfish win-rate logistic mapping.
+  const cp = Number.isFinite(evalData.cp)
+    ? evalData.cp
+    : (Number.isFinite(evalData.value) ? Math.round(evalData.value * 100) : 0);
+  const clampedCp = Math.max(-2000, Math.min(2000, cp));
+  const winPct = 100 / (1 + Math.exp(-0.00368208 * clampedCp));
+  return Math.max(0, Math.min(1, winPct / 100));
 }
 
 function parseEvalData(text, fen, perspective = "white") {
@@ -3056,9 +3054,11 @@ function parseEvalData(text, fen, perspective = "white") {
   if (!Number.isFinite(rawValue)) {
     return null;
   }
-  const turn = fen.split(" ")[1];
-  const turnSide = turn === "b" ? "black" : "white";
-  const adjusted = perspective === turnSide ? rawValue : -rawValue;
+
+  // Treat incoming score as white-perspective by default.
+  // If black perspective is explicitly requested, invert sign.
+  const adjusted = perspective === "black" ? -rawValue : rawValue;
+
   const depthMatch = text.match(/depth (\d+)/);
   const nodesMatch = text.match(/nodes (\d+)/);
   const depth = depthMatch ? parseInt(depthMatch[1], 10) : null;
@@ -3067,6 +3067,7 @@ function parseEvalData(text, fen, perspective = "white") {
     return {
       type,
       value: adjusted,
+      cp: adjusted,
       depth,
       nodes
     };
@@ -3074,6 +3075,7 @@ function parseEvalData(text, fen, perspective = "white") {
   return {
     type,
     value: adjusted / 100,
+    cp: adjusted,
     depth,
     nodes
   };
