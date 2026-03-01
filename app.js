@@ -3062,10 +3062,9 @@ function parseEvalData(text, fen, perspective = "white") {
     return null;
   }
 
-  // UCI score is for side-to-move. Convert to requested perspective.
-  const turn = fen.split(" ")[1];
-  const turnSide = turn === "b" ? "black" : "white";
-  const adjusted = perspective === turnSide ? rawValue : -rawValue;
+  // Stockfish JS build used here reports score in white perspective.
+  // Keep that as-is for white, invert only when black perspective is requested.
+  const adjusted = perspective === "black" ? -rawValue : rawValue;
 
   const depthMatch = text.match(/depth (\d+)/);
   const nodesMatch = text.match(/nodes (\d+)/);
@@ -3080,9 +3079,8 @@ function parseEvalData(text, fen, perspective = "white") {
     const l = parseInt(wdlMatch[3], 10);
     const total = w + d + l;
     if (total > 0) {
-      const sideToMoveWin = w / total;
-      const sideToMoveLoss = l / total;
-      winProb = perspective === turnSide ? sideToMoveWin : sideToMoveLoss;
+      const whiteWin = w / total;
+      winProb = perspective === "black" ? 1 - whiteWin : whiteWin;
     }
   }
 
