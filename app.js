@@ -2281,7 +2281,7 @@ const App = {
     } else {
       const clamped = Math.min(Math.max(probability, 0), 1);
       this.state.winProbValue = clamped;
-      this.state.winProbText = `${Math.round(clamped * 100)}%`;
+      this.state.winProbText = `${Math.round(clamped * 100)}`;
     }
 
     if (this.$winProbText && this.$winProbText.length) {
