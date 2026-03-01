@@ -2531,6 +2531,11 @@ const App = {
       }
       return;
     }
+
+    // Position changed: clear stale value immediately while fresh analysis starts.
+    this.updateWinProbability(null);
+    this.setWinProbSource("Stockfish", "Depth 0");
+
     this.state.analysisFen = fen;
     this.state.analysisActive = true;
     let analysisToken = 0;
@@ -2614,7 +2619,8 @@ class StockfishEngine {
   }
 
   shouldEmitInfo(evalData) {
-    const depthOk = Number.isFinite(evalData.depth) && evalData.depth >= 10;
+    const firstInfo = this.lastDepth === null;
+    const depthOk = Number.isFinite(evalData.depth) && evalData.depth >= 6;
     let stableOk = false;
     if (this.lastScore) {
       if (evalData.type === "cp" && this.lastScore.type === "cp") {
@@ -2627,7 +2633,7 @@ class StockfishEngine {
     if (Number.isFinite(evalData.depth)) {
       this.lastDepth = evalData.depth;
     }
-    return depthOk || stableOk;
+    return firstInfo || depthOk || stableOk;
   }
 
   startAnalysis(fen, onInfo) {
@@ -3062,9 +3068,10 @@ function parseEvalData(text, fen, perspective = "white") {
     return null;
   }
 
-  // Stockfish JS build used here reports score in white perspective.
-  // Keep that as-is for white, invert only when black perspective is requested.
-  const adjusted = perspective === "black" ? -rawValue : rawValue;
+  // UCI score is from side-to-move perspective; convert to requested perspective.
+  const turn = fen.split(" ")[1];
+  const turnSide = turn === "b" ? "black" : "white";
+  const adjusted = perspective === turnSide ? rawValue : -rawValue;
 
   const depthMatch = text.match(/depth (\d+)/);
   const nodesMatch = text.match(/nodes (\d+)/);
@@ -3079,8 +3086,9 @@ function parseEvalData(text, fen, perspective = "white") {
     const l = parseInt(wdlMatch[3], 10);
     const total = w + d + l;
     if (total > 0) {
-      const whiteWin = w / total;
-      winProb = perspective === "black" ? 1 - whiteWin : whiteWin;
+      const sideToMoveWin = w / total;
+      const sideToMoveLoss = l / total;
+      winProb = perspective === turnSide ? sideToMoveWin : sideToMoveLoss;
     }
   }
 
