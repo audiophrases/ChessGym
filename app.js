@@ -3033,27 +3033,41 @@ function parseEval(text, fen) {
   return formatEvalText(evalData);
 }
 
+function cpToLichessWinProbability(cp) {
+  if (!Number.isFinite(cp)) {
+    return null;
+  }
+  // Lichess-style centipawn -> winning-chances conversion.
+  // Source shape: 1 / (1 + e^(-k*cp)), with k ~= 0.00368208.
+  const clampedCp = Math.max(-1000, Math.min(1000, cp));
+  const probability = 1 / (1 + Math.exp(-0.00368208 * clampedCp));
+  return Math.max(0, Math.min(1, probability));
+}
+
 function calculateWinProbability(evalData) {
   if (!evalData) {
     return null;
-  }
-
-  // Prefer Stockfish WDL-derived probability when present.
-  if (Number.isFinite(evalData.winProb)) {
-    return Math.max(0, Math.min(1, evalData.winProb));
   }
 
   if (evalData.type === "mate") {
     return evalData.value > 0 ? 1 : 0;
   }
 
-  // Fallback: logistic cp->win% estimate (white perspective centipawns).
+  // Primary: cp-based win chances (aligned with Lichess behavior).
   const cp = Number.isFinite(evalData.cp)
     ? evalData.cp
-    : (Number.isFinite(evalData.value) ? Math.round(evalData.value * 100) : 0);
-  const clampedCp = Math.max(-2000, Math.min(2000, cp));
-  const winPct = 100 / (1 + Math.exp(-0.0045 * clampedCp));
-  return Math.max(0, Math.min(1, winPct / 100));
+    : (Number.isFinite(evalData.value) ? Math.round(evalData.value * 100) : null);
+  const cpWinProb = cpToLichessWinProbability(cp);
+  if (Number.isFinite(cpWinProb)) {
+    return cpWinProb;
+  }
+
+  // Fallback: Stockfish WDL expected score if cp is unavailable.
+  if (Number.isFinite(evalData.winProb)) {
+    return Math.max(0, Math.min(1, evalData.winProb));
+  }
+
+  return null;
 }
 
 function parseEvalData(text, fen, perspective = "white") {
