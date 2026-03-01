@@ -3086,9 +3086,11 @@ function parseEvalData(text, fen, perspective = "white") {
     const l = parseInt(wdlMatch[3], 10);
     const total = w + d + l;
     if (total > 0) {
-      const sideToMoveWin = w / total;
-      const sideToMoveLoss = l / total;
-      winProb = perspective === turnSide ? sideToMoveWin : sideToMoveLoss;
+      // Use expected-score style probability (win + 0.5*draw), which keeps
+      // balanced starting positions near 50 instead of very low values.
+      const sideToMoveScore = (w + 0.5 * d) / total;
+      const opponentScore = (l + 0.5 * d) / total;
+      winProb = perspective === turnSide ? sideToMoveScore : opponentScore;
     }
   }
 
