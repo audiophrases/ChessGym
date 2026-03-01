@@ -1741,6 +1741,7 @@ const App = {
         if (!move) {
           return;
         }
+        this.playMoveSound(move);
         this.state.moveHistory.push(redoMove);
         if (this.state.mode === "game") {
           this.state.inBook = false;
@@ -1752,6 +1753,7 @@ const App = {
         if (!move) {
           return;
         }
+        this.playMoveSound(move);
         this.recordMove(expected.move_uci, move);
         this.syncCurrentDepthFromFen();
         this.state.revealStage = 0;
