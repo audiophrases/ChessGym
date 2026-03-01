@@ -2281,9 +2281,17 @@ const App = {
     } else {
       const clamped = Math.min(Math.max(probability, 0), 1);
       this.state.winProbValue = clamped;
-      this.state.winProbText = `${Math.round(clamped * 100)}`;
+
+      // Display centered edge points (0 = equal, +3 means ~53% for side to move)
+      // instead of raw absolute percentage, which looked inflated/confusing.
+      const edgePoints = Math.round((clamped - 0.5) * 100);
+      if (edgePoints > 0) {
+        this.state.winProbText = `+${edgePoints}`;
+      } else {
+        this.state.winProbText = `${edgePoints}`;
+      }
     }
-    this.state.winProbText = this.state.winProbText.replace("%", "");
+
     if (this.$winProbText && this.$winProbText.length) {
       this.$winProbText.text(this.state.winProbText);
     }
@@ -2309,7 +2317,9 @@ const App = {
       return "Win probability unavailable. Engine disabled.";
     }
     const status = this.state.analysisEnabled ? "Win probability analysis on." : "Win probability analysis off.";
-    const value = this.state.winProbValue === null ? "Win probability unavailable." : `Win probability ${this.state.winProbText}.`;
+    const value = this.state.winProbValue === null
+      ? "Win probability unavailable."
+      : `Win edge ${this.state.winProbText}. Estimated win probability ${Math.round(this.state.winProbValue * 100)} percent.`;
     const sourceParts = [this.state.winProbSourceLabel, this.state.winProbSourceDetail].filter(Boolean);
     const source = sourceParts.length ? `Source: ${sourceParts.join(" ")}.` : "";
     return `${status} ${value} ${source}`.trim();
