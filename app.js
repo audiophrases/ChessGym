@@ -670,22 +670,13 @@ const App = {
   },
   sortLinesForSelector(lines) {
     return (lines || []).slice().sort((a, b) => {
-      const aGroup = (a.line_group || "").toString();
-      const bGroup = (b.line_group || "").toString();
-      const groupCmp = aGroup.localeCompare(bGroup, undefined, { sensitivity: "base" });
-      if (groupCmp !== 0) {
-        return groupCmp;
-      }
-
-      const aPriority = Number(a.line_priority || 0);
-      const bPriority = Number(b.line_priority || 0);
-      if (aPriority !== bPriority) {
-        return bPriority - aPriority;
-      }
-
       const aName = (a.line_name || a.line_id || "").toString();
       const bName = (b.line_name || b.line_id || "").toString();
-      return aName.localeCompare(bName, undefined, { sensitivity: "base" });
+      const byName = aName.localeCompare(bName, undefined, { sensitivity: "base" });
+      if (byName !== 0) {
+        return byName;
+      }
+      return (a.line_id || "").toString().localeCompare((b.line_id || "").toString(), undefined, { sensitivity: "base" });
     });
   },
   onOpeningChange(nextOpeningId) {
