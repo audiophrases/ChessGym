@@ -632,7 +632,14 @@ const App = {
     return hasUnlearned ? "learning" : "practice";
   },
   populateSelectors(defaults = {}) {
-    const openings = this.data.openings.filter((o) => isPublished(o.published));
+    const openings = this.data.openings
+      .filter((o) => isPublished(o.published))
+      .slice()
+      .sort((a, b) => {
+        const aName = (a.opening_name || a.opening_id || "").toString();
+        const bName = (b.opening_name || b.opening_id || "").toString();
+        return aName.localeCompare(bName, undefined, { sensitivity: "base" });
+      });
     if (openings.length === 0) {
       return;
     }
@@ -646,7 +653,7 @@ const App = {
   populateLines(preferredLineId) {
     const lines = this.data.linesByOpeningId[this.state.openingId] || [];
     const filteredLines = this.getManualSelectionLines(lines);
-    const displayLines = filteredLines;
+    const displayLines = this.sortLinesForSelector(filteredLines);
     const currentSelection = preferredLineId || this.state.lineId;
     let nextSelection = "any";
     if (currentSelection && currentSelection !== "any" && displayLines.some((line) => line.line_id === currentSelection)) {
@@ -660,6 +667,26 @@ const App = {
     this.updateProgress();
     this.updateSideSelector();
     this.updateSelectorThumbnails();
+  },
+  sortLinesForSelector(lines) {
+    return (lines || []).slice().sort((a, b) => {
+      const aGroup = (a.line_group || "").toString();
+      const bGroup = (b.line_group || "").toString();
+      const groupCmp = aGroup.localeCompare(bGroup, undefined, { sensitivity: "base" });
+      if (groupCmp !== 0) {
+        return groupCmp;
+      }
+
+      const aPriority = Number(a.line_priority || 0);
+      const bPriority = Number(b.line_priority || 0);
+      if (aPriority !== bPriority) {
+        return bPriority - aPriority;
+      }
+
+      const aName = (a.line_name || a.line_id || "").toString();
+      const bName = (b.line_name || b.line_id || "").toString();
+      return aName.localeCompare(bName, undefined, { sensitivity: "base" });
+    });
   },
   onOpeningChange(nextOpeningId) {
     if (!nextOpeningId) {
