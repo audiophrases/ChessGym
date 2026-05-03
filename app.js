@@ -14,6 +14,11 @@ const MISTAKE_TEMPLATES_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1v
 const OPPONENT_DELAY_MS = 500;
 const LINE_ELO_OPTIONS = ["900", "1200", "1500", "1800", "2100", "2400", "2700", "3000"];
 const THUMBNAIL_PLACEHOLDER_SRC = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==";
+const WRITE_WEB_APP_URL_STORAGE_KEY = "chessgym_write_web_app_url";
+const WRITE_TOKEN_STORAGE_KEY = "chessgym_write_token";
+const OPENING_HEADERS = ["opening_id", "opening_name", "side", "starting_fen", "description", "tags", "published", "book_max_plies_game_mode", "allow_transpositions"];
+const LINE_HEADERS = ["opening_id", "line_id", "line_name", "line_group", "line_priority", "drill_side", "start_fen", "elo", "moves_pgn"];
+const NODE_HEADERS = ["opening_id", "line_id", "node_id", "parent_node_id", "move_uci", "learn_prompt", "mistake_map"];
 
 const App = {
   data: {
@@ -88,6 +93,7 @@ const App = {
     hintActive: false,
     freeModeActive: false,
     freeModeSnapshot: null,
+    lastFreeMovesText: "",
     boardSizeIndex: 2,
     outOfLine: false,
     eloFilters: new Set(),
@@ -124,6 +130,7 @@ const App = {
     this.$comment = $("#commentBox");
     this.$hint = $("#hintBtn");
     this.$free = $("#freeBtn");
+    this.$newLine = $("#newLineBtn");
     this.$reveal = $("#revealBtn");
     this.$lichess = $("#lichessBtn");
     this.$engineEval = $("#engineEval");
@@ -135,6 +142,25 @@ const App = {
     this.$boardZoomOut = $("#boardZoomOut");
     this.$openingThumb = $("#openingThumb");
     this.$lineThumb = $("#lineThumb");
+    this.$newLineModal = $("#newLineModal");
+    this.$newLineClose = $("#newLineClose");
+    this.$newLineWriterUrl = $("#newLineWriterUrl");
+    this.$newLineWriteToken = $("#newLineWriteToken");
+    this.$newLineOpeningId = $("#newLineOpeningId");
+    this.$newLineOpeningName = $("#newLineOpeningName");
+    this.$newLineName = $("#newLineName");
+    this.$newLineId = $("#newLineId");
+    this.$newLineDrillSide = $("#newLineDrillSide");
+    this.$newLineNotation = $("#newLineNotation");
+    this.$newLineElo = $("#newLineElo");
+    this.$newLinePriority = $("#newLinePriority");
+    this.$newLineStartFen = $("#newLineStartFen");
+    this.$newLineMoves = $("#newLineMoves");
+    this.$newLineCreateOpening = $("#newLineCreateOpening");
+    this.$newLineGenerate = $("#newLineGenerate");
+    this.$newLineCopyRows = $("#newLineCopyRows");
+    this.$newLineSubmit = $("#newLineSubmit");
+    this.$newLineOutput = $("#newLineOutput");
   },
   initThumbnailPreview() {
     let $preview = $("#thumbnailPreview");
@@ -172,6 +198,7 @@ const App = {
     this.$next.on("click", () => this.stepMove(1));
     this.$hint.on("click", () => this.handleHint());
     this.$free.on("click", () => this.handleFreeModeToggle());
+    this.$newLine.on("click", () => this.openNewLineModal());
     this.$reveal.on("click", () => this.handleRevealMove());
     this.$lichess.on("click", () => this.openLichessGame());
     this.$boardZoomIn.on("click", () => this.adjustBoardSize(1));
@@ -187,8 +214,24 @@ const App = {
         this.toggleSessionSelectors();
       }
     });
+    this.$newLineClose.on("click", () => this.closeNewLineModal());
+    this.$newLineModal.on("click", (event) => {
+      if (event.target === this.$newLineModal[0]) {
+        this.closeNewLineModal();
+      }
+    });
+    this.$newLineName.on("input", () => this.syncNewLineIdFromName());
+    this.$newLineId.on("input", () => this.$newLineId.data("manual", true));
+    this.$newLineGenerate.on("click", () => this.generateNewLineRows());
+    this.$newLineCopyRows.on("click", () => this.copyNewLineRows());
+    this.$newLineSubmit.on("click", () => this.submitNewLineWrite());
     $(document).on("click", (event) => this.handleDocumentClick(event));
     $(document).on("keydown", (event) => {
+      if (event.key === "Escape" && !this.$newLineModal.hasClass("hidden")) {
+        event.preventDefault();
+        this.closeNewLineModal();
+        return;
+      }
       if (this.shouldIgnoreNavigationKey(event)) {
         return;
       }
@@ -223,6 +266,248 @@ const App = {
     const encodedFen = encodeURIComponent(fen).replace(/%2F/g, "/");
     const url = `https://lichess.org/analysis/${encodedFen}`;
     window.open(url, "_blank", "noopener");
+  },
+  openNewLineModal() {
+    const opening = this.getSelectedOpening();
+    const activeLine = this.getActiveLine();
+    const movesText = this.state.lastFreeMovesText || this.state.moveHistory.join(" ");
+    this.$newLineWriterUrl.val(this.getStoredValue(WRITE_WEB_APP_URL_STORAGE_KEY));
+    this.$newLineWriteToken.val(this.getStoredValue(WRITE_TOKEN_STORAGE_KEY));
+    this.$newLineOpeningId.val(opening ? opening.opening_id || "" : "");
+    this.$newLineOpeningName.val(opening ? opening.opening_name || "" : "");
+    this.$newLineName.val("");
+    this.$newLineId.val("").removeData("manual");
+    this.$newLineName.removeData("lastSlug");
+    this.$newLineDrillSide.val((activeLine && activeLine.drill_side) || this.state.userSide || "white");
+    this.$newLineNotation.val("auto");
+    this.$newLineElo.val("");
+    this.$newLinePriority.val("1");
+    this.$newLineStartFen.val(activeLine && activeLine.start_fen ? activeLine.start_fen : "");
+    this.$newLineMoves.val(movesText);
+    this.$newLineCreateOpening.prop("checked", false);
+    this.$newLineOutput.text("Generate rows to preview the sheet writes.");
+    this.$newLineModal.removeClass("hidden");
+    this.$newLineName.trigger("focus");
+  },
+  closeNewLineModal() {
+    this.$newLineModal.addClass("hidden");
+  },
+  syncNewLineIdFromName() {
+    if (this.$newLineId.data("manual")) {
+      return;
+    }
+    const current = this.$newLineId.val();
+    if (current && current !== slugifyId(this.$newLineName.data("lastSlug") || "")) {
+      this.$newLineId.data("manual", true);
+      return;
+    }
+    const nextSlug = slugifyId(this.$newLineName.val());
+    this.$newLineName.data("lastSlug", nextSlug);
+    this.$newLineId.val(nextSlug);
+  },
+  getStoredValue(key) {
+    try {
+      return localStorage.getItem(key) || "";
+    } catch (error) {
+      return "";
+    }
+  },
+  setStoredValue(key, value) {
+    try {
+      if (value) {
+        localStorage.setItem(key, value);
+      } else {
+        localStorage.removeItem(key);
+      }
+    } catch (error) {
+      // Local storage is a convenience only; writing still works without it.
+    }
+  },
+  generateNewLineRows() {
+    try {
+      const payload = this.buildNewLinePayload();
+      const output = this.formatNewLinePreview(payload);
+      this.$newLineOutput.text(output);
+      this.setStatus("New line rows generated.");
+      return payload;
+    } catch (error) {
+      this.$newLineOutput.text(error.message || String(error));
+      this.setStatus("New line generation failed.");
+      return null;
+    }
+  },
+  copyNewLineRows() {
+    const payload = this.generateNewLineRows();
+    if (!payload) {
+      return;
+    }
+    const output = this.formatNewLinePreview(payload);
+    this.copyTextToClipboard(output)
+      .then(() => {
+        this.setStatus("New line rows copied.");
+      })
+      .catch(() => {
+        this.setStatus("Unable to copy new line rows.");
+      });
+  },
+  submitNewLineWrite() {
+    const payload = this.generateNewLineRows();
+    if (!payload) {
+      return;
+    }
+    const endpoint = this.$newLineWriterUrl.val().trim();
+    const writeToken = this.$newLineWriteToken.val().trim();
+    if (!endpoint) {
+      this.$newLineOutput.text(`${this.$newLineOutput.text()}\n\nWriter URL is missing. Deploy the Apps Script web app and paste its /exec URL here.`);
+      return;
+    }
+    this.setStoredValue(WRITE_WEB_APP_URL_STORAGE_KEY, endpoint);
+    this.setStoredValue(WRITE_TOKEN_STORAGE_KEY, writeToken);
+    if (writeToken) {
+      payload.auth.writeToken = writeToken;
+    }
+    this.postNewLinePayload(endpoint, payload);
+    this.setStatus("Opening Google write flow.");
+    this.$newLineOutput.text(`${this.$newLineOutput.text()}\n\nSubmitted to Apps Script. Complete any Google authorization in the new tab.`);
+  },
+  postNewLinePayload(endpoint, payload) {
+    const form = document.createElement("form");
+    form.method = "POST";
+    form.action = endpoint;
+    form.target = "_blank";
+    form.style.display = "none";
+
+    const input = document.createElement("input");
+    input.type = "hidden";
+    input.name = "payload";
+    input.value = JSON.stringify(payload);
+    form.appendChild(input);
+
+    document.body.appendChild(form);
+    form.submit();
+    document.body.removeChild(form);
+  },
+  buildNewLinePayload() {
+    const openingId = this.$newLineOpeningId.val().trim();
+    const lineName = this.$newLineName.val().trim();
+    const lineId = (this.$newLineId.val().trim() || slugifyId(lineName)).trim();
+    const movesText = this.$newLineMoves.val().trim();
+    const drillSide = normalizeDrillSide(this.$newLineDrillSide.val()) || "white";
+    const startFen = this.$newLineStartFen.val().trim();
+    if (!openingId) {
+      throw new Error("Opening ID is required.");
+    }
+    if (!lineName) {
+      throw new Error("Line name is required.");
+    }
+    if (!lineId) {
+      throw new Error("Line ID is required.");
+    }
+    if (!movesText) {
+      throw new Error("Moves are required.");
+    }
+    if (this.data.linesById[lineId]) {
+      throw new Error(`Line ID already exists in the loaded CSV: ${lineId}`);
+    }
+    const parsed = parseStudyLineMoves(movesText, this.$newLineNotation.val(), startFen);
+    const lineRow = {
+      opening_id: openingId,
+      line_id: lineId,
+      line_name: lineName,
+      line_group: "",
+      line_priority: this.$newLinePriority.val().trim() || "1",
+      drill_side: drillSide,
+      start_fen: startFen,
+      elo: this.$newLineElo.val().trim(),
+      moves_pgn: parsed.movesPgn
+    };
+    const openingRow = {
+      opening_id: openingId,
+      opening_name: this.$newLineOpeningName.val().trim() || openingId,
+      side: drillSide,
+      starting_fen: startFen,
+      description: "",
+      tags: "",
+      published: "TRUE",
+      book_max_plies_game_mode: "",
+      allow_transpositions: "TRUE"
+    };
+    let parentNodeId = "";
+    const nodes = parsed.moves.map((move, index) => {
+      const nodeId = `${lineId}_${String(index + 1).padStart(3, "0")}`;
+      const row = {
+        opening_id: openingId,
+        line_id: lineId,
+        node_id: nodeId,
+        parent_node_id: parentNodeId,
+        move_uci: move.uci,
+        learn_prompt: "",
+        mistake_map: ""
+      };
+      parentNodeId = nodeId;
+      return row;
+    });
+    return {
+      version: 1,
+      action: "createLine",
+      auth: {},
+      opening: {
+        create: this.$newLineCreateOpening.prop("checked"),
+        row: openingRow
+      },
+      line: lineRow,
+      nodes,
+      thumbnail: {
+        line_id: lineId,
+        command: `python scripts\\generate_missing_thumbnails.py --line-ids ${lineId}`
+      },
+      source: {
+        app: "ChessGym",
+        created_at: new Date().toISOString()
+      }
+    };
+  },
+  formatNewLinePreview(payload) {
+    const sections = [];
+    if (payload.opening.create) {
+      sections.push("# openings tab");
+      sections.push(rowsToTsv([objectToRow(payload.opening.row, OPENING_HEADERS)]));
+      sections.push("");
+    }
+    sections.push("# lines tab");
+    sections.push(rowsToTsv([objectToRow(payload.line, LINE_HEADERS)]));
+    sections.push("");
+    sections.push("# nodes tab");
+    sections.push(rowsToTsv(payload.nodes.map((node) => objectToRow(node, NODE_HEADERS))));
+    sections.push("");
+    sections.push(`# thumbnail`);
+    sections.push(payload.thumbnail.command);
+    return sections.join("\n");
+  },
+  copyTextToClipboard(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(text);
+    }
+    return new Promise((resolve, reject) => {
+      const textarea = document.createElement("textarea");
+      textarea.value = text;
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
+      document.body.appendChild(textarea);
+      textarea.select();
+      try {
+        const succeeded = document.execCommand("copy");
+        if (succeeded) {
+          resolve();
+        } else {
+          reject(new Error("execCommand copy failed"));
+        }
+      } catch (error) {
+        reject(error);
+      } finally {
+        document.body.removeChild(textarea);
+      }
+    });
   },
   showLoading(isLoading, message) {
     if (isLoading) {
@@ -1229,6 +1514,7 @@ const App = {
       return;
     }
     if (result.status === "copied") {
+      this.state.lastFreeMovesText = result.movesText || "";
       this.setStatus("Free UCI moves copied.");
       this.setComment(`Copied ${result.count} Free ${result.count === 1 ? "move" : "moves"} to clipboard.`);
       return;
@@ -1248,7 +1534,7 @@ const App = {
       return Promise.resolve(result);
     }
     const onSuccess = () => {
-      const result = { status: "copied", count: moveList.length };
+      const result = { status: "copied", count: moveList.length, movesText };
       if (showFeedback) {
         this.showFreeCopyResult(result);
       }
@@ -2882,6 +3168,108 @@ function moveToUci(move) {
     return "";
   }
   return `${move.from}${move.to}${move.promotion || ""}`;
+}
+
+function slugifyId(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+}
+
+function tokenizeMoveText(text) {
+  let cleaned = String(text || "");
+  cleaned = cleaned.replace(/^\s*\[[^\]]+\]\s*$/gm, " ");
+  cleaned = cleaned.replace(/\{[^}]*\}/g, " ");
+  cleaned = cleaned.replace(/;[^\n\r]*/g, " ");
+  let previous = "";
+  while (previous !== cleaned) {
+    previous = cleaned;
+    cleaned = cleaned.replace(/\([^()]*\)/g, " ");
+  }
+  return cleaned
+    .split(/\s+/)
+    .map((token) => token.trim())
+    .filter(Boolean)
+    .map((token) => token.replace(/^\d+\.(\.\.)?/, ""))
+    .filter((token) => token && !/^(1-0|0-1|1\/2-1\/2|\*)$/.test(token) && !token.startsWith("$"));
+}
+
+function parseStudyLineMoves(movesText, notation, startFen) {
+  const tokens = tokenizeMoveText(movesText);
+  if (!tokens.length) {
+    throw new Error("No moves found.");
+  }
+  const uciPattern = /^[a-h][1-8][a-h][1-8][qrbnQRBN]?$/;
+  const resolvedNotation = notation === "auto"
+    ? (tokens.every((token) => uciPattern.test(token.replace("=", ""))) ? "uci" : "san")
+    : notation;
+  const chess = new Chess();
+  if (!loadFenForChess(chess, startFen)) {
+    throw new Error("Start FEN is invalid.");
+  }
+  const moves = [];
+  tokens.forEach((token) => {
+    const fenParts = chess.fen().split(/\s+/);
+    const color = fenParts[1] === "b" ? "black" : "white";
+    const moveNumber = parseInt(fenParts[5] || "1", 10) || 1;
+    let move = null;
+    if (resolvedNotation === "uci") {
+      move = applyMoveUCI(chess, token);
+    } else {
+      move = chess.move(token.replace(/[?!]+$/g, ""), { sloppy: true });
+    }
+    if (!move) {
+      throw new Error(`Illegal or unreadable move: ${token}`);
+    }
+    moves.push({
+      uci: moveToUci(move),
+      san: move.san,
+      color,
+      moveNumber
+    });
+  });
+  return {
+    notation: resolvedNotation,
+    moves,
+    movesPgn: formatSanMoves(moves)
+  };
+}
+
+function formatSanMoves(moves) {
+  const parts = [];
+  moves.forEach((move, index) => {
+    const previous = moves[index - 1];
+    if (move.color === "white") {
+      parts.push(`${move.moveNumber}.`);
+      parts.push(move.san);
+    } else {
+      if (!previous || previous.color !== "white" || previous.moveNumber !== move.moveNumber) {
+        parts.push(`${move.moveNumber}...`);
+      }
+      parts.push(move.san);
+    }
+  });
+  return parts.join(" ");
+}
+
+function objectToRow(obj, headers) {
+  return headers.map((header) => obj[header] || "");
+}
+
+function rowsToTsv(rows) {
+  return rows
+    .map((row) => row.map((cell) => formatTsvCell(cell)).join("\t"))
+    .join("\n");
+}
+
+function formatTsvCell(value) {
+  const text = String(value === undefined || value === null ? "" : value);
+  if (/["\t\n\r]/.test(text)) {
+    return `"${text.replace(/"/g, '""')}"`;
+  }
+  return text;
 }
 
 function needsPromotion(from, to, chess) {
