@@ -18,13 +18,19 @@ This Apps Script web app writes generated ChessGym study lines into the Google S
 5. Use these deployment settings for Google-account auth:
    - Execute as: `User accessing the web app`
    - Who has access: `Anyone with Google account`
-6. Copy the `/exec` URL and paste it into ChessGym's `New Line` dialog.
+6. Copy the `/exec` URL.
+7. In `app.js`, paste that URL into `WRITE_WEB_APP_URL` near the top of the file:
+
+```js
+const WRITE_WEB_APP_URL = "https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec";
+const WRITE_TOKEN = "";
+```
 
 ## Auth Modes
 
 The recommended path is Google auth with `ALLOWED_EMAILS`. The web app runs as the signed-in user, so that account must be allowed by the script and must be able to write the spreadsheet.
 
-The optional `WRITE_TOKEN` path is for owner-run or simpler personal deployments. Do not hard-code the token in the public app; type it into the `New Line` dialog when needed.
+The optional `WRITE_TOKEN` path is for owner-run or simpler personal deployments. If ChessGym is served anywhere public, avoid putting a real token in `app.js`; browser JavaScript can always be inspected. Prefer Google account auth with `ALLOWED_EMAILS`.
 
 ## Health Check
 
