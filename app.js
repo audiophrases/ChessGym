@@ -431,62 +431,317 @@ const App = {
     this.$adminLineName = $("#adminLineName");
     this.$adminLineDrillSide = $("#adminLineDrillSide");
     this.$adminLineElo = $("#adminLineElo");
+    this.$adminLineGroup = $("#adminLineGroup");
     this.$adminLinePriority = $("#adminLinePriority");
+    this.$adminLineStartFen = $("#adminLineStartFen");
     this.$adminNodes = $("#adminNodes");
+    this.$adminNodesMeta = $("#adminNodesMeta");
     this.$adminStatus = $("#adminStatus");
     this.$adminCommitMsg = $("#adminCommitMsg");
+    this.$adminPickerSearch = $("#adminPickerSearch");
+    this.$adminPickerList = $("#adminPickerList");
+    this.$adminThumbPly = $("#adminThumbPly");
+    this.$adminThumbLabel = $("#adminThumbLabel");
+    this.$adminThumbSan = $("#adminThumbSan");
+    this.$adminSaveDirty = $("#adminSaveDirty");
+    this.adminDirtyNodes = new Set();
+    this.adminSanByNodeId = {};
+    this.adminPlyByNodeId = {};
     this.$adminPanel.removeClass("hidden");
     this.$adminToggle.on("click", () => {
       const collapsed = this.$adminPanel.toggleClass("collapsed").hasClass("collapsed");
       this.$adminToggle.attr("aria-expanded", String(!collapsed));
     });
+    $(".admin-tab").on("click", (event) => {
+      const name = $(event.currentTarget).attr("data-tab");
+      this.adminSetTab(name);
+    });
+    this.$adminPickerSearch.on("input", () => this.adminFilterPicker(this.$adminPickerSearch.val()));
     $("#adminSaveLine").on("click", () => this.adminSaveLine());
-    $("#adminRegenThumb").on("click", () => this.adminRegenThumb());
+    $("#adminThumbPreview").on("click", () => this.adminPreviewThumb());
+    $("#adminThumbSave").on("click", () => this.adminSaveThumb());
+    $("#adminThumbReset").on("click", () => this.adminResetThumb());
+    this.$adminThumbPly.on("input", () => this.adminUpdateThumbLabel());
+    this.$adminSaveDirty.on("click", () => this.adminSaveAllDirty());
     $("#adminCommit").on("click", () => this.adminCommit());
     $("#adminReload").on("click", () => window.location.reload());
+    $("#adminOpenNewLine").on("click", () => this.openNewLineModal());
+    this.adminPopulatePicker();
+  },
+  adminSetTab(name) {
+    $(".admin-tab").each((_, el) => {
+      const $el = $(el);
+      const active = $el.attr("data-tab") === name;
+      $el.toggleClass("active", active).attr("aria-selected", String(active));
+    });
+    $(".admin-tab-panel").each((_, el) => {
+      $(el).toggleClass("hidden", $(el).attr("data-panel") !== name);
+    });
+  },
+  adminPopulatePicker() {
+    if (!this.$adminPickerList || !this.$adminPickerList.length) return;
+    const lines = (this.data.lines || []).slice().sort((a, b) => {
+      const oa = (a.opening_id || "").localeCompare(b.opening_id || "");
+      if (oa !== 0) return oa;
+      return (a.line_name || a.line_id || "").localeCompare(b.line_name || b.line_id || "");
+    });
+    this.$adminPickerList.empty();
+    let lastOpening = null;
+    lines.forEach((line) => {
+      if (line.opening_id !== lastOpening) {
+        const opening = this.data.openingsById[line.opening_id];
+        const label = opening ? (opening.opening_name || opening.opening_id) : line.opening_id;
+        this.$adminPickerList.append(`<div class="admin-picker-group">${label}</div>`);
+        lastOpening = line.opening_id;
+      }
+      const nodeCount = (this.data.nodesByLineId[line.line_id] || []).length;
+      const $btn = $(
+        `<button type="button" class="admin-picker-item" data-line-id="${line.line_id}" data-opening-id="${line.opening_id}">
+          <span class="admin-picker-name"></span>
+          <span class="admin-picker-meta">${nodeCount} · ${line.drill_side || "?"}</span>
+        </button>`
+      );
+      $btn.find(".admin-picker-name").text(line.line_name || line.line_id);
+      $btn.on("click", () => this.adminSelectLineFromPicker(line.opening_id, line.line_id));
+      this.$adminPickerList.append($btn);
+    });
+    this.adminMarkActivePickerItem();
+  },
+  adminFilterPicker(query) {
+    const q = (query || "").toLowerCase().trim();
+    let visibleSinceGroup = false;
+    let $currentGroup = null;
+    this.$adminPickerList.children().each((_, el) => {
+      const $el = $(el);
+      if ($el.hasClass("admin-picker-group")) {
+        if ($currentGroup) $currentGroup.toggle(visibleSinceGroup);
+        $currentGroup = $el;
+        visibleSinceGroup = false;
+      } else {
+        const text = ($el.text() + " " + $el.attr("data-line-id") + " " + $el.attr("data-opening-id")).toLowerCase();
+        const match = !q || text.includes(q);
+        $el.toggle(match);
+        if (match) visibleSinceGroup = true;
+      }
+    });
+    if ($currentGroup) $currentGroup.toggle(visibleSinceGroup);
+  },
+  adminMarkActivePickerItem() {
+    if (!this.$adminPickerList || !this.$adminPickerList.length) return;
+    const lineId = this.state.lineId;
+    this.$adminPickerList.find(".admin-picker-item").each((_, el) => {
+      const $el = $(el);
+      $el.toggleClass("active", $el.attr("data-line-id") === lineId);
+    });
+  },
+  adminSelectLineFromPicker(openingId, lineId) {
+    if (this.adminDirtyNodes && this.adminDirtyNodes.size > 0) {
+      if (!window.confirm(`${this.adminDirtyNodes.size} unsaved node edit(s) will be discarded. Continue?`)) {
+        return;
+      }
+    }
+    if (this.state.openingId !== openingId) {
+      this.onOpeningChange(openingId);
+    }
+    this.onLineChange(lineId);
+  },
+  computeSanForLine(line) {
+    const sanByNodeId = {};
+    const plyByNodeId = {};
+    if (!line) return { sanByNodeId, plyByNodeId, total: 0 };
+    const nodes = (this.data.nodesByLineId[line.line_id] || []).slice().sort((a, b) =>
+      (a.node_id || "").localeCompare(b.node_id || "")
+    );
+    let chess;
+    try {
+      chess = (line.start_fen || "").trim() ? new Chess(line.start_fen.trim()) : new Chess();
+    } catch (e) {
+      chess = new Chess();
+    }
+    let ply = 0;
+    nodes.forEach((node) => {
+      const move = applyMoveUCI(chess, node.move_uci);
+      if (move) {
+        ply += 1;
+        sanByNodeId[node.node_id] = move.san;
+        plyByNodeId[node.node_id] = ply;
+      }
+    });
+    return { sanByNodeId, plyByNodeId, total: ply };
   },
   refreshAdminPanel() {
     if (!isAdminMode() || !this.$adminPanel || !this.$adminPanel.length) {
       return;
     }
     const line = this.getActiveLine();
+    if (this.$adminPickerList && !this.$adminPickerList.children().length && this.data.lines.length) {
+      this.adminPopulatePicker();
+    }
+    this.adminMarkActivePickerItem();
     if (!line) {
       this.$adminBody.addClass("empty");
       this.$adminLineId.text("(no line selected)");
       this.$adminNodes.empty();
+      this.$adminNodesMeta.text("");
       return;
     }
     this.$adminBody.removeClass("empty");
-    this.$adminLineId.text(line.line_id);
+    this.$adminLineId.text(line.line_id).attr("title", line.line_id);
     this.$adminLineName.val(line.line_name || "");
     this.$adminLineDrillSide.val(line.drill_side || "white");
     this.$adminLineElo.val(line.elo || "");
+    this.$adminLineGroup.val(line.line_group || "");
     this.$adminLinePriority.val(line.line_priority || "1");
-    const nodes = (this.data.nodesByLineId[line.line_id] || []).slice();
+    this.$adminLineStartFen.val(line.start_fen || "");
+
+    const { sanByNodeId, plyByNodeId, total } = this.computeSanForLine(line);
+    this.adminSanByNodeId = sanByNodeId;
+    this.adminPlyByNodeId = plyByNodeId;
+
+    this.$adminThumbPly.attr("max", total);
+    const savedPly = parseInt(line.thumb_ply, 10);
+    const initialPly = Number.isFinite(savedPly) ? Math.max(0, Math.min(total, savedPly)) : Math.max(1, Math.floor(total / 2));
+    this.$adminThumbPly.val(initialPly);
+    this.adminUpdateThumbLabel();
+
+    this.adminDirtyNodes = new Set();
+    this.$adminSaveDirty.prop("disabled", true);
+    this.$adminNodesMeta.text(`${total} ply`);
+
+    const nodes = (this.data.nodesByLineId[line.line_id] || []).slice().sort((a, b) =>
+      (a.node_id || "").localeCompare(b.node_id || "")
+    );
     this.$adminNodes.empty();
     nodes.forEach((node) => {
+      const san = sanByNodeId[node.node_id] || "";
+      const ply = plyByNodeId[node.node_id] || 0;
       const $row = $(
-        `<div class="admin-node" data-node-id="${node.node_id}">
+        `<div class="admin-node" data-node-id="${node.node_id}" data-ply="${ply}">
           <div class="admin-node-head">
-            <code>${node.node_id}</code>
+            <span class="admin-node-id">${node.node_id}</span>
+            <span class="admin-node-san"></span>
             <span class="admin-node-uci">${node.move_uci || ""}</span>
           </div>
           <label>learn_prompt
             <textarea data-field="learn_prompt" rows="2"></textarea>
           </label>
-          <label>mistake_map
-            <input data-field="mistake_map" type="text" />
-          </label>
+          <div class="admin-node-extra">
+            <label>mistake_map
+              <input data-field="mistake_map" type="text" />
+            </label>
+          </div>
           <div class="admin-node-actions">
-            <button type="button" class="ghost admin-save-node">Save node</button>
+            <button type="button" class="ghost admin-toggle-extra" title="Show mistake_map">…</button>
+            <button type="button" class="ghost admin-save-node">Save</button>
           </div>
         </div>`
       );
+      $row.find(".admin-node-san").text(san);
       $row.find('[data-field="learn_prompt"]').val(node.learn_prompt || "");
       $row.find('[data-field="mistake_map"]').val(node.mistake_map || "");
-      $row.find(".admin-save-node").on("click", () => this.adminSaveNode(node.node_id, $row));
+      const markDirty = () => {
+        if (!$row.hasClass("dirty")) {
+          $row.addClass("dirty");
+          this.adminDirtyNodes.add(node.node_id);
+          this.$adminSaveDirty.prop("disabled", this.adminDirtyNodes.size === 0);
+        }
+      };
+      $row.find('[data-field]').on("input", markDirty);
+      $row.find(".admin-toggle-extra").on("click", (event) => {
+        event.stopPropagation();
+        $row.toggleClass("expanded");
+      });
+      $row.find(".admin-save-node").on("click", (event) => {
+        event.stopPropagation();
+        this.adminSaveNode(node.node_id, $row);
+      });
+      $row.find('[data-field], button').on("click", (event) => event.stopPropagation());
+      $row.on("click", () => this.adminGoToPly(ply));
       this.$adminNodes.append($row);
     });
+  },
+  adminUpdateThumbLabel() {
+    const total = parseInt(this.$adminThumbPly.attr("max"), 10) || 0;
+    const ply = parseInt(this.$adminThumbPly.val(), 10) || 0;
+    this.$adminThumbLabel.text(`ply ${ply} / ${total}`);
+    let san = "";
+    if (ply > 0) {
+      const entry = Object.entries(this.adminPlyByNodeId).find(([, p]) => p === ply);
+      if (entry) san = this.adminSanByNodeId[entry[0]] || "";
+    } else {
+      san = "start";
+    }
+    this.$adminThumbSan.text(san);
+  },
+  adminGoToPly(targetPly) {
+    if (!Number.isFinite(targetPly) || targetPly < 0) return;
+    const current = (this.state.moveHistory || []).length;
+    let diff = targetPly - current;
+    let safety = Math.abs(diff) + 8;
+    while (diff !== 0 && safety-- > 0) {
+      const before = (this.state.moveHistory || []).length;
+      this.stepMove(diff > 0 ? 1 : -1);
+      const after = (this.state.moveHistory || []).length;
+      if (after === before) break;
+      diff = targetPly - after;
+    }
+    this.adminHighlightActiveNode();
+  },
+  adminHighlightActiveNode() {
+    const ply = (this.state.moveHistory || []).length;
+    if (!this.$adminNodes) return;
+    this.$adminNodes.find(".admin-node").each((_, el) => {
+      const $el = $(el);
+      $el.toggleClass("active", parseInt($el.attr("data-ply"), 10) === ply);
+    });
+  },
+  adminPreviewThumb() {
+    const ply = parseInt(this.$adminThumbPly.val(), 10) || 0;
+    this.adminGoToPly(ply);
+  },
+  adminSaveThumb() {
+    const line = this.getActiveLine();
+    if (!line) return;
+    const ply = parseInt(this.$adminThumbPly.val(), 10) || 0;
+    this.adminStatus(`Saving thumb_ply=${ply} and rendering…`);
+    this.adminFetch(`/line/${encodeURIComponent(line.line_id)}`, {
+      method: "PATCH",
+      body: JSON.stringify({ thumb_ply: String(ply) })
+    })
+      .then(() => this.adminFetch(`/thumbnail/${encodeURIComponent(line.line_id)}`, {
+        method: "POST",
+        body: JSON.stringify({ thumb_ply: String(ply) })
+      }))
+      .then((body) => {
+        line.thumb_ply = String(ply);
+        this.thumbnailCache.delete(line.line_id);
+        this.updateSelectorThumbnails();
+        this.adminStatus(`Wrote ${body.result.thumbnail} (ply ${ply}).`);
+      })
+      .catch((error) => this.adminStatus(`Thumbnail failed: ${error.message}`, true));
+  },
+  adminResetThumb() {
+    const line = this.getActiveLine();
+    if (!line) return;
+    this.adminStatus(`Clearing thumb_ply and rendering midpoint…`);
+    this.adminFetch(`/line/${encodeURIComponent(line.line_id)}`, {
+      method: "PATCH",
+      body: JSON.stringify({ thumb_ply: "" })
+    })
+      .then(() => this.adminFetch(`/thumbnail/${encodeURIComponent(line.line_id)}`, {
+        method: "POST",
+        body: JSON.stringify({})
+      }))
+      .then((body) => {
+        line.thumb_ply = "";
+        this.thumbnailCache.delete(line.line_id);
+        this.updateSelectorThumbnails();
+        const total = parseInt(this.$adminThumbPly.attr("max"), 10) || 0;
+        this.$adminThumbPly.val(Math.max(1, Math.floor(total / 2)));
+        this.adminUpdateThumbLabel();
+        this.adminStatus(`Wrote ${body.result.thumbnail} (midpoint).`);
+      })
+      .catch((error) => this.adminStatus(`Reset failed: ${error.message}`, true));
   },
   adminFetch(path, options) {
     return fetch(`${ADMIN_API_BASE}${path}`, Object.assign({ headers: { "Content-Type": "application/json" } }, options || {}))
@@ -508,7 +763,7 @@ const App = {
       mistake_map: $row.find('[data-field="mistake_map"]').val()
     };
     this.adminStatus(`Saving ${nodeId}…`);
-    this.adminFetch(`/node/${encodeURIComponent(nodeId)}`, {
+    return this.adminFetch(`/node/${encodeURIComponent(nodeId)}`, {
       method: "PATCH",
       body: JSON.stringify(fields)
     })
@@ -518,10 +773,36 @@ const App = {
           node.learn_prompt = body.node.learn_prompt;
           node.mistake_map = body.node.mistake_map;
         }
+        $row.removeClass("dirty");
+        this.adminDirtyNodes.delete(nodeId);
+        this.$adminSaveDirty.prop("disabled", this.adminDirtyNodes.size === 0);
         this.adminStatus(`Saved ${nodeId}.`);
         this.renderCoachComment();
       })
-      .catch((error) => this.adminStatus(`Save failed: ${error.message}`, true));
+      .catch((error) => {
+        this.adminStatus(`Save failed: ${error.message}`, true);
+        throw error;
+      });
+  },
+  adminSaveAllDirty() {
+    if (!this.adminDirtyNodes || this.adminDirtyNodes.size === 0) return;
+    const ids = Array.from(this.adminDirtyNodes);
+    this.adminStatus(`Saving ${ids.length} node(s)…`);
+    let ok = 0;
+    let fail = 0;
+    const next = (i) => {
+      if (i >= ids.length) {
+        this.adminStatus(`Saved ${ok}, failed ${fail}.`, fail > 0);
+        return;
+      }
+      const id = ids[i];
+      const $row = this.$adminNodes.find(`[data-node-id="${id}"]`);
+      this.adminSaveNode(id, $row).then(
+        () => { ok += 1; next(i + 1); },
+        () => { fail += 1; next(i + 1); }
+      );
+    };
+    next(0);
   },
   adminSaveLine() {
     const line = this.getActiveLine();
@@ -530,7 +811,9 @@ const App = {
       line_name: this.$adminLineName.val(),
       drill_side: this.$adminLineDrillSide.val(),
       elo: this.$adminLineElo.val(),
-      line_priority: this.$adminLinePriority.val()
+      line_group: this.$adminLineGroup.val(),
+      line_priority: this.$adminLinePriority.val(),
+      start_fen: this.$adminLineStartFen.val()
     };
     this.adminStatus(`Saving line ${line.line_id}…`);
     this.adminFetch(`/line/${encodeURIComponent(line.line_id)}`, {
@@ -540,20 +823,9 @@ const App = {
       .then((body) => {
         Object.assign(line, body.line);
         this.adminStatus(`Saved line ${line.line_id}.`);
+        this.adminPopulatePicker();
       })
       .catch((error) => this.adminStatus(`Save failed: ${error.message}`, true));
-  },
-  adminRegenThumb() {
-    const line = this.getActiveLine();
-    if (!line) return;
-    this.adminStatus(`Rendering thumbnail for ${line.line_id}…`);
-    this.adminFetch(`/thumbnail/${encodeURIComponent(line.line_id)}`, { method: "POST" })
-      .then((body) => {
-        this.adminStatus(`Wrote ${body.result.thumbnail}.`);
-        this.thumbnailCache.delete(line.line_id);
-        this.updateSelectorThumbnails();
-      })
-      .catch((error) => this.adminStatus(`Thumbnail failed: ${error.message}`, true));
   },
   adminCommit() {
     const message = (this.$adminCommitMsg.val() || "").trim();
@@ -2354,6 +2626,7 @@ const App = {
       this.clearCoachOverride();
     }
     this.setStatus("Reviewing moves.");
+    this.adminHighlightActiveNode && this.adminHighlightActiveNode();
   },
   canAdvanceLearning() {
     if (this.state.mode !== "learning") {
