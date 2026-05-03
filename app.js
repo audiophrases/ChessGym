@@ -468,6 +468,9 @@ const App = {
     $("#adminThumbReset").on("click", () => this.adminResetThumb());
     this.$adminThumbPly.on("input", () => this.adminUpdateThumbLabel());
     this.$adminSaveDirty.on("click", () => this.adminSaveAllDirty());
+    $("#adminBatchApply").on("click", () => this.adminBatchApplyPrompts(false));
+    $("#adminBatchSaveAll").on("click", () => this.adminBatchApplyPrompts(true));
+    $("#adminBatchClear").on("click", () => $("#adminBatchPromptText").val(""));
     $("#adminCommit").on("click", () => this.adminCommit());
     $("#adminReload").on("click", () => window.location.reload());
     $("#adminOpenNewLine").on("click", () => this.openNewLineModal());
@@ -793,6 +796,36 @@ const App = {
         this.adminStatus(`Save failed: ${error.message}`, true);
         throw error;
       });
+  },
+  adminBatchApplyPrompts(saveAfter) {
+    if (!this.$adminNodes || !this.$adminNodes.length) return;
+    const text = $("#adminBatchPromptText").val() || "";
+    const lines = text.split(/\r?\n/);
+    const $rows = this.$adminNodes.find(".admin-node");
+    let applied = 0;
+    let skipped = 0;
+    let consumed = 0;
+    $rows.each((_, el) => {
+      if (consumed >= lines.length) return false;
+      const raw = lines[consumed];
+      consumed += 1;
+      if (raw.trim() === "") {
+        skipped += 1;
+        return true;
+      }
+      const $row = $(el);
+      const $field = $row.find('[data-field="learn_prompt"]');
+      if ($field.val() !== raw) {
+        $field.val(raw).trigger("input");
+        applied += 1;
+      }
+    });
+    const overflow = Math.max(0, lines.length - $rows.length);
+    const overflowMsg = overflow ? `, ${overflow} extra line(s) ignored` : "";
+    this.adminStatus(`Applied ${applied} prompt(s), skipped ${skipped}${overflowMsg}.`);
+    if (saveAfter && this.adminDirtyNodes && this.adminDirtyNodes.size > 0) {
+      this.adminSaveAllDirty();
+    }
   },
   adminSaveAllDirty() {
     if (!this.adminDirtyNodes || this.adminDirtyNodes.size === 0) return;

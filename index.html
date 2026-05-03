@@ -248,6 +248,16 @@
           <div class="admin-actions admin-nodes-actions">
             <button id="adminSaveDirty" class="ghost" type="button" disabled>Save all dirty</button>
           </div>
+          <details class="admin-collapsible nested">
+            <summary>Batch paste prompts</summary>
+            <p class="admin-help">One prompt per line, applied to nodes top-to-bottom in ply order. Blank lines skip that node (leave existing). Extra lines beyond the node count are ignored.</p>
+            <textarea id="adminBatchPromptText" rows="6" placeholder="Develop the e-pawn.&#10;Control the center.&#10;..."></textarea>
+            <div class="admin-actions">
+              <button id="adminBatchApply" class="ghost" type="button">Apply to nodes</button>
+              <button id="adminBatchSaveAll" class="ghost" type="button" title="Apply, then save every dirty node">Apply + Save</button>
+              <button id="adminBatchClear" class="ghost" type="button" title="Clear the textarea">Clear</button>
+            </div>
+          </details>
           <div id="adminNodes" class="admin-nodes"></div>
         </details>
       </section>
