@@ -592,6 +592,11 @@ const App = {
     }
     this.$adminBody.removeClass("empty");
     this.$adminLineId.text(line.line_id).attr("title", line.line_id);
+    const opening = this.data.openingsById[line.opening_id] || {};
+    this.$adminOpeningId.text(opening.opening_id || line.opening_id || "");
+    this.$adminOpeningName.val(opening.opening_name || "");
+    this.$adminOpeningDescription.val(opening.description || "");
+    this.$adminOpeningTags.val(opening.tags || "");
     this.$adminLineName.val(line.line_name || "");
     this.$adminLineDrillSide.val(line.drill_side || "white");
     this.$adminLineElo.val(line.elo || "");
@@ -808,6 +813,32 @@ const App = {
       );
     };
     next(0);
+  },
+  adminSaveOpening() {
+    const line = this.getActiveLine();
+    if (!line) return;
+    const opening = this.data.openingsById[line.opening_id];
+    if (!opening) {
+      this.adminStatus(`Opening not found: ${line.opening_id}`, true);
+      return;
+    }
+    const fields = {
+      opening_name: this.$adminOpeningName.val(),
+      description: this.$adminOpeningDescription.val(),
+      tags: this.$adminOpeningTags.val()
+    };
+    this.adminStatus(`Saving opening ${opening.opening_id}…`);
+    this.adminFetch(`/opening/${encodeURIComponent(opening.opening_id)}`, {
+      method: "PATCH",
+      body: JSON.stringify(fields)
+    })
+      .then((body) => {
+        Object.assign(opening, body.opening);
+        this.adminStatus(`Saved opening ${opening.opening_id}.`);
+        this.adminPopulatePicker();
+        this.populateSelectors({ openingId: this.state.openingId, lineId: this.state.lineId, mode: this.state.mode });
+      })
+      .catch((error) => this.adminStatus(`Save failed: ${error.message}`, true));
   },
   adminSaveLine() {
     const line = this.getActiveLine();
