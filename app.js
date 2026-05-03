@@ -14,8 +14,8 @@ const MISTAKE_TEMPLATES_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1v
 const OPPONENT_DELAY_MS = 500;
 const LINE_ELO_OPTIONS = ["900", "1200", "1500", "1800", "2100", "2400", "2700", "3000"];
 const THUMBNAIL_PLACEHOLDER_SRC = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==";
-const WRITE_WEB_APP_URL_STORAGE_KEY = "chessgym_write_web_app_url";
-const WRITE_TOKEN_STORAGE_KEY = "chessgym_write_token";
+const WRITE_WEB_APP_URL = "";
+const WRITE_TOKEN = "";
 const OPENING_HEADERS = ["opening_id", "opening_name", "side", "starting_fen", "description", "tags", "published", "book_max_plies_game_mode", "allow_transpositions"];
 const LINE_HEADERS = ["opening_id", "line_id", "line_name", "line_group", "line_priority", "drill_side", "start_fen", "elo", "moves_pgn"];
 const NODE_HEADERS = ["opening_id", "line_id", "node_id", "parent_node_id", "move_uci", "learn_prompt", "mistake_map"];
@@ -144,8 +144,6 @@ const App = {
     this.$lineThumb = $("#lineThumb");
     this.$newLineModal = $("#newLineModal");
     this.$newLineClose = $("#newLineClose");
-    this.$newLineWriterUrl = $("#newLineWriterUrl");
-    this.$newLineWriteToken = $("#newLineWriteToken");
     this.$newLineOpeningId = $("#newLineOpeningId");
     this.$newLineOpeningName = $("#newLineOpeningName");
     this.$newLineName = $("#newLineName");
@@ -271,8 +269,6 @@ const App = {
     const opening = this.getSelectedOpening();
     const activeLine = this.getActiveLine();
     const movesText = this.state.lastFreeMovesText || this.state.moveHistory.join(" ");
-    this.$newLineWriterUrl.val(this.getStoredValue(WRITE_WEB_APP_URL_STORAGE_KEY));
-    this.$newLineWriteToken.val(this.getStoredValue(WRITE_TOKEN_STORAGE_KEY));
     this.$newLineOpeningId.val(opening ? opening.opening_id || "" : "");
     this.$newLineOpeningName.val(opening ? opening.opening_name || "" : "");
     this.$newLineName.val("");
@@ -304,24 +300,6 @@ const App = {
     const nextSlug = slugifyId(this.$newLineName.val());
     this.$newLineName.data("lastSlug", nextSlug);
     this.$newLineId.val(nextSlug);
-  },
-  getStoredValue(key) {
-    try {
-      return localStorage.getItem(key) || "";
-    } catch (error) {
-      return "";
-    }
-  },
-  setStoredValue(key, value) {
-    try {
-      if (value) {
-        localStorage.setItem(key, value);
-      } else {
-        localStorage.removeItem(key);
-      }
-    } catch (error) {
-      // Local storage is a convenience only; writing still works without it.
-    }
   },
   generateNewLineRows() {
     try {
@@ -355,14 +333,12 @@ const App = {
     if (!payload) {
       return;
     }
-    const endpoint = this.$newLineWriterUrl.val().trim();
-    const writeToken = this.$newLineWriteToken.val().trim();
+    const endpoint = WRITE_WEB_APP_URL.trim();
+    const writeToken = WRITE_TOKEN.trim();
     if (!endpoint) {
-      this.$newLineOutput.text(`${this.$newLineOutput.text()}\n\nWriter URL is missing. Deploy the Apps Script web app and paste its /exec URL here.`);
+      this.$newLineOutput.text(`${this.$newLineOutput.text()}\n\nWriter URL is not configured. Paste your Apps Script /exec URL into WRITE_WEB_APP_URL near the top of app.js.`);
       return;
     }
-    this.setStoredValue(WRITE_WEB_APP_URL_STORAGE_KEY, endpoint);
-    this.setStoredValue(WRITE_TOKEN_STORAGE_KEY, writeToken);
     if (writeToken) {
       payload.auth.writeToken = writeToken;
     }
