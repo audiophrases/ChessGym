@@ -101,6 +101,7 @@ const App = {
     this.cacheElements();
     this.initThumbnailPreview();
     this.bindEvents();
+    this.updateFreeModeButton();
     this.showLoading(true);
     this.loadData();
   },
@@ -1002,6 +1003,9 @@ const App = {
   },
   resetSession(forceStart, options = {}) {
     const { autoPlay = true, setActive = true } = options;
+    if (this.state.freeModeActive) {
+      this.copyFreeMovesToClipboard(this.getFreeModeMoves(), { showFeedback: false });
+    }
     this.stopPendingActions();
     this.state.sessionActive = setActive;
     this.state.sessionPlan = null;
@@ -1016,6 +1020,7 @@ const App = {
     this.state.hintActive = false;
     this.state.freeModeActive = false;
     this.state.freeModeSnapshot = null;
+    this.updateFreeModeButton();
     this.state.bookPlyIndex = 0;
     this.state.bookMaxPlies = 0;
     this.state.engineBusy = false;
@@ -1134,9 +1139,11 @@ const App = {
       this.startFreeMode();
       return;
     }
-    this.copyFreeMovesToClipboard()
-      .finally(() => {
+    const freeMoves = this.getFreeModeMoves();
+    this.copyFreeMovesToClipboard(freeMoves, { showFeedback: false })
+      .then((result) => {
         this.endFreeMode();
+        this.showFreeCopyResult(result);
       });
   },
   startFreeMode() {
@@ -1156,8 +1163,9 @@ const App = {
       coachCommentBySide: JSON.parse(JSON.stringify(this.state.coachCommentBySide))
     };
     this.clearSelection();
+    this.updateFreeModeButton();
     this.setStatus("Free play: both sides.");
-    this.setComment("Free play enabled. Click Free again to copy the UCI move list.");
+    this.setComment("Free play enabled. Click Copy UCI to copy only the moves you play from here.");
   },
   endFreeMode() {
     const snapshot = this.state.freeModeSnapshot;
@@ -1179,6 +1187,7 @@ const App = {
       this.board.position(this.chess.fen());
     }
     this.clearSelection();
+    this.updateFreeModeButton();
     this.updateLastMoveHighlight();
     this.updateNavigationControls();
     this.updateProgress();
@@ -1192,29 +1201,74 @@ const App = {
     }
     this.renderCoachComment();
   },
-  copyFreeMovesToClipboard() {
-    const movesText = this.state.moveHistory.join(" ").trim();
+  getFreeModeMoves() {
+    const snapshot = this.state.freeModeSnapshot;
+    const startIndex = snapshot && Array.isArray(snapshot.moveHistory) ? snapshot.moveHistory.length : 0;
+    return this.state.moveHistory.slice(startIndex);
+  },
+  updateFreeModeButton() {
+    if (!this.$free || !this.$free.length) {
+      return;
+    }
+    const isActive = !!this.state.freeModeActive;
+    this.$free
+      .toggleClass("is-active", isActive)
+      .attr("aria-pressed", isActive ? "true" : "false")
+      .text(isActive ? "Copy UCI" : "Free")
+      .attr(
+        "title",
+        isActive
+          ? "Exit free play and copy the UCI moves played in Free mode."
+          : "Enable free play for both sides."
+      );
+  },
+  showFreeCopyResult(result) {
+    if (!result || result.status === "empty") {
+      this.setStatus("No Free moves to copy.");
+      this.setComment("Free play ended. No new UCI moves were played.");
+      return;
+    }
+    if (result.status === "copied") {
+      this.setStatus("Free UCI moves copied.");
+      this.setComment(`Copied ${result.count} Free ${result.count === 1 ? "move" : "moves"} to clipboard.`);
+      return;
+    }
+    this.setStatus("Unable to copy Free moves.");
+    this.setComment("Clipboard access failed, but Free play ended normally.");
+  },
+  copyFreeMovesToClipboard(moves = this.getFreeModeMoves(), options = {}) {
+    const { showFeedback = true } = options;
+    const moveList = Array.isArray(moves) ? moves : [];
+    const movesText = moveList.join(" ").trim();
     if (!movesText) {
-      this.setStatus("No moves to copy yet.");
-      this.setComment("Play some moves, then click Free again to copy.");
-      return Promise.resolve();
+      const result = { status: "empty", count: 0 };
+      if (showFeedback) {
+        this.showFreeCopyResult(result);
+      }
+      return Promise.resolve(result);
     }
     const onSuccess = () => {
-      this.setStatus("UCI move list copied.");
-      this.setComment(`Copied ${this.state.moveHistory.length} moves to clipboard.`);
+      const result = { status: "copied", count: moveList.length };
+      if (showFeedback) {
+        this.showFreeCopyResult(result);
+      }
+      return result;
     };
     const onFailure = () => {
-      this.setStatus("Unable to copy to clipboard.");
-      this.setComment("Clipboard access failed. Try again or copy from the console.");
+      const result = { status: "failed", count: moveList.length };
+      if (showFeedback) {
+        this.showFreeCopyResult(result);
+      }
       console.warn("Failed to copy UCI moves to clipboard.");
+      return result;
     };
     if (navigator.clipboard && navigator.clipboard.writeText) {
       return navigator.clipboard.writeText(movesText)
         .then(() => {
-          onSuccess();
+          return onSuccess();
         })
         .catch(() => {
-          onFailure();
+          return onFailure();
         });
     }
     return new Promise((resolve) => {
@@ -1227,15 +1281,14 @@ const App = {
       try {
         const succeeded = document.execCommand("copy");
         if (succeeded) {
-          onSuccess();
+          resolve(onSuccess());
         } else {
-          onFailure();
+          resolve(onFailure());
         }
       } catch (error) {
-        onFailure();
+        resolve(onFailure());
       } finally {
         document.body.removeChild(textarea);
-        resolve();
       }
     });
   },

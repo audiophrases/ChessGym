@@ -10,6 +10,7 @@
   --muted: #5b6475;
   --accent: #2f6feb;
   --accent-dark: #2357c2;
+  --accent-soft: #dbeafe;
   --ghost-hover: #eef1f7;
   --eval-bar: #e9edf6;
   --spinner-bg: rgba(28, 35, 51, 0.9);
@@ -27,6 +28,7 @@
     --muted: #9aa6c1;
     --accent: #6ea8ff;
     --accent-dark: #4d85e6;
+    --accent-soft: #182844;
     --ghost-hover: #1e2433;
     --eval-bar: #2b3448;
     --spinner-bg: rgba(15, 18, 30, 0.95);
@@ -624,6 +626,20 @@ body {
   padding: 8px 12px;
   border-radius: 8px;
   cursor: pointer;
+}
+
+.ghost.is-active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+  font-weight: 700;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+.ghost.is-active:hover,
+.ghost.is-active:focus-visible {
+  border-color: var(--accent-dark);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent);
 }
 
 .ghost:disabled {
