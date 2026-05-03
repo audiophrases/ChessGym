@@ -428,6 +428,10 @@ const App = {
     this.$adminToggle = $("#adminToggle");
     this.$adminBody = $("#adminBody");
     this.$adminLineId = $("#adminLineId");
+    this.$adminOpeningId = $("#adminOpeningId");
+    this.$adminOpeningName = $("#adminOpeningName");
+    this.$adminOpeningDescription = $("#adminOpeningDescription");
+    this.$adminOpeningTags = $("#adminOpeningTags");
     this.$adminLineName = $("#adminLineName");
     this.$adminLineDrillSide = $("#adminLineDrillSide");
     this.$adminLineElo = $("#adminLineElo");
@@ -457,6 +461,7 @@ const App = {
       this.adminSetTab(name);
     });
     this.$adminPickerSearch.on("input", () => this.adminFilterPicker(this.$adminPickerSearch.val()));
+    $("#adminSaveOpening").on("click", () => this.adminSaveOpening());
     $("#adminSaveLine").on("click", () => this.adminSaveLine());
     $("#adminThumbPreview").on("click", () => this.adminPreviewThumb());
     $("#adminThumbSave").on("click", () => this.adminSaveThumb());

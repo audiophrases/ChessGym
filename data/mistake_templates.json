@@ -2,7 +2,7 @@
   {
     "mistake_code": "ALT_OPENING",
     "coach_message": "This move leads to a different opening than the one you selected.",
-    "why_wrong": "Itâs not necessarily badâjust a different study path with different plans.",
+    "why_wrong": "It’s not necessarily bad—just a different study path with different plans.",
     "hint": "If you want to train this opening, follow the starting move order of the selected module.",
     "punish_uci": ""
   },
@@ -10,12 +10,12 @@
     "mistake_code": "EARLY_DEV",
     "coach_message": "This develops a piece, but it misses the key idea of this position.",
     "why_wrong": "In this spot, priority is usually center control / opening lines / solving an immediate threat.",
-    "hint": "Ask: âWhatâs the main positional goal here (center, king safety, tactic)?â",
+    "hint": "Ask: “What’s the main positional goal here (center, king safety, tactic)?”",
     "punish_uci": ""
   },
   {
     "mistake_code": "TOO_PASSIVE",
-    "coach_message": "This is playable, but itâs slower than the main plan youâre training.",
+    "coach_message": "This is playable, but it’s slower than the main plan you’re training.",
     "why_wrong": "You may concede space/initiative or allow the opponent an easy plan.",
     "hint": "Look for the active move that improves development or challenges the center.",
     "punish_uci": ""
@@ -29,7 +29,7 @@
   },
   {
     "mistake_code": "EARLY_QUEEN",
-    "coach_message": "Too early for the queenâyour opponent can gain tempo by attacking it.",
+    "coach_message": "Too early for the queen—your opponent can gain tempo by attacking it.",
     "why_wrong": "Early queen moves often allow easy development with threats on the queen.",
     "hint": "Develop minor pieces first; bring the queen out when it has a clear purpose.",
     "punish_uci": ""
@@ -37,7 +37,7 @@
   {
     "mistake_code": "BRANCH_MOVE",
     "coach_message": "This move switches into a different branch than the line you selected.",
-    "why_wrong": "It may be good, but it wonât match the line youâre trying to memorize/practice.",
+    "why_wrong": "It may be good, but it won’t match the line you’re trying to memorize/practice.",
     "hint": "If you want this branch, select it as a separate line.",
     "punish_uci": ""
   }

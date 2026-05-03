@@ -191,6 +191,20 @@ def update_node(node_id, fields):
         return nodes[index]
 
 
+def update_opening(opening_id, fields):
+    allowed = {"opening_name", "side", "starting_fen", "description", "tags", "published", "book_max_plies_game_mode", "allow_transpositions"}
+    with DATA_LOCK:
+        openings = load_dataset("openings")
+        index = find_index(openings, opening_id=opening_id)
+        if index == -1:
+            raise ValueError(f"Opening not found: {opening_id}")
+        for key, value in fields.items():
+            if key in allowed:
+                openings[index][key] = "" if value is None else str(value)
+        save_dataset("openings", openings, OPENING_HEADERS)
+        return openings[index]
+
+
 def update_line(line_id, fields):
     allowed = {"line_name", "line_group", "line_priority", "drill_side", "elo", "start_fen", "moves_pgn", "thumb_ply"}
     with DATA_LOCK:
@@ -300,6 +314,11 @@ class Handler(SimpleHTTPRequestHandler):
             if match and method == "PATCH":
                 payload = self._read_json()
                 self._send_json(200, {"ok": True, "line": update_line(match.group(1), payload)})
+                return
+            match = re.match(r"^/admin/api/opening/([^/]+)$", path)
+            if match and method == "PATCH":
+                payload = self._read_json()
+                self._send_json(200, {"ok": True, "opening": update_opening(match.group(1), payload)})
                 return
             match = re.match(r"^/admin/api/thumbnail/([^/]+)$", path)
             if match and method == "POST":

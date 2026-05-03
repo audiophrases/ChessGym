@@ -24,6 +24,9 @@ FEEDS = {
 def fetch_csv(url):
     response = requests.get(url, timeout=40)
     response.raise_for_status()
+    # Google Sheets pubcsv often omits charset, so requests guesses ISO-8859-1
+    # and mangles non-ASCII into double-encoded UTF-8. Force UTF-8 explicitly.
+    response.encoding = "utf-8"
     rows = list(csv.DictReader(io.StringIO(response.text)))
     for row in rows:
         for key, value in list(row.items()):

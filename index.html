@@ -190,6 +190,19 @@
         </div>
 
         <details class="admin-collapsible" open>
+          <summary><span>Opening</span> <code id="adminOpeningId" class="admin-meta admin-mono"></code></summary>
+          <label>Name <input id="adminOpeningName" type="text" placeholder="e.g. Italian Game" /></label>
+          <details class="admin-collapsible nested">
+            <summary>More</summary>
+            <label>Description <textarea id="adminOpeningDescription" rows="2"></textarea></label>
+            <label>Tags <input id="adminOpeningTags" type="text" /></label>
+          </details>
+          <div class="admin-actions">
+            <button id="adminSaveOpening" class="ghost" type="button">Save opening</button>
+          </div>
+        </details>
+
+        <details class="admin-collapsible" open>
           <summary>Line</summary>
           <label>Name <input id="adminLineName" type="text" /></label>
           <div class="admin-row">

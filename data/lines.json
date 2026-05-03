@@ -3,7 +3,7 @@
     "opening_id": "bishops_opening",
     "line_id": "bishops_h_pawn_raid_01",
     "line_name": "Bishop's Opening: h-Pawn Attack (...hxg5",
-    "line_group": "Bishopâs Opening",
+    "line_group": "Bishop’s Opening",
     "line_priority": "9",
     "drill_side": "white",
     "start_fen": "",
@@ -16,7 +16,7 @@
     "opening_id": "bishops_opening",
     "line_id": "bishops_qh8_mate_01",
     "line_name": "Bishop's Opening: Qh8# Mating Attack",
-    "line_group": "Bishopâs Opening",
+    "line_group": "Bishop’s Opening",
     "line_priority": "10",
     "drill_side": "white",
     "start_fen": "",
@@ -41,7 +41,7 @@
   {
     "opening_id": "caro_kann",
     "line_id": "caro_resilient_core_01",
-    "line_name": "Caro-Kann Defense: Advance Variation â ...c5 Counterplay",
+    "line_name": "Caro-Kann Defense: Advance Variation — ...c5 Counterplay",
     "line_group": "Advance Caro-Kann",
     "line_priority": "10",
     "drill_side": "black",
@@ -54,7 +54,7 @@
   {
     "opening_id": "caro_kann",
     "line_id": "caro_d4_heist_03",
-    "line_name": "Caro-Kann Defense: Advance Variation â ...Nxd4 Tactic",
+    "line_name": "Caro-Kann Defense: Advance Variation — ...Nxd4 Tactic",
     "line_group": "Advance Caro-Kann",
     "line_priority": "10",
     "drill_side": "black",
@@ -67,7 +67,7 @@
   {
     "opening_id": "caro_kann",
     "line_id": "caro_structure_break_04",
-    "line_name": "Caro-Kann Defense: Advance Variation â ...Qb6 Pressure",
+    "line_name": "Caro-Kann Defense: Advance Variation — ...Qb6 Pressure",
     "line_group": "Advance Caro-Kann",
     "line_priority": "10",
     "drill_side": "black",
@@ -80,7 +80,7 @@
   {
     "opening_id": "caro_kann",
     "line_id": "caro_pawn_wedge_05",
-    "line_name": "Caro-Kann Defense: Advance Variation â ...h5 Kingside Clamp",
+    "line_name": "Caro-Kann Defense: Advance Variation — ...h5 Kingside Clamp",
     "line_group": "Advance Caro-Kann",
     "line_priority": "10",
     "drill_side": "black",
@@ -106,7 +106,7 @@
   {
     "opening_id": "italian_game",
     "line_id": "italian_black_rousseau_center_fork_01",
-    "line_name": "Italian Game: Rousseau Gambit â Center Counterstrike ...d5",
+    "line_name": "Italian Game: Rousseau Gambit — Center Counterstrike ...d5",
     "line_group": "Rousseau Gambit",
     "line_priority": "10",
     "drill_side": "black",
@@ -119,7 +119,7 @@
   {
     "opening_id": "italian_game",
     "line_id": "italian_black_rousseau_g2_raid_01",
-    "line_name": "Italian Game: Rousseau Gambit â ...Qg5-Qxf5 Raid",
+    "line_name": "Italian Game: Rousseau Gambit — ...Qg5-Qxf5 Raid",
     "line_group": "Rousseau Gambit",
     "line_priority": "9",
     "drill_side": "black",
@@ -132,7 +132,7 @@
   {
     "opening_id": "italian_game",
     "line_id": "italian_black_rousseau_queen_harpoon_01",
-    "line_name": "Italian Game: Rousseau Gambit â Queen Trap ...Nd4 ...Nxc2+",
+    "line_name": "Italian Game: Rousseau Gambit — Queen Trap ...Nd4 ...Nxc2+",
     "line_group": "Rousseau Gambit",
     "line_priority": "10",
     "drill_side": "black",
@@ -145,7 +145,7 @@
   {
     "opening_id": "italian_game",
     "line_id": "italian_black_rousseau_queen_sweep_bxc6_01",
-    "line_name": "Italian Game: Rousseau Gambit â Bxc6+ Intermezzo",
+    "line_name": "Italian Game: Rousseau Gambit — Bxc6+ Intermezzo",
     "line_group": "Rousseau Gambit",
     "line_priority": "9",
     "drill_side": "black",
@@ -158,7 +158,7 @@
   {
     "opening_id": "italian_game",
     "line_id": "italian_black_traxler_center_smash_01",
-    "line_name": "Italian Game: Traxler Counterattack â Nxf7 Main Trap",
+    "line_name": "Italian Game: Traxler Counterattack — Nxf7 Main Trap",
     "line_group": "Traxler Counterattack",
     "line_priority": "10",
     "drill_side": "black",
@@ -171,7 +171,7 @@
   {
     "opening_id": "italian_game",
     "line_id": "italian_black_traxler_corner_crush_01",
-    "line_name": "Italian Game: Traxler Counterattack â Corner Mate Pattern",
+    "line_name": "Italian Game: Traxler Counterattack — Corner Mate Pattern",
     "line_group": "Traxler Counterattack",
     "line_priority": "10",
     "drill_side": "black",
@@ -184,7 +184,7 @@
   {
     "opening_id": "italian_game",
     "line_id": "italian_black_traxler_desperate_attack_01",
-    "line_name": "Italian Game: Traxler Counterattack â Practical Counterplay",
+    "line_name": "Italian Game: Traxler Counterattack — Practical Counterplay",
     "line_group": "Traxler Counterattack",
     "line_priority": "7",
     "drill_side": "black",
@@ -197,7 +197,7 @@
   {
     "opening_id": "italian_game",
     "line_id": "italian_black_traxler_queen_plunder_01",
-    "line_name": "Italian Game: Traxler Counterattack â Queen-Win ...Qxd1",
+    "line_name": "Italian Game: Traxler Counterattack — Queen-Win ...Qxd1",
     "line_group": "Traxler Counterattack",
     "line_priority": "9",
     "drill_side": "black",
@@ -210,7 +210,7 @@
   {
     "opening_id": "italian_game",
     "line_id": "italian_black_traxler_queen_snare_01",
-    "line_name": "Italian Game: Traxler Counterattack â Queen Trap ...Bxd1",
+    "line_name": "Italian Game: Traxler Counterattack — Queen Trap ...Bxd1",
     "line_group": "Traxler Counterattack",
     "line_priority": "9",
     "drill_side": "black",
@@ -236,7 +236,7 @@
   {
     "opening_id": "italian_game",
     "line_id": "italian_fried_liver_ke8_01",
-    "line_name": "Italian Game: Fried Liver Attack â 7...Ke8 Defense",
+    "line_name": "Italian Game: Fried Liver Attack — 7...Ke8 Defense",
     "line_group": "Fried Liver",
     "line_priority": "1",
     "drill_side": "white",
@@ -249,7 +249,7 @@
   {
     "opening_id": "italian_game",
     "line_id": "italian_fried_liver_punish_kg8_01",
-    "line_name": "Italian Game: Fried Liver Attack â 7...Kg8 Punish",
+    "line_name": "Italian Game: Fried Liver Attack — 7...Kg8 Punish",
     "line_group": "Tactical",
     "line_priority": "1",
     "drill_side": "white",
@@ -262,7 +262,7 @@
   {
     "opening_id": "italian_game",
     "line_id": "italian_fried_liver_rook_rampage_01",
-    "line_name": "Italian Game: Fried Liver Attack â 7...Ke6 Rook Lift",
+    "line_name": "Italian Game: Fried Liver Attack — 7...Ke6 Rook Lift",
     "line_group": "Fried Liver",
     "line_priority": "10",
     "drill_side": "white",
@@ -301,7 +301,7 @@
   {
     "opening_id": "italian_game",
     "line_id": "italian_pinning_pressure_01",
-    "line_name": "Italian Game: Evans-Type Structure â Pin and Qxa5",
+    "line_name": "Italian Game: Evans-Type Structure — Pin and Qxa5",
     "line_group": "Italian Gambits",
     "line_priority": "9",
     "drill_side": "white",
@@ -327,7 +327,7 @@
   {
     "opening_id": "italian_game",
     "line_id": "italian_queen_skewer_b4_01",
-    "line_name": "Italian Game: Evans-Type Structure â Qxb4 Recovery",
+    "line_name": "Italian Game: Evans-Type Structure — Qxb4 Recovery",
     "line_group": "Italian Gambits",
     "line_priority": "9",
     "drill_side": "white",
@@ -392,7 +392,7 @@
   {
     "opening_id": "italian_game",
     "line_id": "italian_two_knights_queen_skewer_01",
-    "line_name": "Italian Game: Two Knights Defense â Bxd8 Queen-Win",
+    "line_name": "Italian Game: Two Knights Defense — Bxd8 Queen-Win",
     "line_group": "Two Knights Tactics",
     "line_priority": "10",
     "drill_side": "white",
@@ -405,7 +405,7 @@
   {
     "opening_id": "italian_game",
     "line_id": "italian_game_two_knights_defense_mainline_na5_qd4_qxc6_01",
-    "line_name": "Italian Game: Two Knights Defense â Mainline ...Na5 ...Qd4 ...Qxc6",
+    "line_name": "Italian Game: Two Knights Defense — Mainline ...Na5 ...Qd4 ...Qxc6",
     "line_group": "Fried Liver",
     "line_priority": "10",
     "drill_side": "black",
@@ -470,7 +470,7 @@
   {
     "opening_id": "italian_game",
     "line_id": "italian_game_italian_game_rousseau_gambit_qb5_01",
-    "line_name": "Italian Game: Rousseau Gambit â Qb5# Pattern",
+    "line_name": "Italian Game: Rousseau Gambit — Qb5# Pattern",
     "line_group": "Rousseau Gambit",
     "line_priority": "10",
     "drill_side": "white",
@@ -484,7 +484,7 @@
     "opening_id": "kings_gambit",
     "line_id": "kings_crossfire_01",
     "line_name": "...h5 Kingside Clamp",
-    "line_group": "Kingâs Gambit Accepted",
+    "line_group": "King’s Gambit Accepted",
     "line_priority": "10",
     "drill_side": "white",
     "start_fen": "",
@@ -497,7 +497,7 @@
     "opening_id": "kings_gambit",
     "line_id": "kings_free_pawn_02",
     "line_name": "King's Gambit Accepted: Development and Pawn Recovery",
-    "line_group": "Kingâs Gambit Accepted",
+    "line_group": "King’s Gambit Accepted",
     "line_priority": "10",
     "drill_side": "white",
     "start_fen": "",
@@ -510,7 +510,7 @@
     "opening_id": "kings_gambit",
     "line_id": "kings_pawn_riposte_03",
     "line_name": "King's Gambit Accepted: Allgaier-Type Piece Activity",
-    "line_group": "Kingâs Gambit Accepted",
+    "line_group": "King’s Gambit Accepted",
     "line_priority": "10",
     "drill_side": "white",
     "start_fen": "",
@@ -523,7 +523,7 @@
     "opening_id": "kings_gambit",
     "line_id": "kings_material_gain_04",
     "line_name": "King's Gambit Accepted: Tactical Material-Win Line",
-    "line_group": "Kingâs Gambit Accepted",
+    "line_group": "King’s Gambit Accepted",
     "line_priority": "10",
     "drill_side": "white",
     "start_fen": "",
@@ -536,7 +536,7 @@
     "opening_id": "kings_gambit",
     "line_id": "kings_queen_snare_05",
     "line_name": "King's Gambit Accepted: Queen-Win Tactical Line",
-    "line_group": "Kingâs Gambit Accepted",
+    "line_group": "King’s Gambit Accepted",
     "line_priority": "10",
     "drill_side": "white",
     "start_fen": "",
@@ -691,7 +691,7 @@
   {
     "opening_id": "russian_game",
     "line_id": "russian_three_knights_stafford_01",
-    "line_name": "Petrov Defense: Stafford Gambit â Greek Gift Mate Pattern",
+    "line_name": "Petrov Defense: Stafford Gambit — Greek Gift Mate Pattern",
     "line_group": "Petrov / Three Knights",
     "line_priority": "10",
     "drill_side": "black",
@@ -704,7 +704,7 @@
   {
     "opening_id": "russian_game",
     "line_id": "russian_three_knights_stafford_02",
-    "line_name": "Petrov Defense: Stafford Gambit â Long Castling Attack",
+    "line_name": "Petrov Defense: Stafford Gambit — Long Castling Attack",
     "line_group": "Petrov / Three Knights",
     "line_priority": "10",
     "drill_side": "black",
@@ -899,7 +899,7 @@
   {
     "opening_id": "sicilian_defense",
     "line_id": "sicilian_knight_deflection_01",
-    "line_name": "Sicilian Defense: Dragon Yugoslav Attack â ...Nxe4 Tactic",
+    "line_name": "Sicilian Defense: Dragon Yugoslav Attack — ...Nxe4 Tactic",
     "line_group": "Sicilian Defense",
     "line_priority": "10",
     "drill_side": "black",
@@ -912,7 +912,7 @@
   {
     "opening_id": "sicilian_defense",
     "line_id": "sicilian_c_file_crush_02",
-    "line_name": "Sicilian Defense: Dragon Yugoslav Attack â ...Rxc3 Exchange Sac",
+    "line_name": "Sicilian Defense: Dragon Yugoslav Attack — ...Rxc3 Exchange Sac",
     "line_group": "Sicilian Defense",
     "line_priority": "10",
     "drill_side": "black",
@@ -925,7 +925,7 @@
   {
     "opening_id": "sicilian_defense",
     "line_id": "sicilian_fork_and_sac_03",
-    "line_name": "Sicilian Defense: Dragon Yugoslav Attack â ...Nxf3 and ...Rxe3",
+    "line_name": "Sicilian Defense: Dragon Yugoslav Attack — ...Nxf3 and ...Rxe3",
     "line_group": "Sicilian Defense",
     "line_priority": "10",
     "drill_side": "black",
@@ -938,7 +938,7 @@
   {
     "opening_id": "sicilian_defense",
     "line_id": "sicilian_sacrifice_storm_04",
-    "line_name": "Sicilian Defense: Dragon Yugoslav Attack â ...Nxf3 Exchange Sequence",
+    "line_name": "Sicilian Defense: Dragon Yugoslav Attack — ...Nxf3 Exchange Sequence",
     "line_group": "Sicilian Defense",
     "line_priority": "10",
     "drill_side": "black",
@@ -951,7 +951,7 @@
   {
     "opening_id": "sicilian_defense",
     "line_id": "sicilian_rook_blast_05",
-    "line_name": "Sicilian Defense: Dragon Yugoslav Attack â ...Rxc3 and ...Qxd4",
+    "line_name": "Sicilian Defense: Dragon Yugoslav Attack — ...Rxc3 and ...Qxd4",
     "line_group": "Sicilian Defense",
     "line_priority": "10",
     "drill_side": "black",

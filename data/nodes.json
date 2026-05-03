@@ -1607,7 +1607,7 @@
     "node_id": "cc_15",
     "parent_node_id": "cc_14",
     "move_uci": "f7h8",
-    "learn_prompt": "White âgets the rookââ¦ but loses the king.",
+    "learn_prompt": "White “gets the rook”… but loses the king.",
     "mistake_map": ""
   },
   {
@@ -1616,7 +1616,7 @@
     "node_id": "cc_16",
     "parent_node_id": "cc_15",
     "move_uci": "h4f4+",
-    "learn_prompt": "Force the kingâs route with a check.",
+    "learn_prompt": "Force the king’s route with a check.",
     "mistake_map": ""
   },
   {
@@ -1868,7 +1868,7 @@
     "node_id": "rl_07",
     "parent_node_id": "rl_06",
     "move_uci": "g1f3",
-    "learn_prompt": "Develop and prepare to regain the center (donât rush the queen).",
+    "learn_prompt": "Develop and prepare to regain the center (don’t rush the queen).",
     "mistake_map": "d1e2>EARLY_QUEEN|f2f4>KING_WEAK"
   },
   {
@@ -1877,7 +1877,7 @@
     "node_id": "rl_08",
     "parent_node_id": "rl_07",
     "move_uci": "f6e4",
-    "learn_prompt": "Greedy âhumanâ grab: Black takes the e4 pawn with the knight.",
+    "learn_prompt": "Greedy “human” grab: Black takes the e4 pawn with the knight.",
     "mistake_map": "f6g4>ALT_LINE|d7d5>ALT_LINE"
   },
   {
@@ -2012,7 +2012,7 @@
     "node_id": "gg_05",
     "parent_node_id": "gg_04",
     "move_uci": "d2d4",
-    "learn_prompt": "Open the center (gambit idea): punish Blackâs development by opening lines.",
+    "learn_prompt": "Open the center (gambit idea): punish Black’s development by opening lines.",
     "mistake_map": "d2d3>TOO_PASSIVE|b1c3>TOO_SLOW"
   },
   {
@@ -2057,7 +2057,7 @@
     "node_id": "gg_10",
     "parent_node_id": "gg_09",
     "move_uci": "f6g4",
-    "learn_prompt": "âHumanâ jump: Black goes for tactics on f2/h2.",
+    "learn_prompt": "“Human” jump: Black goes for tactics on f2/h2.",
     "mistake_map": "f6e4>ALT_DEF|d7d5>ALT_DEF"
   },
   {
@@ -2075,7 +2075,7 @@
     "node_id": "gg_12",
     "parent_node_id": "gg_11",
     "move_uci": "g4f2",
-    "learn_prompt": "Grab: the knight dives in (looks scary, but itâs a trap for Black).",
+    "learn_prompt": "Grab: the knight dives in (looks scary, but it’s a trap for Black).",
     "mistake_map": "g4e3>ALT_RETREAT|g4h6>ALT_RETREAT"
   },
   {
@@ -2084,7 +2084,7 @@
     "node_id": "gg_13",
     "parent_node_id": "gg_12",
     "move_uci": "e1f2",
-    "learn_prompt": "Accept: take the knight (donât panicâjust win it).",
+    "learn_prompt": "Accept: take the knight (don’t panic—just win it).",
     "mistake_map": "f2e2>ILLEGAL|f2g1>ILLEGAL"
   },
   {
@@ -2102,7 +2102,7 @@
     "node_id": "gg_15",
     "parent_node_id": "gg_14",
     "move_uci": "f2f1",
-    "learn_prompt": "Simple: step out and stay safe (donât overcomplicate).",
+    "learn_prompt": "Simple: step out and stay safe (don’t overcomplicate).",
     "mistake_map": "f2e3>ILLEGAL|f2g3>ILLEGAL"
   },
   {
@@ -2120,7 +2120,7 @@
     "node_id": "gg_17",
     "parent_node_id": "gg_16",
     "move_uci": "d1c2",
-    "learn_prompt": "Clean-up: remove the advanced pawn and convert (youâre up a piece).",
+    "learn_prompt": "Clean-up: remove the advanced pawn and convert (you’re up a piece).",
     "mistake_map": "d1e2>TOO_SLOW|d1d2>TOO_SLOW"
   },
   {
@@ -2192,7 +2192,7 @@
     "node_id": "ts4_07",
     "parent_node_id": "ts4_06",
     "move_uci": "d2d4",
-    "learn_prompt": "Open the center while Black is slow (punish â¦h6).",
+    "learn_prompt": "Open the center while Black is slow (punish …h6).",
     "mistake_map": "d2d3>TOO_PASSIVE|c2c3>TOO_SLOW"
   },
   {
@@ -2345,7 +2345,7 @@
     "node_id": "dh_06",
     "parent_node_id": "dh_05",
     "move_uci": "f6e4",
-    "learn_prompt": "Greedy âhumanâ grab: Black takes the e4 pawn.",
+    "learn_prompt": "Greedy “human” grab: Black takes the e4 pawn.",
     "mistake_map": "d7d5>ALT_MAINLINE|f6g4>ALT_MAINLINE"
   },
   {
@@ -2390,7 +2390,7 @@
     "node_id": "dh_11",
     "parent_node_id": "dh_10",
     "move_uci": "d5f7+",
-    "learn_prompt": "Force the kingâs route with check (decoy).",
+    "learn_prompt": "Force the king’s route with check (decoy).",
     "mistake_map": "d5b3>MISS_TACTIC|d5c6>MISS_TACTIC"
   },
   {
@@ -2417,7 +2417,7 @@
     "node_id": "dh_14",
     "parent_node_id": "dh_13",
     "move_uci": "e7f7",
-    "learn_prompt": "Forced: king takes the bishopâs square (now queen is loose).",
+    "learn_prompt": "Forced: king takes the bishop’s square (now queen is loose).",
     "mistake_map": ""
   },
   {
@@ -2516,7 +2516,7 @@
     "node_id": "lg7_09",
     "parent_node_id": "lg7_08",
     "move_uci": "g4g7",
-    "learn_prompt": "Invade boldly on the kingside with your queen, attacking the rook and disrupting Blackâs coordination.",
+    "learn_prompt": "Invade boldly on the kingside with your queen, attacking the rook and disrupting Black’s coordination.",
     "mistake_map": ""
   },
   {
@@ -2534,7 +2534,7 @@
     "node_id": "lg7_11",
     "parent_node_id": "lg7_10",
     "move_uci": "g7f6",
-    "learn_prompt": "Exchange queens directly to damage Blackâs pawn structure and simplify into a favorable endgame.",
+    "learn_prompt": "Exchange queens directly to damage Black’s pawn structure and simplify into a favorable endgame.",
     "mistake_map": ""
   },
   {
@@ -2750,7 +2750,7 @@
     "node_id": "lrl_08",
     "parent_node_id": "lrl_07",
     "move_uci": "b7b5",
-    "learn_prompt": "Protect the pawn: common âhumanâ defense (creates weaknesses).",
+    "learn_prompt": "Protect the pawn: common “human” defense (creates weaknesses).",
     "mistake_map": ""
   },
   {
@@ -2885,7 +2885,7 @@
     "node_id": "lqr_08",
     "parent_node_id": "lqr_07",
     "move_uci": "b8c6",
-    "learn_prompt": "Develop and increase pressure (â¦e5 ideas).",
+    "learn_prompt": "Develop and increase pressure (…e5 ideas).",
     "mistake_map": ""
   },
   {
@@ -2939,7 +2939,7 @@
     "node_id": "lqr_14",
     "parent_node_id": "lqr_13",
     "move_uci": "f6e4",
-    "learn_prompt": "âHumanâ move: jump in and hit your queen route squares.",
+    "learn_prompt": "“Human” move: jump in and hit your queen route squares.",
     "mistake_map": "f6g4>ALT_DEF|d7d6>TOO_PASSIVE"
   },
   {
@@ -3056,7 +3056,7 @@
     "node_id": "lcs_04",
     "parent_node_id": "lcs_03",
     "move_uci": "c7c5",
-    "learn_prompt": "â¦c5: challenge d4 (common London response).",
+    "learn_prompt": "…c5: challenge d4 (common London response).",
     "mistake_map": ""
   },
   {
@@ -3092,7 +3092,7 @@
     "node_id": "lcs_08",
     "parent_node_id": "lcs_07",
     "move_uci": "g8f6",
-    "learn_prompt": "Develop and prepare â¦e5 ideas.",
+    "learn_prompt": "Develop and prepare …e5 ideas.",
     "mistake_map": ""
   },
   {
@@ -3110,7 +3110,7 @@
     "node_id": "lcs_10",
     "parent_node_id": "lcs_09",
     "move_uci": "d8a5+",
-    "learn_prompt": "Expected check: donât panicâblock cleanly.",
+    "learn_prompt": "Expected check: don’t panic—block cleanly.",
     "mistake_map": ""
   },
   {
@@ -3128,7 +3128,7 @@
     "node_id": "lcs_12",
     "parent_node_id": "lcs_11",
     "move_uci": "e7e5",
-    "learn_prompt": "Black strikes the center (the âstingâ trigger).",
+    "learn_prompt": "Black strikes the center (the “sting” trigger).",
     "mistake_map": ""
   },
   {
@@ -3173,7 +3173,7 @@
     "node_id": "lcs_17",
     "parent_node_id": "lcs_16",
     "move_uci": "d1d5",
-    "learn_prompt": "Collect the central pawn with the queen (the âstingâ payoff).",
+    "learn_prompt": "Collect the central pawn with the queen (the “sting” payoff).",
     "mistake_map": "d1d2>TOO_PASSIVE|d1f3>MISS_PAYOFF"
   },
   {
@@ -3866,7 +3866,7 @@
     "node_id": "pin4_09",
     "parent_node_id": "pin4_08",
     "move_uci": "d2d4",
-    "learn_prompt": "Break the center now: open lines while Blackâs king is still in the middle.",
+    "learn_prompt": "Break the center now: open lines while Black’s king is still in the middle.",
     "mistake_map": "d2d3>TOO_PASSIVE|c3c4>MISS_BREAK"
   },
   {
@@ -3911,7 +3911,7 @@
     "node_id": "pin4_14",
     "parent_node_id": "pin4_13",
     "move_uci": "f6e4",
-    "learn_prompt": "Black grabs: common âhumanâ move to win a pawn.",
+    "learn_prompt": "Black grabs: common “human” move to win a pawn.",
     "mistake_map": "d7d6>PASSIVE|c6e5>ALT_LINE"
   },
   {
@@ -3947,7 +3947,7 @@
     "node_id": "pin4_18",
     "parent_node_id": "pin4_17",
     "move_uci": "b4c3",
-    "learn_prompt": "Black wins another pawnâ¦ but gives targets.",
+    "learn_prompt": "Black wins another pawn… but gives targets.",
     "mistake_map": ""
   },
   {
@@ -4001,7 +4001,7 @@
     "node_id": "pin4_24",
     "parent_node_id": "pin4_23",
     "move_uci": "e8g8",
-    "learn_prompt": "Black castles: still doesnât solve the hanging bishop.",
+    "learn_prompt": "Black castles: still doesn’t solve the hanging bishop.",
     "mistake_map": ""
   },
   {
@@ -4136,7 +4136,7 @@
     "node_id": "qsb5_09",
     "parent_node_id": "qsb5_08",
     "move_uci": "d2d4",
-    "learn_prompt": "Break open the center while Blackâs king is still in the middle.",
+    "learn_prompt": "Break open the center while Black’s king is still in the middle.",
     "mistake_map": "d2d3>TOO_PASSIVE|c3c4>MISS_BREAK"
   },
   {
@@ -4163,7 +4163,7 @@
     "node_id": "qsb5_12",
     "parent_node_id": "qsb5_11",
     "move_uci": "c5b4+",
-    "learn_prompt": "Check: common disruptionâblock cleanly with development.",
+    "learn_prompt": "Check: common disruption—block cleanly with development.",
     "mistake_map": "c5a5>ALT_RETREAT|g8f6>DEV_INSTEAD"
   },
   {
@@ -4181,7 +4181,7 @@
     "node_id": "qsb5_14",
     "parent_node_id": "qsb5_13",
     "move_uci": "f6e4",
-    "learn_prompt": "Greedy âhumanâ move: take on e4 to win a pawn.",
+    "learn_prompt": "Greedy “human” move: take on e4 to win a pawn.",
     "mistake_map": "d7d6>TOO_PASSIVE|c6e5>ALT_LINE"
   },
   {
@@ -4217,7 +4217,7 @@
     "node_id": "qsb5_18",
     "parent_node_id": "qsb5_17",
     "move_uci": "b4c3",
-    "learn_prompt": "Black wins another pawnâ¦ but creates targets.",
+    "learn_prompt": "Black wins another pawn… but creates targets.",
     "mistake_map": ""
   },
   {
@@ -4271,7 +4271,7 @@
     "node_id": "qsb5_24",
     "parent_node_id": "qsb5_23",
     "move_uci": "c6b4",
-    "learn_prompt": "Black recaptures with the knight (now itâs pinned/skewerable).",
+    "learn_prompt": "Black recaptures with the knight (now it’s pinned/skewerable).",
     "mistake_map": ""
   },
   {
@@ -4730,7 +4730,7 @@
     "node_id": "ep_10",
     "parent_node_id": "ep_09",
     "move_uci": "b7c6",
-    "learn_prompt": "Forced recapture: Blackâs pawn structure is weakened.",
+    "learn_prompt": "Forced recapture: Black’s pawn structure is weakened.",
     "mistake_map": ""
   },
   {
@@ -4910,7 +4910,7 @@
     "node_id": "ps_12",
     "parent_node_id": "ps_11",
     "move_uci": "c6d4",
-    "learn_prompt": "Black grabs: a very common âhumanâ move (takes the knight).",
+    "learn_prompt": "Black grabs: a very common “human” move (takes the knight).",
     "mistake_map": "c6b8>TOO_PASSIVE|g8f6>MISS_TACTIC"
   },
   {
@@ -5648,7 +5648,7 @@
     "node_id": "qh_08",
     "parent_node_id": "qh_07",
     "move_uci": "e5e4",
-    "learn_prompt": "Push ...e4: gain space and force the queenâs path.",
+    "learn_prompt": "Push ...e4: gain space and force the queen’s path.",
     "mistake_map": "d7d6>TOO_PASSIVE|g8f6>TOO_PASSIVE"
   },
   {
@@ -5792,7 +5792,7 @@
     "node_id": "bo_03",
     "parent_node_id": "bo_02",
     "move_uci": "f1c4",
-    "learn_prompt": "Bishopâs Opening: develop fast and aim at f7.",
+    "learn_prompt": "Bishop’s Opening: develop fast and aim at f7.",
     "mistake_map": "g1f3>ALT_MAINLINE|f1b5>ALT_OPENING"
   },
   {
@@ -5828,7 +5828,7 @@
     "node_id": "bo_07",
     "parent_node_id": "bo_06",
     "move_uci": "h2h3",
-    "learn_prompt": "Prevent â¦Ng4 and prepare h4 safely.",
+    "learn_prompt": "Prevent …Ng4 and prepare h4 safely.",
     "mistake_map": "g2g3>TOO_SLOW|f2f4>KING_WEAK"
   },
   {
@@ -5846,7 +5846,7 @@
     "node_id": "bo_09",
     "parent_node_id": "bo_08",
     "move_uci": "c1g5",
-    "learn_prompt": "Pin Nf6 and provoke â¦h6 (create a âhookâ).",
+    "learn_prompt": "Pin Nf6 and provoke …h6 (create a “hook”).",
     "mistake_map": "g1f3>TOO_SLOW|c1e3>TOO_SLOW"
   },
   {
@@ -6224,7 +6224,7 @@
     "node_id": "qh_27",
     "parent_node_id": "qh_26",
     "move_uci": "g5g6",
-    "learn_prompt": "Pawn lever: open linesâthis is the attacking break.",
+    "learn_prompt": "Pawn lever: open lines—this is the attacking break.",
     "mistake_map": "d1h5>TOO_SLOW|g6g7>BRANCH_MOVE"
   },
   {
@@ -6368,7 +6368,7 @@
     "node_id": "st2_05",
     "parent_node_id": "st2_04",
     "move_uci": "f3e5",
-    "learn_prompt": "Greedy pawn grab: this is the âtriggerâ for Blackâs initiative.",
+    "learn_prompt": "Greedy pawn grab: this is the “trigger” for Black’s initiative.",
     "mistake_map": ""
   },
   {
@@ -6422,7 +6422,7 @@
     "node_id": "st2_11",
     "parent_node_id": "st2_10",
     "move_uci": "d2d4",
-    "learn_prompt": "Center strike: White tries to open play while youâre active.",
+    "learn_prompt": "Center strike: White tries to open play while you’re active.",
     "mistake_map": ""
   },
   {
@@ -6440,7 +6440,7 @@
     "node_id": "st2_13",
     "parent_node_id": "st2_12",
     "move_uci": "c2c3",
-    "learn_prompt": "Support d4 and limit â¦cxd4 tactics.",
+    "learn_prompt": "Support d4 and limit …cxd4 tactics.",
     "mistake_map": ""
   },
   {
@@ -6503,7 +6503,7 @@
     "node_id": "st2_20",
     "parent_node_id": "st2_19",
     "move_uci": "e8c8",
-    "learn_prompt": "Castle long: connect rook to d-file for a future â¦Rxd4 hit.",
+    "learn_prompt": "Castle long: connect rook to d-file for a future …Rxd4 hit.",
     "mistake_map": "e8g8>TOO_SLOW|c8d7>ILLEGAL"
   },
   {
@@ -6521,7 +6521,7 @@
     "node_id": "st2_22",
     "parent_node_id": "st2_21",
     "move_uci": "c5d4",
-    "learn_prompt": "Open lines immediately: remove Whiteâs center pawn.",
+    "learn_prompt": "Open lines immediately: remove White’s center pawn.",
     "mistake_map": "c5c4>TOO_PASSIVE|g4f3>TOO_EARLY"
   },
   {
@@ -6557,7 +6557,7 @@
     "node_id": "st2_26",
     "parent_node_id": "st2_25",
     "move_uci": "f7f5",
-    "learn_prompt": "Pawn storm lever: open files toward Whiteâs king.",
+    "learn_prompt": "Pawn storm lever: open files toward White’s king.",
     "mistake_map": "d7d5>TOO_EARLY|f5f4>ALT_FOLLOWUP"
   },
   {
@@ -6593,7 +6593,7 @@
     "node_id": "st2_30",
     "parent_node_id": "st2_29",
     "move_uci": "f5f4",
-    "learn_prompt": "Open lines: threaten â¦f3 and rip the kingside.",
+    "learn_prompt": "Open lines: threaten …f3 and rip the kingside.",
     "mistake_map": "f4e3>ILLEGAL|f5f4>"
   },
   {
@@ -6647,7 +6647,7 @@
     "node_id": "st2_36",
     "parent_node_id": "st2_35",
     "move_uci": "f4f3",
-    "learn_prompt": "Drive the wedge: force weaknesses and open the rookâs file.",
+    "learn_prompt": "Drive the wedge: force weaknesses and open the rook’s file.",
     "mistake_map": "f3f2>ILLEGAL|f4f3>"
   },
   {
@@ -6782,7 +6782,7 @@
     "node_id": "rk_12",
     "parent_node_id": "rk_11",
     "move_uci": "f6g4",
-    "learn_prompt": "Jump to g4: threaten â¦Nxf2 and force weaknesses.",
+    "learn_prompt": "Jump to g4: threaten …Nxf2 and force weaknesses.",
     "mistake_map": "d7d5>TOO_EARLY|f6e4>TOO_SLOW|f6g8>TOO_PASSIVE"
   },
   {
@@ -6791,7 +6791,7 @@
     "node_id": "rk_13",
     "parent_node_id": "rk_12",
     "move_uci": "e1g1",
-    "learn_prompt": "White castles: perfectânow sacrifice on f2 works with checks.",
+    "learn_prompt": "White castles: perfect—now sacrifice on f2 works with checks.",
     "mistake_map": ""
   },
   {
@@ -6818,7 +6818,7 @@
     "node_id": "rk_16",
     "parent_node_id": "rk_15",
     "move_uci": "g4f2",
-    "learn_prompt": "Sacrifice: â¦Nxf2! Drag the rook and open queen checks.",
+    "learn_prompt": "Sacrifice: …Nxf2! Drag the rook and open queen checks.",
     "mistake_map": "g4h6>TOO_PASSIVE|g4f6>TOO_PASSIVE|g4e3>MISS_TACTIC"
   },
   {
@@ -6872,7 +6872,7 @@
     "node_id": "rk_22",
     "parent_node_id": "rk_21",
     "move_uci": "f2g3",
-    "learn_prompt": "Queen swing: threaten â¦Qh2# and coordinate with Bd6/Bc8.",
+    "learn_prompt": "Queen swing: threaten …Qh2# and coordinate with Bd6/Bc8.",
     "mistake_map": "f2f6>TOO_SLOW|f2e2>MISS_MATE"
   },
   {
@@ -6917,7 +6917,7 @@
     "node_id": "rk_27",
     "parent_node_id": "rk_26",
     "move_uci": "g1h2",
-    "learn_prompt": "Last-ditch block: queen covers h2 (but itâs pinned by your queen).",
+    "learn_prompt": "Last-ditch block: queen covers h2 (but it’s pinned by your queen).",
     "mistake_map": ""
   },
   {
@@ -7034,7 +7034,7 @@
     "node_id": "ckrc_11",
     "parent_node_id": "ckrc_10",
     "move_uci": "b2b4",
-    "learn_prompt": "White tries to âfreezeâ the queenside pawn gain.",
+    "learn_prompt": "White tries to “freeze” the queenside pawn gain.",
     "mistake_map": "b4a5>TOO_SLOW|c2c3>TOO_SLOW"
   },
   {
@@ -7043,7 +7043,7 @@
     "node_id": "ckrc_12",
     "parent_node_id": "ckrc_11",
     "move_uci": "a7a5",
-    "learn_prompt": "Undermine b4/b5 immediately: donât let White stabilize.",
+    "learn_prompt": "Undermine b4/b5 immediately: don’t let White stabilize.",
     "mistake_map": "g8f6>TOO_SLOW|b8d7>TOO_SLOW"
   },
   {
@@ -7115,7 +7115,7 @@
     "node_id": "ckrc_20",
     "parent_node_id": "ckrc_19",
     "move_uci": "g7g6",
-    "learn_prompt": "Block the check and stabilize the kingâs diagonal.",
+    "learn_prompt": "Block the check and stabilize the king’s diagonal.",
     "mistake_map": "e8e7>TOO_EARLY|f8g7>TOO_SLOW"
   },
   {
@@ -7259,7 +7259,7 @@
     "node_id": "ckd4_13",
     "parent_node_id": "ckd4_12",
     "move_uci": "h2h3",
-    "learn_prompt": "Human move: asks the bishop (this enables your âheistâ).",
+    "learn_prompt": "Human move: asks the bishop (this enables your “heist”).",
     "mistake_map": "h3g4>KING_WEAK|f1e2>ALT_DEFENSE"
   },
   {
@@ -7286,7 +7286,7 @@
     "node_id": "ckd4_16",
     "parent_node_id": "ckd4_15",
     "move_uci": "c6d4",
-    "learn_prompt": "Heist: take d4 with tempoâwin pawn and force queen moves.",
+    "learn_prompt": "Heist: take d4 with tempo—win pawn and force queen moves.",
     "mistake_map": "d4c2>TOO_GREEDY|d4e2>TOO_GREEDY"
   },
   {
@@ -7484,7 +7484,7 @@
     "node_id": "ckpw_02",
     "parent_node_id": "ckpw_01",
     "move_uci": "c7c6",
-    "learn_prompt": "Caro-Kann: build the â¦d5 âresilient core.â",
+    "learn_prompt": "Caro-Kann: build the …d5 “resilient core.”",
     "mistake_map": "e7e5>ALT_OPENING|c7c5>ALT_CENTER"
   },
   {
@@ -7556,7 +7556,7 @@
     "node_id": "ckpw_10",
     "parent_node_id": "ckpw_09",
     "move_uci": "c5d4",
-    "learn_prompt": "Open the center at a good moment: trade off Whiteâs base pawn.",
+    "learn_prompt": "Open the center at a good moment: trade off White’s base pawn.",
     "mistake_map": "c5c4>TOO_PASSIVE|e7e6>TOO_SLOW"
   },
   {
@@ -7844,7 +7844,7 @@
     "node_id": "kgfp_03",
     "parent_node_id": "kgfp_02",
     "move_uci": "f2f4",
-    "learn_prompt": "Kingâs Gambit: sacrifice a pawn for speed and initiative.",
+    "learn_prompt": "King’s Gambit: sacrifice a pawn for speed and initiative.",
     "mistake_map": "g1f3>ALT_OPENING|f1c4>ALT_OPENING"
   },
   {
@@ -7952,7 +7952,7 @@
     "node_id": "kgpr_03",
     "parent_node_id": "kgpr_02",
     "move_uci": "f2f4",
-    "learn_prompt": "Kingâs Gambit: sacrifice a pawn to open files fast.",
+    "learn_prompt": "King’s Gambit: sacrifice a pawn to open files fast.",
     "mistake_map": "g1f3>ALT_OPENING|f1c4>ALT_OPENING"
   },
   {
@@ -8042,7 +8042,7 @@
     "node_id": "kgpr_13",
     "parent_node_id": "kgpr_12",
     "move_uci": "d2d4",
-    "learn_prompt": "Center break: open lines while Blackâs king is still stuck.",
+    "learn_prompt": "Center break: open lines while Black’s king is still stuck.",
     "mistake_map": "d2d3>TOO_PASSIVE|b1c3>TOO_SLOW"
   },
   {
@@ -8114,7 +8114,7 @@
     "node_id": "kgmg_03",
     "parent_node_id": "kgmg_02",
     "move_uci": "f2f4",
-    "learn_prompt": "Kingâs Gambit: sacrifice the f-pawn for speed and open files.",
+    "learn_prompt": "King’s Gambit: sacrifice the f-pawn for speed and open files.",
     "mistake_map": "g1f3>ALT_OPENING|f1c4>ALT_OPENING"
   },
   {
@@ -8123,7 +8123,7 @@
     "node_id": "kgmg_04",
     "parent_node_id": "kgmg_03",
     "move_uci": "e5f4",
-    "learn_prompt": "Accepted: Black takes the pawnânow the king can get exposed.",
+    "learn_prompt": "Accepted: Black takes the pawn—now the king can get exposed.",
     "mistake_map": ""
   },
   {
@@ -8177,7 +8177,7 @@
     "node_id": "kgmg_10",
     "parent_node_id": "kgmg_09",
     "move_uci": "f6g5",
-    "learn_prompt": "Forced: pawn takesânow the g-file/dark squares are weak.",
+    "learn_prompt": "Forced: pawn takes—now the g-file/dark squares are weak.",
     "mistake_map": ""
   },
   {
@@ -8231,7 +8231,7 @@
     "node_id": "kgmg_16",
     "parent_node_id": "kgmg_15",
     "move_uci": "f8g7",
-    "learn_prompt": "Develop into the lineâthis is the piece youâll win.",
+    "learn_prompt": "Develop into the line—this is the piece you’ll win.",
     "mistake_map": ""
   },
   {
@@ -8258,7 +8258,7 @@
     "node_id": "kgqs_01",
     "parent_node_id": "",
     "move_uci": "e2e4",
-    "learn_prompt": "Open with e4: youâre aiming for fast development and initiative.",
+    "learn_prompt": "Open with e4: you’re aiming for fast development and initiative.",
     "mistake_map": "d2d4>ALT_OPENING|c2c4>ALT_OPENING"
   },
   {
@@ -8276,7 +8276,7 @@
     "node_id": "kgqs_03",
     "parent_node_id": "kgqs_02",
     "move_uci": "f2f4",
-    "learn_prompt": "Kingâs Gambit: sacrifice the f-pawn to open lines fast.",
+    "learn_prompt": "King’s Gambit: sacrifice the f-pawn to open lines fast.",
     "mistake_map": "g1f3>ALT_OPENING|f1c4>ALT_OPENING"
   },
   {
@@ -8339,7 +8339,7 @@
     "node_id": "kgqs_10",
     "parent_node_id": "kgqs_09",
     "move_uci": "f6g5",
-    "learn_prompt": "Forced: pawn takes, and Blackâs king is now exposed.",
+    "learn_prompt": "Forced: pawn takes, and Black’s king is now exposed.",
     "mistake_map": ""
   },
   {
@@ -12794,7 +12794,7 @@
     "node_id": "budapest_defense_b_10",
     "parent_node_id": "budapest_defense_b_09",
     "move_uci": "f8b4",
-    "learn_prompt": "Deliver check with your bishop on b4 to disrupt Whiteâs development.",
+    "learn_prompt": "Deliver check with your bishop on b4 to disrupt White’s development.",
     "mistake_map": ""
   },
   {
