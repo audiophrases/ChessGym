@@ -69,14 +69,19 @@ def parse_game(moves_pgn: str):
     return list(game.mainline_moves())
 
 
-def board_at_mid_position(start_fen: str, moves_pgn: str):
+def board_at_mid_position(start_fen: str, moves_pgn: str, thumb_ply=None):
     board = chess.Board(start_fen.strip()) if (start_fen or "").strip() else chess.Board()
     moves = parse_game(moves_pgn)
     if not moves:
         return board
 
-    # mid-line target: if line has 14 moves (28 plies), pick ply 14 (move 7 boundary)
-    target_plies = max(1, len(moves) // 2)
+    if thumb_ply is None or str(thumb_ply).strip() == "":
+        target_plies = max(1, len(moves) // 2)
+    else:
+        try:
+            target_plies = max(0, min(len(moves), int(thumb_ply)))
+        except (TypeError, ValueError):
+            target_plies = max(1, len(moves) // 2)
     for mv in moves[:target_plies]:
         if mv in board.legal_moves:
             board.push(mv)
@@ -170,7 +175,7 @@ def main():
     for row in target_lines:
         line_id = row["line_id"].strip()
         try:
-            board = board_at_mid_position(row.get("start_fen", ""), row.get("moves_pgn", ""))
+            board = board_at_mid_position(row.get("start_fen", ""), row.get("moves_pgn", ""), row.get("thumb_ply"))
             out_path = THUMB_DIR / f"{line_id}.png"
             flip = is_black_study(row)
             render_board_png(board, out_path, piece_imgs, flip=flip)

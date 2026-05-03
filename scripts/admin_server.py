@@ -35,7 +35,7 @@ HOST = "127.0.0.1"
 PORT = 8787
 
 OPENING_HEADERS = ["opening_id", "opening_name", "side", "starting_fen", "description", "tags", "published", "book_max_plies_game_mode", "allow_transpositions"]
-LINE_HEADERS = ["opening_id", "line_id", "line_name", "line_group", "line_priority", "drill_side", "start_fen", "elo", "moves_pgn"]
+LINE_HEADERS = ["opening_id", "line_id", "line_name", "line_group", "line_priority", "drill_side", "start_fen", "elo", "moves_pgn", "thumb_ply"]
 NODE_HEADERS = ["opening_id", "line_id", "node_id", "parent_node_id", "move_uci", "learn_prompt", "mistake_map"]
 
 DATA_LOCK = threading.Lock()
@@ -78,8 +78,8 @@ def find_index(rows, **criteria):
     return -1
 
 
-def render_thumbnail(line_id, start_fen, moves_pgn, drill_side):
-    board = board_at_mid_position(start_fen, moves_pgn)
+def render_thumbnail(line_id, start_fen, moves_pgn, drill_side, thumb_ply=None):
+    board = board_at_mid_position(start_fen, moves_pgn, thumb_ply)
     THUMB_DIR.mkdir(parents=True, exist_ok=True)
     out_path = THUMB_DIR / f"{line_id}.png"
     flip = (drill_side or "").strip().lower().startswith("b")
@@ -192,7 +192,7 @@ def update_node(node_id, fields):
 
 
 def update_line(line_id, fields):
-    allowed = {"line_name", "line_group", "line_priority", "drill_side", "elo", "start_fen", "moves_pgn"}
+    allowed = {"line_name", "line_group", "line_priority", "drill_side", "elo", "start_fen", "moves_pgn", "thumb_ply"}
     with DATA_LOCK:
         lines = load_dataset("lines")
         index = find_index(lines, line_id=line_id)
@@ -205,15 +205,16 @@ def update_line(line_id, fields):
         return lines[index]
 
 
-def regenerate_thumbnail(line_id):
+def regenerate_thumbnail(line_id, thumb_ply_override=None):
     with DATA_LOCK:
         lines = load_dataset("lines")
     index = find_index(lines, line_id=line_id)
     if index == -1:
         raise ValueError(f"Line not found: {line_id}")
     line = lines[index]
-    out_path = render_thumbnail(line_id, line.get("start_fen", ""), line.get("moves_pgn", ""), line.get("drill_side", "white"))
-    return {"line_id": line_id, "thumbnail": str(out_path.relative_to(ROOT)).replace("\\", "/")}
+    thumb_ply = thumb_ply_override if thumb_ply_override is not None else line.get("thumb_ply")
+    out_path = render_thumbnail(line_id, line.get("start_fen", ""), line.get("moves_pgn", ""), line.get("drill_side", "white"), thumb_ply)
+    return {"line_id": line_id, "thumbnail": str(out_path.relative_to(ROOT)).replace("\\", "/"), "thumb_ply": str(thumb_ply or "")}
 
 
 def git_commit(message):
@@ -302,7 +303,9 @@ class Handler(SimpleHTTPRequestHandler):
                 return
             match = re.match(r"^/admin/api/thumbnail/([^/]+)$", path)
             if match and method == "POST":
-                self._send_json(200, {"ok": True, "result": regenerate_thumbnail(match.group(1))})
+                payload = self._read_json()
+                override = payload.get("thumb_ply") if isinstance(payload, dict) else None
+                self._send_json(200, {"ok": True, "result": regenerate_thumbnail(match.group(1), override)})
                 return
             if path == "/admin/api/git/commit" and method == "POST":
                 payload = self._read_json()

@@ -169,43 +169,96 @@
 
   <aside id="adminPanel" class="admin-panel hidden" aria-label="Admin editor">
     <header class="admin-header">
-      <h2>Admin</h2>
-      <button id="adminToggle" class="icon-button" type="button" aria-expanded="true" title="Collapse / expand">≡</button>
+      <div class="admin-header-left">
+        <strong>Admin</strong>
+        <code id="adminLineId" class="admin-line-id">(no line)</code>
+      </div>
+      <div class="admin-header-actions">
+        <button id="adminToggle" class="icon-button" type="button" aria-expanded="true" title="Collapse / expand">≡</button>
+      </div>
     </header>
+    <nav class="admin-tabs" role="tablist">
+      <button class="admin-tab active" type="button" role="tab" data-tab="edit" aria-selected="true">Edit</button>
+      <button class="admin-tab" type="button" role="tab" data-tab="add" aria-selected="false">Add</button>
+      <button class="admin-tab" type="button" role="tab" data-tab="tools" aria-selected="false">Tools</button>
+    </nav>
     <div id="adminBody" class="admin-body">
-      <section class="admin-section">
-        <div class="admin-section-head">
-          <strong>Line</strong>
-          <code id="adminLineId">(no line)</code>
+      <section class="admin-tab-panel" data-panel="edit">
+        <div class="admin-picker">
+          <input id="adminPickerSearch" type="search" placeholder="Search lines…" aria-label="Search lines" />
+          <div id="adminPickerList" class="admin-picker-list" role="listbox" aria-label="Lines"></div>
         </div>
-        <label>Name <input id="adminLineName" type="text" /></label>
-        <label>Drill side
-          <select id="adminLineDrillSide">
-            <option value="white">White</option>
-            <option value="black">Black</option>
-          </select>
-        </label>
-        <label>ELO <input id="adminLineElo" type="text" /></label>
-        <label>Priority <input id="adminLinePriority" type="number" min="0" step="1" /></label>
+
+        <details class="admin-collapsible" open>
+          <summary>Line</summary>
+          <label>Name <input id="adminLineName" type="text" /></label>
+          <div class="admin-row">
+            <label>Drill side
+              <select id="adminLineDrillSide">
+                <option value="white">White</option>
+                <option value="black">Black</option>
+              </select>
+            </label>
+            <label>Priority <input id="adminLinePriority" type="number" min="0" step="1" /></label>
+          </div>
+          <details class="admin-collapsible nested">
+            <summary>More</summary>
+            <div class="admin-row">
+              <label>ELO <input id="adminLineElo" type="text" /></label>
+              <label>Group <input id="adminLineGroup" type="text" /></label>
+            </div>
+            <label>Start FEN <input id="adminLineStartFen" type="text" placeholder="Blank = standard start" /></label>
+          </details>
+          <div class="admin-actions">
+            <button id="adminSaveLine" class="ghost" type="button">Save line</button>
+          </div>
+        </details>
+
+        <details class="admin-collapsible" open>
+          <summary>Thumbnail</summary>
+          <div class="admin-thumb-row">
+            <input id="adminThumbPly" type="range" min="0" max="0" value="0" step="1" aria-label="Thumbnail ply" />
+            <div class="admin-thumb-meta">
+              <span id="adminThumbLabel">ply 0 / 0</span>
+              <span id="adminThumbSan" class="admin-mono"></span>
+            </div>
+          </div>
+          <div class="admin-actions">
+            <button id="adminThumbPreview" class="ghost" type="button" title="Show this position on the board">Preview on board</button>
+            <button id="adminThumbSave" class="ghost" type="button">Save & regenerate</button>
+            <button id="adminThumbReset" class="ghost" type="button" title="Use the midpoint (default)">Reset to mid</button>
+          </div>
+        </details>
+
+        <details class="admin-collapsible" open>
+          <summary><span>Nodes</span> <span id="adminNodesMeta" class="admin-meta"></span></summary>
+          <div class="admin-actions admin-nodes-actions">
+            <button id="adminSaveDirty" class="ghost" type="button" disabled>Save all dirty</button>
+          </div>
+          <div id="adminNodes" class="admin-nodes"></div>
+        </details>
+      </section>
+
+      <section class="admin-tab-panel hidden" data-panel="add">
+        <p class="admin-help">Open the New Line dialog to add a study line from UCI/SAN moves. The sidecar will write JSON, render the thumbnail, and you'll see it after reload.</p>
         <div class="admin-actions">
-          <button id="adminSaveLine" class="ghost" type="button">Save line</button>
-          <button id="adminRegenThumb" class="ghost" type="button">Regenerate thumbnail</button>
+          <button id="adminOpenNewLine" class="ghost" type="button">Open New Line dialog</button>
         </div>
       </section>
-      <section class="admin-section">
-        <div class="admin-section-head"><strong>Nodes</strong></div>
-        <div id="adminNodes" class="admin-nodes"></div>
+
+      <section class="admin-tab-panel hidden" data-panel="tools">
+        <details class="admin-collapsible" open>
+          <summary>Git</summary>
+          <label>Commit message
+            <input id="adminCommitMsg" type="text" placeholder="chessgym admin: edits" />
+          </label>
+          <div class="admin-actions">
+            <button id="adminCommit" class="ghost" type="button">Commit</button>
+            <button id="adminReload" class="ghost" type="button">Reload page</button>
+          </div>
+        </details>
       </section>
-      <section class="admin-section">
-        <div class="admin-section-head"><strong>Git</strong></div>
-        <label>Commit message
-          <input id="adminCommitMsg" type="text" placeholder="chessgym admin: edits" />
-        </label>
-        <div class="admin-actions">
-          <button id="adminCommit" class="ghost" type="button">Commit</button>
-          <button id="adminReload" class="ghost" type="button">Reload page</button>
-        </div>
-      </section>
+
       <p id="adminStatus" class="admin-status" aria-live="polite"></p>
     </div>
   </aside>
