@@ -16,6 +16,24 @@ const LINE_ELO_OPTIONS = ["900", "1200", "1500", "1800", "2100", "2400", "2700",
 const THUMBNAIL_PLACEHOLDER_SRC = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==";
 const WRITE_WEB_APP_URL = "";
 const WRITE_TOKEN = "";
+const ADMIN_API_BASE = "/admin/api";
+const LOCAL_DATA_BASE = "data";
+const ADMIN_HOSTS = new Set(["localhost", "127.0.0.1", "0.0.0.0", "::1"]);
+
+function isAdminMode() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("admin") === "1") {
+      return true;
+    }
+    if (params.get("admin") === "0") {
+      return false;
+    }
+    return ADMIN_HOSTS.has(window.location.hostname);
+  } catch (error) {
+    return false;
+  }
+}
 const OPENING_HEADERS = ["opening_id", "opening_name", "side", "starting_fen", "description", "tags", "published", "book_max_plies_game_mode", "allow_transpositions"];
 const LINE_HEADERS = ["opening_id", "line_id", "line_name", "line_group", "line_priority", "drill_side", "start_fen", "elo", "moves_pgn"];
 const NODE_HEADERS = ["opening_id", "line_id", "node_id", "parent_node_id", "move_uci", "learn_prompt", "mistake_map"];
@@ -108,6 +126,7 @@ const App = {
     this.initThumbnailPreview();
     this.bindEvents();
     this.updateFreeModeButton();
+    this.setupAdminMode();
     this.showLoading(true);
     this.loadData();
   },
@@ -333,10 +352,14 @@ const App = {
     if (!payload) {
       return;
     }
+    if (isAdminMode()) {
+      this.submitNewLineToAdmin(payload);
+      return;
+    }
     const endpoint = WRITE_WEB_APP_URL.trim();
     const writeToken = WRITE_TOKEN.trim();
     if (!endpoint) {
-      this.$newLineOutput.text(`${this.$newLineOutput.text()}\n\nWriter URL is not configured. Paste your Apps Script /exec URL into WRITE_WEB_APP_URL near the top of app.js.`);
+      this.$newLineOutput.text(`${this.$newLineOutput.text()}\n\nNo writer is configured. Run the local sidecar (python scripts/admin_server.py) and open ?admin=1, or set WRITE_WEB_APP_URL.`);
       return;
     }
     if (writeToken) {
@@ -345,6 +368,38 @@ const App = {
     this.postNewLinePayload(endpoint, payload);
     this.setStatus("Opening Google write flow.");
     this.$newLineOutput.text(`${this.$newLineOutput.text()}\n\nSubmitted to Apps Script. Complete any Google authorization in the new tab.`);
+  },
+  submitNewLineToAdmin(payload) {
+    const adminPayload = {
+      line: payload.line,
+      opening: payload.opening.row,
+      create_opening: !!payload.opening.create,
+      moves: payload.nodes.map((n) => n.move_uci).join(" "),
+      notation: "uci"
+    };
+    this.setStatus("Writing line via local sidecar…");
+    fetch(`${ADMIN_API_BASE}/line`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(adminPayload)
+    })
+      .then((res) => res.json().then((body) => ({ status: res.status, body })))
+      .then(({ status, body }) => {
+        if (status >= 400 || !body.ok) {
+          throw new Error(body.error || `HTTP ${status}`);
+        }
+        const result = body.result || {};
+        this.$newLineOutput.text(
+          `${this.$newLineOutput.text()}\n\nWritten via sidecar.\n` +
+          `line_id: ${result.line_id}\nnodes: ${result.nodes_written}\nthumbnail: ${result.thumbnail}\n\n` +
+          `Reload the page to see the new line.`
+        );
+        this.setStatus(`Wrote line ${result.line_id}.`);
+      })
+      .catch((error) => {
+        this.$newLineOutput.text(`${this.$newLineOutput.text()}\n\nSidecar write failed: ${error.message}`);
+        this.setStatus("Sidecar write failed.");
+      });
   },
   postNewLinePayload(endpoint, payload) {
     const form = document.createElement("form");
@@ -362,6 +417,154 @@ const App = {
     document.body.appendChild(form);
     form.submit();
     document.body.removeChild(form);
+  },
+  setupAdminMode() {
+    if (!isAdminMode()) {
+      $("#adminPanel").remove();
+      return;
+    }
+    document.body.classList.add("admin-mode");
+    this.$adminPanel = $("#adminPanel");
+    this.$adminToggle = $("#adminToggle");
+    this.$adminBody = $("#adminBody");
+    this.$adminLineId = $("#adminLineId");
+    this.$adminLineName = $("#adminLineName");
+    this.$adminLineDrillSide = $("#adminLineDrillSide");
+    this.$adminLineElo = $("#adminLineElo");
+    this.$adminLinePriority = $("#adminLinePriority");
+    this.$adminNodes = $("#adminNodes");
+    this.$adminStatus = $("#adminStatus");
+    this.$adminCommitMsg = $("#adminCommitMsg");
+    this.$adminPanel.removeClass("hidden");
+    this.$adminToggle.on("click", () => {
+      const collapsed = this.$adminPanel.toggleClass("collapsed").hasClass("collapsed");
+      this.$adminToggle.attr("aria-expanded", String(!collapsed));
+    });
+    $("#adminSaveLine").on("click", () => this.adminSaveLine());
+    $("#adminRegenThumb").on("click", () => this.adminRegenThumb());
+    $("#adminCommit").on("click", () => this.adminCommit());
+    $("#adminReload").on("click", () => window.location.reload());
+  },
+  refreshAdminPanel() {
+    if (!isAdminMode() || !this.$adminPanel || !this.$adminPanel.length) {
+      return;
+    }
+    const line = this.getActiveLine();
+    if (!line) {
+      this.$adminBody.addClass("empty");
+      this.$adminLineId.text("(no line selected)");
+      this.$adminNodes.empty();
+      return;
+    }
+    this.$adminBody.removeClass("empty");
+    this.$adminLineId.text(line.line_id);
+    this.$adminLineName.val(line.line_name || "");
+    this.$adminLineDrillSide.val(line.drill_side || "white");
+    this.$adminLineElo.val(line.elo || "");
+    this.$adminLinePriority.val(line.line_priority || "1");
+    const nodes = (this.data.nodesByLineId[line.line_id] || []).slice();
+    this.$adminNodes.empty();
+    nodes.forEach((node) => {
+      const $row = $(
+        `<div class="admin-node" data-node-id="${node.node_id}">
+          <div class="admin-node-head">
+            <code>${node.node_id}</code>
+            <span class="admin-node-uci">${node.move_uci || ""}</span>
+          </div>
+          <label>learn_prompt
+            <textarea data-field="learn_prompt" rows="2"></textarea>
+          </label>
+          <label>mistake_map
+            <input data-field="mistake_map" type="text" />
+          </label>
+          <div class="admin-node-actions">
+            <button type="button" class="ghost admin-save-node">Save node</button>
+          </div>
+        </div>`
+      );
+      $row.find('[data-field="learn_prompt"]').val(node.learn_prompt || "");
+      $row.find('[data-field="mistake_map"]').val(node.mistake_map || "");
+      $row.find(".admin-save-node").on("click", () => this.adminSaveNode(node.node_id, $row));
+      this.$adminNodes.append($row);
+    });
+  },
+  adminFetch(path, options) {
+    return fetch(`${ADMIN_API_BASE}${path}`, Object.assign({ headers: { "Content-Type": "application/json" } }, options || {}))
+      .then((res) => res.json().then((body) => ({ status: res.status, body })))
+      .then(({ status, body }) => {
+        if (status >= 400 || (body && body.ok === false)) {
+          throw new Error((body && body.error) || `HTTP ${status}`);
+        }
+        return body;
+      });
+  },
+  adminStatus(message, isError) {
+    if (!this.$adminStatus) return;
+    this.$adminStatus.text(message || "").toggleClass("error", !!isError);
+  },
+  adminSaveNode(nodeId, $row) {
+    const fields = {
+      learn_prompt: $row.find('[data-field="learn_prompt"]').val(),
+      mistake_map: $row.find('[data-field="mistake_map"]').val()
+    };
+    this.adminStatus(`Saving ${nodeId}…`);
+    this.adminFetch(`/node/${encodeURIComponent(nodeId)}`, {
+      method: "PATCH",
+      body: JSON.stringify(fields)
+    })
+      .then((body) => {
+        const node = this.data.nodesById[nodeId];
+        if (node) {
+          node.learn_prompt = body.node.learn_prompt;
+          node.mistake_map = body.node.mistake_map;
+        }
+        this.adminStatus(`Saved ${nodeId}.`);
+        this.renderCoachComment();
+      })
+      .catch((error) => this.adminStatus(`Save failed: ${error.message}`, true));
+  },
+  adminSaveLine() {
+    const line = this.getActiveLine();
+    if (!line) return;
+    const fields = {
+      line_name: this.$adminLineName.val(),
+      drill_side: this.$adminLineDrillSide.val(),
+      elo: this.$adminLineElo.val(),
+      line_priority: this.$adminLinePriority.val()
+    };
+    this.adminStatus(`Saving line ${line.line_id}…`);
+    this.adminFetch(`/line/${encodeURIComponent(line.line_id)}`, {
+      method: "PATCH",
+      body: JSON.stringify(fields)
+    })
+      .then((body) => {
+        Object.assign(line, body.line);
+        this.adminStatus(`Saved line ${line.line_id}.`);
+      })
+      .catch((error) => this.adminStatus(`Save failed: ${error.message}`, true));
+  },
+  adminRegenThumb() {
+    const line = this.getActiveLine();
+    if (!line) return;
+    this.adminStatus(`Rendering thumbnail for ${line.line_id}…`);
+    this.adminFetch(`/thumbnail/${encodeURIComponent(line.line_id)}`, { method: "POST" })
+      .then((body) => {
+        this.adminStatus(`Wrote ${body.result.thumbnail}.`);
+        this.thumbnailCache.delete(line.line_id);
+        this.updateSelectorThumbnails();
+      })
+      .catch((error) => this.adminStatus(`Thumbnail failed: ${error.message}`, true));
+  },
+  adminCommit() {
+    const message = (this.$adminCommitMsg.val() || "").trim();
+    this.adminStatus("Committing…");
+    this.adminFetch(`/git/commit`, { method: "POST", body: JSON.stringify({ message }) })
+      .then((body) => {
+        const last = (body.result.steps || []).slice(-1)[0] || {};
+        const ok = (body.result.steps || []).every((step) => step.code === 0 || /nothing to commit/i.test(step.stdout + step.stderr));
+        this.adminStatus(ok ? `Committed: ${last.stdout || "ok"}` : `Commit issue: ${last.stderr || last.stdout}`, !ok);
+      })
+      .catch((error) => this.adminStatus(`Commit failed: ${error.message}`, true));
   },
   buildNewLinePayload() {
     const openingId = this.$newLineOpeningId.val().trim();
@@ -496,19 +699,12 @@ const App = {
     }
   },
   loadData() {
-    const fetches = [
-      fetch(OPENINGS_CSV).then((res) => res.text()),
-      fetch(LINES_CSV).then((res) => res.text()),
-      fetch(NODES_CSV).then((res) => res.text()),
-      fetch(MISTAKE_TEMPLATES_CSV).then((res) => res.text())
-    ];
-
-    Promise.all(fetches)
-      .then(([openingsText, linesText, nodesText, mistakesText]) => {
-        this.data.openings = csvToObjects(openingsText);
-        this.data.lines = csvToObjects(linesText);
-        this.data.nodes = csvToObjects(nodesText);
-        this.data.mistakeTemplates = csvToObjects(mistakesText);
+    this.fetchDataset()
+      .then((dataset) => {
+        this.data.openings = dataset.openings;
+        this.data.lines = dataset.lines;
+        this.data.nodes = dataset.nodes;
+        this.data.mistakeTemplates = dataset.mistake_templates;
         this.buildIndexes();
         this.initBoard();
         const defaultLine = this.pickDefaultLine();
@@ -522,12 +718,46 @@ const App = {
         this.onModeChange();
         this.showLoading(false);
         this.renderCoachComment();
+        this.refreshAdminPanel();
       })
       .catch((error) => {
         console.error(error);
         this.setStatus("Failed to load data. Please refresh.");
-        this.showLoading(true, "Failed to load CSV data.");
+        this.showLoading(true, "Failed to load data.");
       });
+  },
+  fetchDataset() {
+    const tryAdminApi = () => {
+      if (!isAdminMode()) {
+        return Promise.reject(new Error("admin disabled"));
+      }
+      return fetch(`${ADMIN_API_BASE}/data`, { cache: "no-store" })
+        .then((res) => (res.ok ? res.json() : Promise.reject(new Error(`admin api ${res.status}`))));
+    };
+    const tryLocalJson = () => {
+      const names = ["openings", "lines", "nodes", "mistake_templates"];
+      const fetches = names.map((name) =>
+        fetch(`${LOCAL_DATA_BASE}/${name}.json`, { cache: "no-store" }).then((res) =>
+          res.ok ? res.json() : Promise.reject(new Error(`${name}.json ${res.status}`))
+        )
+      );
+      return Promise.all(fetches).then(([openings, lines, nodes, mistake_templates]) => ({
+        openings, lines, nodes, mistake_templates
+      }));
+    };
+    const fromCsv = () =>
+      Promise.all([
+        fetch(OPENINGS_CSV).then((res) => res.text()),
+        fetch(LINES_CSV).then((res) => res.text()),
+        fetch(NODES_CSV).then((res) => res.text()),
+        fetch(MISTAKE_TEMPLATES_CSV).then((res) => res.text())
+      ]).then(([o, l, n, m]) => ({
+        openings: csvToObjects(o),
+        lines: csvToObjects(l),
+        nodes: csvToObjects(n),
+        mistake_templates: csvToObjects(m)
+      }));
+    return tryAdminApi().catch(() => tryLocalJson().catch(() => fromCsv()));
   },
   buildIndexes() {
     this.data.openingsById = {};
@@ -960,6 +1190,7 @@ const App = {
     this.updateSideSelector();
     this.updateSelectorThumbnails();
     this.prepareSession();
+    this.refreshAdminPanel();
   },
   renderOpeningOptions(openings) {
     this.$openingList.empty();

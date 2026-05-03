@@ -167,6 +167,49 @@
     </div>
   </div>
 
+  <aside id="adminPanel" class="admin-panel hidden" aria-label="Admin editor">
+    <header class="admin-header">
+      <h2>Admin</h2>
+      <button id="adminToggle" class="icon-button" type="button" aria-expanded="true" title="Collapse / expand">≡</button>
+    </header>
+    <div id="adminBody" class="admin-body">
+      <section class="admin-section">
+        <div class="admin-section-head">
+          <strong>Line</strong>
+          <code id="adminLineId">(no line)</code>
+        </div>
+        <label>Name <input id="adminLineName" type="text" /></label>
+        <label>Drill side
+          <select id="adminLineDrillSide">
+            <option value="white">White</option>
+            <option value="black">Black</option>
+          </select>
+        </label>
+        <label>ELO <input id="adminLineElo" type="text" /></label>
+        <label>Priority <input id="adminLinePriority" type="number" min="0" step="1" /></label>
+        <div class="admin-actions">
+          <button id="adminSaveLine" class="ghost" type="button">Save line</button>
+          <button id="adminRegenThumb" class="ghost" type="button">Regenerate thumbnail</button>
+        </div>
+      </section>
+      <section class="admin-section">
+        <div class="admin-section-head"><strong>Nodes</strong></div>
+        <div id="adminNodes" class="admin-nodes"></div>
+      </section>
+      <section class="admin-section">
+        <div class="admin-section-head"><strong>Git</strong></div>
+        <label>Commit message
+          <input id="adminCommitMsg" type="text" placeholder="chessgym admin: edits" />
+        </label>
+        <div class="admin-actions">
+          <button id="adminCommit" class="ghost" type="button">Commit</button>
+          <button id="adminReload" class="ghost" type="button">Reload page</button>
+        </div>
+      </section>
+      <p id="adminStatus" class="admin-status" aria-live="polite"></p>
+    </div>
+  </aside>
+
   <script src="libs/jquery.min.js"></script>
   <script src="libs/chess.min.js"></script>
   <script src="libs/chessboard-1.0.0.min.js"></script>

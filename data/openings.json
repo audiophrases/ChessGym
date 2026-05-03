@@ -1,0 +1,233 @@
+[
+  {
+    "opening_id": "italian_game",
+    "opening_name": "Italian Game",
+    "side": "both",
+    "starting_fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+    "description": "Classic open game: rapid development, center control, kingside initiative.",
+    "tags": "open,beginner,development",
+    "published": "TRUE",
+    "book_max_plies_game_mode": "12",
+    "allow_transpositions": "TRUE"
+  },
+  {
+    "opening_id": "london_system",
+    "opening_name": "London System",
+    "side": "both",
+    "starting_fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+    "description": "Solid 1.d4 system: develop Bf4 early, build a safe setup, and punish common inaccuracies.",
+    "tags": "london,system,d4,beginner",
+    "published": "TRUE",
+    "book_max_plies_game_mode": "16",
+    "allow_transpositions": "TRUE"
+  },
+  {
+    "opening_id": "ruy_lopez",
+    "opening_name": "Ruy Lopez",
+    "side": "both",
+    "starting_fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+    "description": "Classic 1.e4 e5 opening: long-term pressure on the center with Bb5 and principled development.",
+    "tags": "ruy,lopez,e4,e5,classical",
+    "published": "TRUE",
+    "book_max_plies_game_mode": "16",
+    "allow_transpositions": "TRUE"
+  },
+  {
+    "opening_id": "russian_game",
+    "opening_name": "Petrov Defense (Russian Game)",
+    "side": "both",
+    "starting_fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+    "description": "Solid 1.e4 e5 defense (Petrov): practical development, tactical traps, and counterpunching ideas.",
+    "tags": "russian,petrov,e4,e5,defense,beginner",
+    "published": "TRUE",
+    "book_max_plies_game_mode": "16",
+    "allow_transpositions": "TRUE"
+  },
+  {
+    "opening_id": "bishops_opening",
+    "opening_name": "Bishop's Opening",
+    "side": "both",
+    "starting_fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+    "description": "1.e4 e5 2.Bc4: flexible open-game bishop development (can transpose to Italian lines).",
+    "tags": "open,e4,e5,bishops_opening,beginner",
+    "published": "TRUE",
+    "book_max_plies_game_mode": "12",
+    "allow_transpositions": "TRUE"
+  },
+  {
+    "opening_id": "caro_kann",
+    "opening_name": "Caro-Kann Defense",
+    "side": "both",
+    "starting_fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+    "description": "Solid defense vs 1.e4: strong pawn structure, clear plans, and lots of âhuman mistake â punishâ tactics.",
+    "tags": "caro-kann,e4,defense,beginner",
+    "published": "TRUE",
+    "book_max_plies_game_mode": "14",
+    "allow_transpositions": "TRUE"
+  },
+  {
+    "opening_id": "kings_gambit",
+    "opening_name": "King's Gambit",
+    "side": "both",
+    "starting_fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+    "description": "Historic, ultra-aggressive 1.e4 opening: White gambits the f-pawn (2.f4) for rapid development, central break with d4, and fast attacks (often targeting f7). Black can accept or decline, leading to sharp, tactical, open positions with immediate threats like â¦Qh4+.",
+    "tags": "kings-gambit,e4,gambit,aggressive,tactical,open,attack,romantic,beginner",
+    "published": "TRUE",
+    "book_max_plies_game_mode": "14",
+    "allow_transpositions": "TRUE"
+  },
+  {
+    "opening_id": "sicilian_defense",
+    "opening_name": "Sicilian Defense",
+    "side": "both",
+    "starting_fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+    "description": "1.e4 c5: Black fights for the center from the flank and plays for imbalance and counterplay.",
+    "tags": "sicilian;e4;c5;defense;intermediate",
+    "published": "TRUE",
+    "book_max_plies_game_mode": "18",
+    "allow_transpositions": "TRUE"
+  },
+  {
+    "opening_id": "reti_opening",
+    "opening_name": "RÃ©ti Opening",
+    "side": "both",
+    "starting_fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+    "description": "Reti move-order practice; includes a short trap line for training responses.",
+    "tags": "reti;hypermodern;beginner",
+    "published": "TRUE",
+    "book_max_plies_game_mode": "12",
+    "allow_transpositions": "TRUE"
+  },
+  {
+    "opening_id": "saragossa_opening",
+    "opening_name": "Saragossa Opening",
+    "side": "both",
+    "starting_fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+    "description": "1.c3 system with flexible setup; useful for practical trap training against common ...d5/...Bf5 structures.",
+    "tags": "saragossa;c3;flank;trap;practical",
+    "published": "TRUE",
+    "book_max_plies_game_mode": "16",
+    "allow_transpositions": "TRUE"
+  },
+  {
+    "opening_id": "pterodactyl_defense_eastern_anhanguera",
+    "opening_name": "Pterodactyl Defense: Eastern",
+    "side": "both",
+    "starting_fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+    "description": "Training opening family for Pterodactyl Defense: Eastern; Anhanguera.",
+    "tags": "pterodactyl;defense;eastern;anhanguera",
+    "published": "TRUE",
+    "book_max_plies_game_mode": "16",
+    "allow_transpositions": "TRUE"
+  },
+  {
+    "opening_id": "scotch_game",
+    "opening_name": "Anhanguera",
+    "side": "both",
+    "starting_fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+    "description": "Classical 1.e4 e5 opening with 3.d4: direct central challenge and open tactical play.",
+    "tags": "scotch;e4;e5;open-game;classical",
+    "published": "TRUE",
+    "book_max_plies_game_mode": "16",
+    "allow_transpositions": "TRUE"
+  },
+  {
+    "opening_id": "wayward_queen_attack",
+    "opening_name": "Wayward Queen Attack",
+    "side": "both",
+    "starting_fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+    "description": "Training opening family for Wayward Queen Attack.",
+    "tags": "wayward;queen;attack",
+    "published": "TRUE",
+    "book_max_plies_game_mode": "16",
+    "allow_transpositions": "TRUE"
+  },
+  {
+    "opening_id": "budapest_defense",
+    "opening_name": "Budapest Defense",
+    "side": "both",
+    "starting_fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+    "description": "Training opening family for Budapest Defense.",
+    "tags": "budapest;defense",
+    "published": "TRUE",
+    "book_max_plies_game_mode": "16",
+    "allow_transpositions": "TRUE"
+  },
+  {
+    "opening_id": "pirc_defense",
+    "opening_name": "Pirc Defense",
+    "side": "both",
+    "starting_fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+    "description": "Training opening family for Pirc Defense.",
+    "tags": "pirc;defense",
+    "published": "TRUE",
+    "book_max_plies_game_mode": "16",
+    "allow_transpositions": "TRUE"
+  },
+  {
+    "opening_id": "vienna_game",
+    "opening_name": "Vienna Game",
+    "side": "both",
+    "starting_fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+    "description": "Training opening family for Vienna Game.",
+    "tags": "vienna;game",
+    "published": "TRUE",
+    "book_max_plies_game_mode": "16",
+    "allow_transpositions": "TRUE"
+  },
+  {
+    "opening_id": "queen_s_gambit_accepted",
+    "opening_name": "Queen's Gambit Accepted",
+    "side": "both",
+    "starting_fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+    "description": "Training opening family for Queen's Gambit Accepted.",
+    "tags": "queen;s;gambit;accepted",
+    "published": "TRUE",
+    "book_max_plies_game_mode": "16",
+    "allow_transpositions": "TRUE"
+  },
+  {
+    "opening_id": "scandinavian_defense",
+    "opening_name": "Scandinavian Defense",
+    "side": "both",
+    "starting_fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+    "description": "Training opening family for Scandinavian Defense.",
+    "tags": "scandinavian;defense",
+    "published": "TRUE",
+    "book_max_plies_game_mode": "16",
+    "allow_transpositions": "TRUE"
+  },
+  {
+    "opening_id": "budapest_gambit",
+    "opening_name": "Budapest Gambit",
+    "side": "both",
+    "starting_fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+    "description": "Training opening family for Budapest Gambit.",
+    "tags": "budapest;gambit",
+    "published": "TRUE",
+    "book_max_plies_game_mode": "16",
+    "allow_transpositions": "TRUE"
+  },
+  {
+    "opening_id": "dutch_defense",
+    "opening_name": "Dutch Defense",
+    "side": "both",
+    "starting_fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+    "description": "Training opening family for Dutch Defense.",
+    "tags": "dutch;defense",
+    "published": "TRUE",
+    "book_max_plies_game_mode": "16",
+    "allow_transpositions": "TRUE"
+  },
+  {
+    "opening_id": "italian_game_blackburne_shilling_gambit",
+    "opening_name": "Italian Game; Blackburne Shilling Gambit",
+    "side": "both",
+    "starting_fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+    "description": "Training opening family for Italian Game; Blackburne Shilling Gambit.",
+    "tags": "italian;game;blackburne;shilling;gambit",
+    "published": "TRUE",
+    "book_max_plies_game_mode": "16",
+    "allow_transpositions": "TRUE"
+  }
+]
