@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*~
+
+# Secrets
+.env
+.env.local
+*.pem
+*.key
+
+# Node (if ever added)
+node_modules/
+
+# ChessGym smoke-test scratch
+_smoke_*
+
+# Apps Script local clasp state (if ever used)
+apps_script/**/.clasp.json
+apps_script/**/.clasprc.json
