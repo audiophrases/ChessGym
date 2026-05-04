@@ -1,15 +1,10 @@
 /*
-  ChessGym uses four CSV feeds:
+  ChessGym uses four JSON datasets:
   - openings: core opening metadata (opening_id, starting_fen, book_max_plies_game_mode, etc.).
   - lines: named training lines (opening_id, line_id, line_name, line_group, line_priority, drill_side, start_fen, elo, moves_pgn).
   - nodes: per-position instructions and FEN lookup data (opening_id, line_id, node_id, parent_node_id, move_uci, learn_prompt, mistake_map, fen_before, fen_key, fen_after, fen_after_key).
   - mistake_templates: global messaging for mapped mistakes (mistake_code -> coach_message, why_wrong, hint).
 */
-
-const OPENINGS_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQNmZYrVE9U7BynLzoijjgIVSd6Mm2zP_blPqogiQ8zcmvFz4LJi7ADUiM6vdbyc1HZ9oHMBhUR4AHT/pub?gid=0&single=true&output=csv";
-const LINES_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQNmZYrVE9U7BynLzoijjgIVSd6Mm2zP_blPqogiQ8zcmvFz4LJi7ADUiM6vdbyc1HZ9oHMBhUR4AHT/pub?gid=10969022&single=true&output=csv";
-const NODES_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQNmZYrVE9U7BynLzoijjgIVSd6Mm2zP_blPqogiQ8zcmvFz4LJi7ADUiM6vdbyc1HZ9oHMBhUR4AHT/pub?gid=1261107814&single=true&output=csv";
-const MISTAKE_TEMPLATES_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQNmZYrVE9U7BynLzoijjgIVSd6Mm2zP_blPqogiQ8zcmvFz4LJi7ADUiM6vdbyc1HZ9oHMBhUR4AHT/pub?gid=1251282566&single=true&output=csv";
 
 const OPPONENT_DELAY_MS = 500;
 const LINE_ELO_OPTIONS = ["900", "1200", "1500", "1800", "2100", "2400", "2700", "3000"];
@@ -880,7 +875,7 @@ const App = {
       throw new Error("Moves are required.");
     }
     if (this.data.linesById[lineId]) {
-      throw new Error(`Line ID already exists in the loaded CSV: ${lineId}`);
+      throw new Error(`Line ID already exists in the loaded data: ${lineId}`);
     }
     const parsed = parseStudyLineMoves(movesText, this.$newLineNotation.val(), startFen);
     const lineRow = {
@@ -1043,19 +1038,7 @@ const App = {
         openings, lines, nodes, mistake_templates
       }));
     };
-    const fromCsv = () =>
-      Promise.all([
-        fetch(OPENINGS_CSV).then((res) => res.text()),
-        fetch(LINES_CSV).then((res) => res.text()),
-        fetch(NODES_CSV).then((res) => res.text()),
-        fetch(MISTAKE_TEMPLATES_CSV).then((res) => res.text())
-      ]).then(([o, l, n, m]) => ({
-        openings: csvToObjects(o),
-        lines: csvToObjects(l),
-        nodes: csvToObjects(n),
-        mistake_templates: csvToObjects(m)
-      }));
-    return tryAdminApi().catch(() => tryLocalJson().catch(() => fromCsv()));
+    return tryAdminApi().catch(() => tryLocalJson());
   },
   buildIndexes() {
     this.data.openingsById = {};
@@ -3674,67 +3657,6 @@ class StockfishEngine {
     this.send(`position fen ${fen}`);
     this.send(`go movetime ${movetime}`);
   }
-}
-
-function parseCSV(text) {
-  const rows = [];
-  let row = [];
-  let current = "";
-  let inQuotes = false;
-
-  for (let i = 0; i < text.length; i += 1) {
-    const char = text[i];
-    if (inQuotes) {
-      if (char === '"') {
-        if (text[i + 1] === '"') {
-          current += '"';
-          i += 1;
-        } else {
-          inQuotes = false;
-        }
-      } else {
-        current += char;
-      }
-    } else if (char === '"') {
-      inQuotes = true;
-    } else if (char === ",") {
-      row.push(current);
-      current = "";
-    } else if (char === "\n") {
-      row.push(current);
-      rows.push(row);
-      row = [];
-      current = "";
-    } else if (char === "\r") {
-      continue;
-    } else {
-      current += char;
-    }
-  }
-
-  if (current.length || row.length) {
-    row.push(current);
-    rows.push(row);
-  }
-
-  return rows;
-}
-
-function csvToObjects(text) {
-  const rows = parseCSV(text);
-  if (!rows.length) {
-    return [];
-  }
-  const headers = rows.shift().map((header) => header.trim());
-  return rows
-    .filter((row) => row.some((cell) => cell && cell.trim() !== ""))
-    .map((row) => {
-      const obj = {};
-      headers.forEach((header, index) => {
-        obj[header] = row[index] !== undefined ? row[index].trim() : "";
-      });
-      return obj;
-    });
 }
 
 function isTrue(value) {

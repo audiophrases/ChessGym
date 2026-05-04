@@ -1,17 +1,14 @@
 import argparse
-import csv
 import io
+import json
 from pathlib import Path
 
 import chess
 import chess.pgn
-import requests
 from PIL import Image, ImageDraw
 
-OPENINGS_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQNmZYrVE9U7BynLzoijjgIVSd6Mm2zP_blPqogiQ8zcmvFz4LJi7ADUiM6vdbyc1HZ9oHMBhUR4AHT/pub?gid=0&single=true&output=csv"
-LINES_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQNmZYrVE9U7BynLzoijjgIVSd6Mm2zP_blPqogiQ8zcmvFz4LJi7ADUiM6vdbyc1HZ9oHMBhUR4AHT/pub?gid=10969022&single=true&output=csv"
-
 ROOT = Path(__file__).resolve().parents[1]
+DATA_DIR = ROOT / "data"
 THUMB_DIR = ROOT / "Thumbnails"
 PIECE_DIR = ROOT / "pieces"
 
@@ -48,14 +45,19 @@ def parse_args():
     return parser.parse_args()
 
 
-def fetch_openings():
-    text = requests.get(OPENINGS_CSV, timeout=40).text
-    return list(csv.DictReader(io.StringIO(text)))
+def load_dataset(name):
+    path = DATA_DIR / f"{name}.json"
+    if not path.exists():
+        return []
+    return json.loads(path.read_text(encoding="utf-8"))
 
 
-def fetch_lines():
-    text = requests.get(LINES_CSV, timeout=40).text
-    return list(csv.DictReader(io.StringIO(text)))
+def load_openings():
+    return load_dataset("openings")
+
+
+def load_lines():
+    return load_dataset("lines")
 
 
 def existing_thumbnail_ids():
@@ -134,8 +136,8 @@ def main():
     args = parse_args()
 
     THUMB_DIR.mkdir(parents=True, exist_ok=True)
-    openings = fetch_openings()
-    lines = fetch_lines()
+    openings = load_openings()
+    lines = load_lines()
     existing = existing_thumbnail_ids()
     piece_imgs = load_piece_images()
 
@@ -199,7 +201,7 @@ def main():
         try:
             candidates = sorted(lines_by_opening.get(opening_id, []), key=line_complexity, reverse=True)
             rep = candidates[0] if candidates else None
-            board = board_at_mid_position(rep.get("start_fen", ""), rep.get("moves_pgn", "")) if rep else board_at_mid_position(opening.get("start_fen", ""), "")
+            board = board_at_mid_position(rep.get("start_fen", ""), rep.get("moves_pgn", "")) if rep else board_at_mid_position(opening.get("starting_fen", ""), "")
             out_path = THUMB_DIR / f"{opening_id}.png"
             render_board_png(board, out_path, piece_imgs, flip=False)
             created += 1

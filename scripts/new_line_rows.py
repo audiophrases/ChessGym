@@ -20,7 +20,7 @@ UCI_RE = re.compile(r"^[a-h][1-8][a-h][1-8][qrbnQRBN]?$")
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="Build ChessGym Google Sheets rows for a new opening line from UCI, SAN, or PGN move text."
+        description="Build ChessGym tabular data rows for a new opening line from UCI, SAN, or PGN move text."
     )
     parser.add_argument("--opening-id", required=True)
     parser.add_argument("--line-name", required=True)
@@ -218,15 +218,15 @@ def main():
     opening_row, line_row, node_rows = build_rows(args, line_id, moves)
 
     if args.new_opening:
-        print("# openings tab")
+        print("# openings data")
         print(rows_to_tsv([opening_row]))
         print()
 
-    print("# lines tab")
+    print("# lines data")
     print(rows_to_tsv([line_row]))
     print()
 
-    print("# nodes tab")
+    print("# nodes data")
     print(rows_to_tsv(node_rows))
 
     if args.thumbnail:
