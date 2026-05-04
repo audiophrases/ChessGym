@@ -39,7 +39,7 @@ PORT = 8787
 ALLOWED_ORIGINS = {f"http://{HOST}:{PORT}", f"http://localhost:{PORT}"}
 
 OPENING_HEADERS = ["opening_id", "opening_name", "side", "starting_fen", "description", "tags", "published", "book_max_plies_game_mode", "allow_transpositions"]
-LINE_HEADERS = ["opening_id", "line_id", "line_name", "line_group", "line_priority", "drill_side", "start_fen", "moves_pgn", "thumb_ply"]
+LINE_HEADERS = ["opening_id", "line_id", "line_name", "line_group", "drill_side", "start_fen", "tags", "moves_pgn", "thumb_ply"]
 NODE_HEADERS = ["opening_id", "line_id", "node_id", "parent_node_id", "move_uci", "learn_prompt", "mistake_map", "fen_before", "fen_key", "fen_after", "fen_after_key"]
 
 DATA_LOCK = threading.Lock()
@@ -88,8 +88,14 @@ def find_index(rows, **criteria):
     return -1
 
 
-def render_thumbnail(thumbnail_id, start_fen, moves_pgn, drill_side, thumb_ply=None, flip=None):
-    board = board_at_mid_position(start_fen, moves_pgn, thumb_ply)
+def render_thumbnail(thumbnail_id, start_fen, moves_pgn, drill_side, thumb_ply=None, flip=None, fen=None):
+    if fen and str(fen).strip():
+        try:
+            board = chess.Board(str(fen).strip())
+        except ValueError as exc:
+            raise ValueError(f"Invalid FEN: {exc}")
+    else:
+        board = board_at_mid_position(start_fen, moves_pgn, thumb_ply)
     THUMB_DIR.mkdir(parents=True, exist_ok=True)
     out_path = THUMB_DIR / f"{thumbnail_id}.png"
     resolved_flip = (drill_side or "").strip().lower().startswith("b") if flip is None else bool(flip)
@@ -165,9 +171,9 @@ def create_line(payload):
             "line_id": line_id,
             "line_name": line_name,
             "line_group": (line_in.get("line_group") or "").strip(),
-            "line_priority": (line_in.get("line_priority") or "1").strip(),
             "drill_side": drill_side,
             "start_fen": start_fen,
+            "tags": (line_in.get("tags") or "").strip(),
             "moves_pgn": moves_pgn,
         })
 
@@ -241,7 +247,7 @@ def update_opening(opening_id, fields):
 
 
 def update_line(line_id, fields):
-    allowed = {"line_name", "line_group", "line_priority", "drill_side", "start_fen", "moves_pgn", "thumb_ply"}
+    allowed = {"line_name", "line_group", "drill_side", "start_fen", "tags", "moves_pgn", "thumb_ply"}
     warnings = []
     with DATA_LOCK:
         openings = load_dataset("openings")
@@ -270,7 +276,7 @@ def rebuild_all_fens():
         return {**result, "fen_warnings": fen_warnings(result)}
 
 
-def regenerate_thumbnail(line_id, thumb_ply_override=None):
+def regenerate_thumbnail(line_id, thumb_ply_override=None, fen=None):
     with DATA_LOCK:
         lines = load_dataset("lines")
     index = find_index(lines, line_id=line_id)
@@ -278,11 +284,18 @@ def regenerate_thumbnail(line_id, thumb_ply_override=None):
         raise ValueError(f"Line not found: {line_id}")
     line = lines[index]
     thumb_ply = thumb_ply_override if thumb_ply_override is not None else line.get("thumb_ply")
-    out_path = render_thumbnail(line_id, line.get("start_fen", ""), line.get("moves_pgn", ""), line.get("drill_side", "white"), thumb_ply)
+    out_path = render_thumbnail(
+        line_id,
+        line.get("start_fen", ""),
+        line.get("moves_pgn", ""),
+        line.get("drill_side", "white"),
+        thumb_ply,
+        fen=fen,
+    )
     return {"line_id": line_id, "thumbnail": str(out_path.relative_to(ROOT)).replace("\\", "/"), "thumb_ply": str(thumb_ply or "")}
 
 
-def regenerate_opening_thumbnail(opening_id, line_id=None, thumb_ply_override=None):
+def regenerate_opening_thumbnail(opening_id, line_id=None, thumb_ply_override=None, fen=None):
     with DATA_LOCK:
         openings = load_dataset("openings")
         lines = load_dataset("lines")
@@ -290,6 +303,16 @@ def regenerate_opening_thumbnail(opening_id, line_id=None, thumb_ply_override=No
     if opening_index == -1:
         raise ValueError(f"Opening not found: {opening_id}")
     opening = openings[opening_index]
+
+    if fen and str(fen).strip():
+        out_path = render_thumbnail(opening_id, "", "", "white", None, flip=False, fen=fen)
+        return {
+            "opening_id": opening_id,
+            "line_id": "",
+            "thumbnail": str(out_path.relative_to(ROOT)).replace("\\", "/"),
+            "thumb_ply": "",
+        }
+
     candidates = [line for line in lines if (line.get("opening_id") or "") == opening_id]
     selected_line = None
     if line_id:
@@ -440,15 +463,21 @@ class Handler(SimpleHTTPRequestHandler):
             match = re.match(r"^/admin/api/thumbnail/([^/]+)$", path)
             if match and method == "POST":
                 payload = self._read_json()
-                override = payload.get("thumb_ply") if isinstance(payload, dict) else None
-                self._send_json(200, {"ok": True, "result": regenerate_thumbnail(match.group(1), override)})
+                if not isinstance(payload, dict):
+                    payload = {}
+                override = payload.get("thumb_ply")
+                fen = payload.get("fen")
+                self._send_json(200, {"ok": True, "result": regenerate_thumbnail(match.group(1), override, fen)})
                 return
             match = re.match(r"^/admin/api/opening-thumbnail/([^/]+)$", path)
             if match and method == "POST":
                 payload = self._read_json()
-                override = payload.get("thumb_ply") if isinstance(payload, dict) else None
-                line_id = payload.get("line_id") if isinstance(payload, dict) else None
-                self._send_json(200, {"ok": True, "result": regenerate_opening_thumbnail(match.group(1), line_id, override)})
+                if not isinstance(payload, dict):
+                    payload = {}
+                override = payload.get("thumb_ply")
+                line_id = payload.get("line_id")
+                fen = payload.get("fen")
+                self._send_json(200, {"ok": True, "result": regenerate_opening_thumbnail(match.group(1), line_id, override, fen)})
                 return
             if path == "/admin/api/git/commit" and method == "POST":
                 payload = self._read_json()

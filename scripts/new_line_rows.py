@@ -32,7 +32,7 @@ def parse_args():
     parser.add_argument("--start-fen", default="", help="Blank means the normal starting position.")
     parser.add_argument("--notation", choices=["auto", "uci", "san", "pgn"], default="auto")
     parser.add_argument("--line-group", default="")
-    parser.add_argument("--line-priority", default="1")
+    parser.add_argument("--line-tags", default="")
     parser.add_argument("--opening-side", choices=["white", "black"], default="")
     parser.add_argument("--description", default="")
     parser.add_argument("--tags", default="")
@@ -166,9 +166,9 @@ def build_rows(args, line_id, moves):
         line_id,
         args.line_name,
         args.line_group,
-        args.line_priority,
         args.drill_side,
         start_fen,
+        args.line_tags,
         moves_pgn,
     ]
     node_rows = []

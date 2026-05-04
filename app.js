@@ -547,7 +547,7 @@ const App = {
       }
       const nodeCount = (this.data.nodesByLineId[line.line_id] || []).length;
       const $btn = $(
-        `<button type="button" class="admin-picker-item" data-line-id="${line.line_id}" data-opening-id="${line.opening_id}">
+        `<button type="button" class="admin-picker-item" data-line-id="${line.line_id}" data-opening-id="${line.opening_id}" data-tags="${escapeHtml(line.tags || "")}">
           <span class="admin-pin-toggle" role="button" aria-label="${pinned ? "Unpin" : "Pin"} line" title="${pinned ? "Unpin" : "Pin"} line">${pinned ? "★" : "☆"}</span>
           <span class="admin-picker-name"></span>
           <span class="admin-picker-meta">${nodeCount} · ${line.drill_side || "?"}</span>
@@ -578,7 +578,7 @@ const App = {
         $currentGroup = $el;
         visibleSinceGroup = false;
       } else {
-        const text = ($el.text() + " " + $el.attr("data-line-id") + " " + $el.attr("data-opening-id")).toLowerCase();
+        const text = ($el.text() + " " + $el.attr("data-line-id") + " " + $el.attr("data-opening-id") + " " + ($el.attr("data-tags") || "")).toLowerCase();
         const match = !q || text.includes(q);
         $el.toggle(match);
         if (match) visibleSinceGroup = true;
@@ -720,18 +720,13 @@ const App = {
       this.$adminNodes.append($row);
     });
   },
-  adminUpdateThumbLabel() {
-    const total = parseInt(this.$adminThumbPly.attr("max"), 10) || 0;
-    const ply = parseInt(this.$adminThumbPly.val(), 10) || 0;
-    this.$adminThumbLabel.text(`ply ${ply} / ${total}`);
-    let san = "";
-    if (ply > 0) {
-      const entry = Object.entries(this.adminPlyByNodeId).find(([, p]) => p === ply);
-      if (entry) san = this.adminSanByNodeId[entry[0]] || "";
-    } else {
-      san = "start";
-    }
-    this.$adminThumbSan.text(san);
+  adminHighlightActiveNode() {
+    const ply = (this.state.moveHistory || []).length;
+    if (!this.$adminNodes) return;
+    this.$adminNodes.find(".admin-node").each((_, el) => {
+      const $el = $(el);
+      $el.toggleClass("active", parseInt($el.attr("data-ply"), 10) === ply);
+    });
   },
   adminGoToPly(targetPly) {
     if (!Number.isFinite(targetPly) || targetPly < 0) return;
@@ -747,86 +742,54 @@ const App = {
     }
     this.adminHighlightActiveNode();
   },
-  adminHighlightActiveNode() {
-    const ply = (this.state.moveHistory || []).length;
-    if (!this.$adminNodes) return;
-    this.$adminNodes.find(".admin-node").each((_, el) => {
-      const $el = $(el);
-      $el.toggleClass("active", parseInt($el.attr("data-ply"), 10) === ply);
-    });
-  },
-  adminPreviewThumb() {
-    const ply = parseInt(this.$adminThumbPly.val(), 10) || 0;
-    this.adminGoToPly(ply);
+  currentBoardFen() {
+    if (this.chess && typeof this.chess.fen === "function") {
+      return this.chess.fen();
+    }
+    return "";
   },
   adminSaveThumb() {
     const line = this.getActiveLine();
     if (!line) return;
-    const ply = parseInt(this.$adminThumbPly.val(), 10) || 0;
-    this.adminStatus(`Saving thumb_ply=${ply} and rendering…`);
-    this.adminFetch(`/line/${encodeURIComponent(line.line_id)}`, {
-      method: "PATCH",
-      body: JSON.stringify({ thumb_ply: String(ply) })
+    const fen = this.currentBoardFen();
+    if (!fen) {
+      this.adminStatus("No board position available.", true);
+      return;
+    }
+    this.adminStatus(`Rendering line thumbnail from current board…`);
+    this.adminFetch(`/thumbnail/${encodeURIComponent(line.line_id)}`, {
+      method: "POST",
+      body: JSON.stringify({ fen })
     })
-      .then(() => this.adminFetch(`/thumbnail/${encodeURIComponent(line.line_id)}`, {
-        method: "POST",
-        body: JSON.stringify({ thumb_ply: String(ply) })
-      }))
       .then((body) => {
-        line.thumb_ply = String(ply);
         this.thumbnailCache.delete(line.line_id);
         this.updateSelectorThumbnails();
-        this.adminStatus(`Wrote ${body.result.thumbnail} (ply ${ply}).`);
+        this.adminStatus(`Wrote ${body.result.thumbnail}.`);
       })
       .catch((error) => this.adminStatus(`Thumbnail failed: ${error.message}`, true));
   },
   adminSaveOpeningThumb() {
     const opening = this.getSelectedOpening();
-    const line = this.getActiveLine();
     if (!opening) {
       this.adminStatus("Select an opening before rendering its thumbnail.", true);
       return;
     }
-    const ply = parseInt(this.$adminThumbPly.val(), 10) || 0;
-    const body = {
-      line_id: line ? line.line_id : "",
-      thumb_ply: String(ply)
-    };
-    this.adminStatus(`Rendering opening thumbnail ${opening.opening_id}…`);
+    const fen = this.currentBoardFen();
+    if (!fen) {
+      this.adminStatus("No board position available.", true);
+      return;
+    }
+    this.adminStatus(`Rendering opening thumbnail ${opening.opening_id} from current board…`);
     this.adminFetch(`/opening-thumbnail/${encodeURIComponent(opening.opening_id)}`, {
       method: "POST",
-      body: JSON.stringify(body)
+      body: JSON.stringify({ fen })
     })
       .then((body) => {
         this.thumbnailCache.delete(opening.opening_id);
         this.updateSelectorThumbnails();
-        const source = body.result.line_id ? ` from ${body.result.line_id}` : "";
-        this.adminStatus(`Wrote ${body.result.thumbnail}${source}.`);
+        this.adminStatus(`Wrote ${body.result.thumbnail}.`);
       })
       .catch((error) => this.adminStatus(`Opening thumbnail failed: ${error.message}`, true));
-  },
-  adminResetThumb() {
-    const line = this.getActiveLine();
-    if (!line) return;
-    this.adminStatus(`Clearing thumb_ply and rendering midpoint…`);
-    this.adminFetch(`/line/${encodeURIComponent(line.line_id)}`, {
-      method: "PATCH",
-      body: JSON.stringify({ thumb_ply: "" })
-    })
-      .then(() => this.adminFetch(`/thumbnail/${encodeURIComponent(line.line_id)}`, {
-        method: "POST",
-        body: JSON.stringify({})
-      }))
-      .then((body) => {
-        line.thumb_ply = "";
-        this.thumbnailCache.delete(line.line_id);
-        this.updateSelectorThumbnails();
-        const total = parseInt(this.$adminThumbPly.attr("max"), 10) || 0;
-        this.$adminThumbPly.val(Math.max(1, Math.floor(total / 2)));
-        this.adminUpdateThumbLabel();
-        this.adminStatus(`Wrote ${body.result.thumbnail} (midpoint).`);
-      })
-      .catch((error) => this.adminStatus(`Reset failed: ${error.message}`, true));
   },
   adminFetch(path, options) {
     return fetch(`${ADMIN_API_BASE}${path}`, Object.assign({ headers: { "Content-Type": "application/json" } }, options || {}))
@@ -1818,7 +1781,7 @@ const App = {
       return;
     }
     const matches = (this.data.lines || []).filter((line) => {
-      const haystack = `${line.line_name || ""} ${line.line_id || ""} ${this.lookupOpeningName(line.opening_id) || ""}`.toLowerCase();
+      const haystack = `${line.line_name || ""} ${line.line_id || ""} ${line.tags || ""} ${this.lookupOpeningName(line.opening_id) || ""}`.toLowerCase();
       return haystack.includes(needle);
     });
     matches.sort((a, b) => {

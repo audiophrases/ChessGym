@@ -143,9 +143,9 @@
               <option value="san">SAN / PGN</option>
             </select>
           </label>
-          <label>
-            Priority
-            <input id="newLinePriority" type="number" min="0" step="1" value="1" />
+          <label class="wide-field">
+            Tags
+            <input id="newLineTags" type="text" placeholder="Personal tags / notes (admin only, searchable)" />
           </label>
           <label class="wide-field">
             Start FEN
@@ -200,8 +200,8 @@
               <option value="black">Black</option>
             </select>
           </label>
-          <label>Priority <input id="adminLinePriority" type="number" min="0" step="1" /></label>
         </div>
+        <label>Tags <input id="adminLineTags" type="text" placeholder="Personal tags / notes (admin only, searchable)" /></label>
         <details class="admin-collapsible nested">
           <summary>More</summary>
           <div class="admin-row">
@@ -216,18 +216,10 @@
 
       <details class="admin-collapsible">
         <summary>Thumbnail</summary>
-        <div class="admin-thumb-row">
-          <input id="adminThumbPly" type="range" min="0" max="0" value="0" step="1" aria-label="Thumbnail ply" />
-          <div class="admin-thumb-meta">
-            <span id="adminThumbLabel">ply 0 / 0</span>
-            <span id="adminThumbSan" class="admin-mono"></span>
-          </div>
-        </div>
+        <p class="admin-help">Render a thumbnail from the current board position. Navigate with Prev/Next or play moves to set the position you want, then click Save line / Save opening.</p>
         <div class="admin-actions">
-          <button id="adminThumbPreview" class="ghost" type="button" title="Show this position on the board">Preview on board</button>
           <button id="adminThumbSave" class="ghost" type="button">Save line</button>
           <button id="adminOpeningThumbSave" class="ghost" type="button">Save opening</button>
-          <button id="adminThumbReset" class="ghost" type="button" title="Use the midpoint (default)">Reset to mid</button>
         </div>
       </details>
 
