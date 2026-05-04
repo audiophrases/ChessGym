@@ -34,7 +34,7 @@
   },
   {
     "opening_id": "russian_game",
-    "opening_name": "Petrov Defense (Russian Game)",
+    "opening_name": "Petrov Defense",
     "side": "both",
     "starting_fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
     "description": "Solid 1.e4 e5 defense (Petrov): practical development, tactical traps, and counterpunching ideas.",
