@@ -2,7 +2,7 @@
   ChessGym uses four CSV feeds:
   - openings: core opening metadata (opening_id, starting_fen, book_max_plies_game_mode, etc.).
   - lines: named training lines (opening_id, line_id, line_name, line_group, line_priority, drill_side, start_fen, elo, moves_pgn).
-  - nodes: streamlined per-node instructions (opening_id, line_id, node_id, parent_node_id, move_uci, learn_prompt, mistake_map).
+  - nodes: per-position instructions and FEN lookup data (opening_id, line_id, node_id, parent_node_id, move_uci, learn_prompt, mistake_map, fen_before, fen_key, fen_after, fen_after_key).
   - mistake_templates: global messaging for mapped mistakes (mistake_code -> coach_message, why_wrong, hint).
 */
 
@@ -34,7 +34,7 @@ function isAdminMode() {
 }
 const OPENING_HEADERS = ["opening_id", "opening_name", "side", "starting_fen", "description", "tags", "published", "book_max_plies_game_mode", "allow_transpositions"];
 const LINE_HEADERS = ["opening_id", "line_id", "line_name", "line_group", "line_priority", "drill_side", "start_fen", "elo", "moves_pgn"];
-const NODE_HEADERS = ["opening_id", "line_id", "node_id", "parent_node_id", "move_uci", "learn_prompt", "mistake_map"];
+const NODE_HEADERS = ["opening_id", "line_id", "node_id", "parent_node_id", "move_uci", "learn_prompt", "mistake_map", "fen_before", "fen_key", "fen_after", "fen_after_key"];
 
 const App = {
   data: {
@@ -50,6 +50,7 @@ const App = {
     childrenByParentKey: {},
     rootNodesByLineId: {},
     nodesByOpeningFen: {},
+    nodesByFen: {},
     linePriorityById: {},
     mistakeTemplatesByCode: {}
   },
@@ -69,8 +70,7 @@ const App = {
     hadLapse: false,
     completed: false,
     inBook: false,
-    bookPlyIndex: 0,
-    bookMaxPlies: 0,
+    databaseTrace: [],
     engineReady: false,
     engineBusy: false,
     studyDueOnly: false,
@@ -915,7 +915,11 @@ const App = {
         parent_node_id: parentNodeId,
         move_uci: move.uci,
         learn_prompt: "",
-        mistake_map: ""
+        mistake_map: "",
+        fen_before: move.fenBefore,
+        fen_key: move.fenKey,
+        fen_after: move.fenAfter,
+        fen_after_key: move.fenAfterKey
       };
       parentNodeId = nodeId;
       return row;
@@ -1152,7 +1156,11 @@ const App = {
   },
   buildComputedFenIndexes() {
     this.data.nodesByOpeningFen = {};
+    this.data.nodesByFen = {};
     const chess = new Chess();
+    this.data.nodes.forEach((node) => {
+      node._fen_indexed = false;
+    });
 
     this.data.lines.forEach((line) => {
       const lineId = line.line_id;
@@ -1162,6 +1170,17 @@ const App = {
       rootKeys.forEach((rootKey) => {
         this.traverseNodeFen(line, rootKey, startFen, 1, chess);
       });
+    });
+
+    this.data.nodes.forEach((node) => {
+      const fenKey = normalizeFen(node.fen_key || node.fen_before || "");
+      if (!node._fen_indexed && fenKey) {
+        node._fen_key = fenKey;
+        node._fen_before = node.fen_before || node.fen_key || "";
+        node._fen_after = node.fen_after || "";
+        node._fen_after_key = normalizeFen(node.fen_after_key || node.fen_after || "");
+        this.indexNodeFen(node.opening_id, fenKey, node._key);
+      }
     });
 
     Object.keys(this.data.nodesByOpeningFen).forEach((openingId) => {
@@ -1174,43 +1193,69 @@ const App = {
         });
       });
     });
+    Object.keys(this.data.nodesByFen).forEach((fenKey) => {
+      this.data.nodesByFen[fenKey].sort((aKey, bKey) => {
+        const aNode = this.data.nodesById[aKey];
+        const bNode = this.data.nodesById[bKey];
+        return this.compareNodesByPreference(aNode, bNode);
+      });
+    });
   },
   traverseNodeFen(line, nodeKey, fenBefore, depth, chess) {
     const node = this.data.nodesById[nodeKey];
     if (!node) {
       return;
     }
-    node._fen_before = fenBefore;
-    node._fen_key = normalizeFen(fenBefore);
-    node._depth = depth;
     if (!loadFenForChess(chess, fenBefore)) {
       console.warn("Failed to load FEN for node:", node.node_id, fenBefore);
       return;
     }
+    const fullFenBefore = chess.fen();
+    node._fen_before = fullFenBefore;
+    node._fen_key = normalizeFen(fullFenBefore);
+    node._depth = depth;
     const move = applyMoveUCI(chess, node.move_uci);
     if (!move) {
       console.warn("Illegal move in node:", line.line_id, node.node_id, node.move_uci);
       return;
     }
     const afterFen = chess.fen();
+    node._fen_after = afterFen;
+    node._fen_after_key = normalizeFen(afterFen);
     node._san = move.san || "";
 
-    const openingId = line.opening_id;
-    if (openingId) {
-      if (!this.data.nodesByOpeningFen[openingId]) {
-        this.data.nodesByOpeningFen[openingId] = {};
-      }
-      const normalizedFen = node._fen_key;
-      if (!this.data.nodesByOpeningFen[openingId][normalizedFen]) {
-        this.data.nodesByOpeningFen[openingId][normalizedFen] = [];
-      }
-      this.data.nodesByOpeningFen[openingId][normalizedFen].push(node._key);
-    }
+    this.indexNodeFen(line.opening_id, node._fen_key, node._key);
 
     const children = this.data.childrenByParentKey[nodeKey] || [];
     children.forEach((childKey) => {
       this.traverseNodeFen(line, childKey, afterFen, depth + 1, chess);
     });
+  },
+  indexNodeFen(openingId, fenKey, nodeKey) {
+    if (!fenKey || !nodeKey) {
+      return;
+    }
+    const node = this.data.nodesById[nodeKey];
+    if (node && node._fen_indexed) {
+      return;
+    }
+    if (node) {
+      node._fen_indexed = true;
+    }
+    if (!this.data.nodesByFen[fenKey]) {
+      this.data.nodesByFen[fenKey] = [];
+    }
+    this.data.nodesByFen[fenKey].push(nodeKey);
+    if (!openingId) {
+      return;
+    }
+    if (!this.data.nodesByOpeningFen[openingId]) {
+      this.data.nodesByOpeningFen[openingId] = {};
+    }
+    if (!this.data.nodesByOpeningFen[openingId][fenKey]) {
+      this.data.nodesByOpeningFen[openingId][fenKey] = [];
+    }
+    this.data.nodesByOpeningFen[openingId][fenKey].push(nodeKey);
   },
   getLeafDescendants(lineId, fromNodeKey) {
     const leaves = [];
@@ -1803,12 +1848,11 @@ const App = {
     this.state.hadLapse = false;
     this.state.completed = false;
     this.state.inBook = false;
+    this.state.databaseTrace = [];
     this.state.hintActive = false;
     this.state.freeModeActive = false;
     this.state.freeModeSnapshot = null;
     this.updateFreeModeButton();
-    this.state.bookPlyIndex = 0;
-    this.state.bookMaxPlies = 0;
     this.state.engineBusy = false;
     this.state.sessionLineId = null;
     this.state.moveHistory = [];
@@ -1907,17 +1951,12 @@ const App = {
     }
   },
   prepareGameMode(selectedLine) {
-    const opening = this.getSelectedOpening();
-    this.state.bookPlyIndex = 0;
-    const maxPlies = opening && opening.book_max_plies_game_mode ? parseInt(opening.book_max_plies_game_mode, 10) : 0;
-    this.state.bookMaxPlies = Number.isFinite(maxPlies) ? maxPlies : 0;
-    const fenKey = normalizeFen(this.chess.fen());
-    this.state.inBook = this.state.bookMaxPlies > 0 && this.getBookCandidatesForFenKey(fenKey).length > 0;
-
-    this.ensureEngine();
+    this.state.sessionLineId = selectedLine ? selectedLine.line_id : null;
+    this.state.databaseTrace = [];
+    this.syncDatabaseModeForCurrentPosition();
     this.updateProgress();
     this.setStatus("Game mode: your move.");
-    this.setComment("Play through the opening book, then test yourself against Stockfish.");
+    this.setComment("Known database positions use repertoire replies. Stockfish starts only after you leave the database.");
     this.setLineStatus(selectedLine);
   },
   handleFreeModeToggle() {
@@ -1943,7 +1982,7 @@ const App = {
       redoMoves: [...this.state.redoMoves],
       currentDepth: this.state.currentDepth,
       inBook: this.state.inBook,
-      bookPlyIndex: this.state.bookPlyIndex,
+      databaseTrace: [...this.state.databaseTrace],
       statusText: this.state.statusText,
       lastCoachComment: this.state.lastCoachComment,
       coachCommentBySide: JSON.parse(JSON.stringify(this.state.coachCommentBySide))
@@ -1961,7 +2000,7 @@ const App = {
       this.state.redoMoves = [...snapshot.redoMoves];
       this.state.currentDepth = snapshot.currentDepth;
       this.state.inBook = snapshot.inBook;
-      this.state.bookPlyIndex = snapshot.bookPlyIndex;
+      this.state.databaseTrace = [...(snapshot.databaseTrace || [])];
       this.state.statusText = snapshot.statusText;
       this.state.lastCoachComment = snapshot.lastCoachComment;
       this.state.coachCommentBySide = snapshot.coachCommentBySide;
@@ -2311,8 +2350,10 @@ const App = {
     }
   },
   handleGameMove(uci, promotion) {
+    const fenBefore = this.chess.fen();
     const fenKeyBefore = normalizeFen(this.chess.fen());
-    const bookCandidates = this.getBookCandidatesForFenKey(fenKeyBefore);
+    const databaseCandidates = this.getDatabaseCandidatesForFenKey(fenKeyBefore);
+    const normalizedUci = normalizeUci(uci);
     const legalMove = this.chess.move({
       from: uci.slice(0, 2),
       to: uci.slice(2, 4),
@@ -2327,26 +2368,15 @@ const App = {
     this.updateNavigationControls();
     this.updateLastMoveHighlight();
 
-    if (this.state.inBook) {
-      const maxReached = this.state.bookPlyIndex >= this.state.bookMaxPlies;
-      if (maxReached || bookCandidates.length === 0) {
-        this.state.inBook = false;
-      } else {
-        const matchesCandidate = bookCandidates.some((candidate) => candidate.move_uci === uci);
-        if (!matchesCandidate) {
-          this.state.inBook = false;
-        } else {
-          this.state.bookPlyIndex += 1;
-          if (this.state.bookPlyIndex >= this.state.bookMaxPlies) {
-            this.state.inBook = false;
-          }
-        }
-      }
+    const matchedNode = databaseCandidates.find((candidate) => normalizeUci(candidate.move_uci) === normalizedUci);
+    if (matchedNode) {
+      this.recordDatabaseTrace(matchedNode, legalMove, "player", fenBefore);
     }
+    this.syncDatabaseModeForCurrentPosition();
 
     const turn = this.chess.turn() === "w" ? "white" : "black";
     if (turn !== this.state.userSide) {
-      this.setStatus("Opponent thinking...");
+      this.setStatus(this.state.inBook ? "Database reply ready..." : "Opponent thinking...");
       this.scheduleOpponentMove(() => this.nextGameTurn());
     } else {
       this.nextGameTurn();
@@ -2356,23 +2386,27 @@ const App = {
   nextGameTurn() {
     if (this.chess.game_over()) {
       this.setStatus("Game over.");
+      this.showDatabaseTraceSummary();
       return;
     }
     const turn = this.chess.turn() === "w" ? "white" : "black";
     if (turn !== this.state.userSide) {
-      if (this.state.inBook) {
+      if (this.syncDatabaseModeForCurrentPosition()) {
         this.playBookMove();
       } else {
         this.playEngineMove();
       }
     } else {
+      this.syncDatabaseModeForCurrentPosition();
       this.setStatus("Your move.");
     }
   },
   playBookMove() {
+    this.stopLiveAnalysis();
     const fenKey = normalizeFen(this.chess.fen());
-    const candidates = this.getBookCandidatesForFenKey(fenKey);
-    const expected = this.pickBookNode(candidates);
+    const fenBefore = this.chess.fen();
+    const candidates = this.getDatabaseCandidatesForFenKey(fenKey);
+    const expected = this.pickDatabaseNode(candidates);
     if (!expected) {
       this.state.inBook = false;
       this.nextGameTurn();
@@ -2386,23 +2420,22 @@ const App = {
     }
     this.playMoveSound(move);
     this.recordMove(expected.move_uci, move);
-    this.state.bookPlyIndex += 1;
+    this.recordDatabaseTrace(expected, move, "database", fenBefore);
     this.board.position(this.chess.fen());
-    this.startLiveAnalysis();
-    if (this.state.bookPlyIndex >= this.state.bookMaxPlies) {
-      this.state.inBook = false;
-    } else {
-      const nextCandidates = this.getBookCandidatesForFenKey(normalizeFen(this.chess.fen()));
-      if (!nextCandidates.length) {
-        this.state.inBook = false;
-      }
-    }
+    this.syncDatabaseModeForCurrentPosition();
     this.updateNavigationControls();
     this.updateLastMoveHighlight();
-    this.setStatus("Opponent move played.");
+    this.setStatus("Database move played.");
     this.nextGameTurn();
   },
   playEngineMove() {
+    if (this.syncDatabaseModeForCurrentPosition()) {
+      this.playBookMove();
+      return;
+    }
+    if (!this.engine) {
+      this.ensureEngine();
+    }
     if (!this.engine) {
       this.setStatus("Engine unavailable.");
       return;
@@ -2588,8 +2621,9 @@ const App = {
       if (this.state.mode !== "game") {
         this.state.completed = false;
       } else {
-        this.state.inBook = false;
-        this.state.bookPlyIndex = Math.max(0, this.state.bookPlyIndex - 1);
+        const ply = this.state.moveHistory.length;
+        this.state.databaseTrace = (this.state.databaseTrace || []).filter((entry) => entry.ply <= ply);
+        this.syncDatabaseModeForCurrentPosition();
       }
       moved = true;
     } else {
@@ -2602,7 +2636,7 @@ const App = {
         this.playMoveSound(move);
         this.state.moveHistory.push(redoMove);
         if (this.state.mode === "game") {
-          this.state.inBook = false;
+          this.syncDatabaseModeForCurrentPosition();
         }
         moved = true;
       } else if (this.canAdvanceLearning()) {
@@ -3227,6 +3261,10 @@ const App = {
     const keys = (this.data.nodesByOpeningFen[openingId] || {})[fenKey] || [];
     return keys.map((key) => this.data.nodesById[key]).filter(Boolean);
   },
+  getNodesForFenKey(fenKey) {
+    const keys = (this.data.nodesByFen || {})[fenKey] || [];
+    return keys.map((key) => this.data.nodesById[key]).filter(Boolean);
+  },
   getCandidateNodesForFen(openingId, fenKey, mode, currentLineId) {
     const candidates = this.getNodesForOpeningFenKey(openingId, fenKey);
     if (mode === "learning" || mode === "practice") {
@@ -3240,6 +3278,84 @@ const App = {
   getCandidateNodesForCurrentFen() {
     const normalized = normalizeFen(this.chess.fen());
     return this.getNodesForOpeningFenKey(this.state.openingId, normalized);
+  },
+  getDatabaseCandidatesForFenKey(fenKey) {
+    const normalized = normalizeFen(fenKey);
+    if (!normalized) {
+      return [];
+    }
+    const openingCandidates = this.getNodesForOpeningFenKey(this.state.openingId, normalized);
+    if (openingCandidates.length) {
+      return openingCandidates;
+    }
+    return this.getNodesForFenKey(normalized);
+  },
+  getDatabaseCandidatesForCurrentFen() {
+    return this.getDatabaseCandidatesForFenKey(normalizeFen(this.chess.fen()));
+  },
+  syncDatabaseModeForCurrentPosition() {
+    const known = this.getDatabaseCandidatesForCurrentFen().length > 0;
+    this.state.inBook = known;
+    if (this.state.mode === "game" && known) {
+      this.stopLiveAnalysis();
+      this.$engineEval.text("");
+      this.updateWinProbability(null);
+      this.setWinProbSource("Database", "Known position");
+    }
+    return known;
+  },
+  shouldUseEngineForCurrentPosition() {
+    return !(this.state.mode === "game" && this.getDatabaseCandidatesForCurrentFen().length > 0);
+  },
+  recordDatabaseTrace(node, move, actor, fenBefore) {
+    if (!node || this.state.mode !== "game") {
+      return;
+    }
+    const line = this.data.linesById[node.line_id] || {};
+    const opening = this.data.openingsById[node.opening_id] || {};
+    this.state.databaseTrace.push({
+      ply: this.state.moveHistory.length,
+      actor,
+      opening_id: node.opening_id || "",
+      opening_name: opening.opening_name || node.opening_id || "",
+      line_id: node.line_id || "",
+      line_name: line.line_name || node.line_id || "",
+      node_id: node.node_id || "",
+      fen_key: node._fen_key || node.fen_key || normalizeFen(fenBefore || ""),
+      fen_before: node._fen_before || node.fen_before || fenBefore || "",
+      move_uci: normalizeUci(node.move_uci),
+      san: move && move.san ? move.san : (node._san || "")
+    });
+  },
+  showDatabaseTraceSummary() {
+    const trace = this.state.databaseTrace || [];
+    if (!trace.length) {
+      this.setComment("No database positions were matched in this game.");
+      return;
+    }
+    const lineMap = {};
+    trace.forEach((entry) => {
+      const key = entry.line_id || "(unknown)";
+      if (!lineMap[key]) {
+        lineMap[key] = {
+          lineName: entry.line_name || key,
+          openingName: entry.opening_name || entry.opening_id || "Opening",
+          plies: 0,
+          positions: new Set()
+        };
+      }
+      lineMap[key].plies += 1;
+      if (entry.fen_key) {
+        lineMap[key].positions.add(entry.fen_key);
+      }
+    });
+    const lines = Object.values(lineMap)
+      .sort((a, b) => b.plies - a.plies || a.lineName.localeCompare(b.lineName))
+      .slice(0, 5);
+    const items = lines.map((entry) =>
+      `<li><strong>${escapeHtml(entry.lineName)}</strong> (${escapeHtml(entry.openingName)}): ${entry.plies} move${entry.plies === 1 ? "" : "s"}, ${entry.positions.size} position${entry.positions.size === 1 ? "" : "s"}</li>`
+    ).join("");
+    this.setComment(`<p>Database positions tracked: ${trace.length} move${trace.length === 1 ? "" : "s"}.</p><ul>${items}</ul>`);
   },
   pickBestCandidate(candidates, preferredLineId) {
     if (!candidates.length) {
@@ -3293,10 +3409,7 @@ const App = {
     this.switchSessionToNode(transposed, { announce: true });
     return this.getExpectedNodeFromPlan();
   },
-  getBookCandidatesForFenKey(fenKey) {
-    return this.getNodesForOpeningFenKey(this.state.openingId, fenKey);
-  },
-  pickBookNode(candidates) {
+  pickDatabaseNode(candidates) {
     if (!candidates.length) {
       return null;
     }
@@ -3342,6 +3455,10 @@ const App = {
     if (!this.state.engineEnabled || !this.state.analysisEnabled) {
       return;
     }
+    if (!this.shouldUseEngineForCurrentPosition()) {
+      this.syncDatabaseModeForCurrentPosition();
+      return;
+    }
     if (this.state.pendingAnalysisTimer) {
       clearTimeout(this.state.pendingAnalysisTimer);
     }
@@ -3352,6 +3469,10 @@ const App = {
   },
   startLiveAnalysis() {
     if (!this.state.engineEnabled || !this.state.analysisEnabled) {
+      return;
+    }
+    if (!this.shouldUseEngineForCurrentPosition()) {
+      this.syncDatabaseModeForCurrentPosition();
       return;
     }
     this.ensureEngine();
@@ -3713,7 +3834,8 @@ function parseStudyLineMoves(movesText, notation, startFen) {
   }
   const moves = [];
   tokens.forEach((token) => {
-    const fenParts = chess.fen().split(/\s+/);
+    const fenBefore = chess.fen();
+    const fenParts = fenBefore.split(/\s+/);
     const color = fenParts[1] === "b" ? "black" : "white";
     const moveNumber = parseInt(fenParts[5] || "1", 10) || 1;
     let move = null;
@@ -3725,11 +3847,16 @@ function parseStudyLineMoves(movesText, notation, startFen) {
     if (!move) {
       throw new Error(`Illegal or unreadable move: ${token}`);
     }
+    const fenAfter = chess.fen();
     moves.push({
       uci: moveToUci(move),
       san: move.san,
       color,
-      moveNumber
+      moveNumber,
+      fenBefore,
+      fenKey: normalizeFen(fenBefore),
+      fenAfter,
+      fenAfterKey: normalizeFen(fenAfter)
     });
   });
   return {
@@ -3772,6 +3899,15 @@ function formatTsvCell(value) {
     return `"${text.replace(/"/g, '""')}"`;
   }
   return text;
+}
+
+function escapeHtml(value) {
+  return String(value === undefined || value === null ? "" : value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 function needsPromotion(from, to, chess) {

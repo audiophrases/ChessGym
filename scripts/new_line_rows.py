@@ -84,7 +84,7 @@ def tokenize_moves(text):
 def parse_uci_moves(board, tokens):
     moves = []
     for token in tokens:
-        normalized = token.lower().replace("=", "")
+        normalized = clean_uci_token(token)
         if not UCI_RE.match(normalized):
             raise ValueError(f"Not a UCI move: {token}")
         move = board.parse_uci(normalized)
@@ -108,10 +108,10 @@ def parse_san_moves(board, tokens):
 def parse_moves(text, notation, start_fen):
     tokens = tokenize_moves(text)
     if not tokens:
-      raise ValueError("No moves found.")
+        raise ValueError("No moves found.")
 
     if notation == "auto":
-        notation = "uci" if all(UCI_RE.match(token.replace("=", "")) for token in tokens) else "san"
+        notation = "uci" if all(UCI_RE.match(clean_uci_token(token)) for token in tokens) else "san"
     if notation == "pgn":
         notation = "san"
 
@@ -121,8 +121,19 @@ def parse_moves(text, notation, start_fen):
     return parse_san_moves(board, tokens)
 
 
+def clean_uci_token(token):
+    return re.sub(r"[+#?!]+$", "", token.lower().replace("=", ""))
+
+
 def move_to_uci(move):
     return chess.square_name(move.from_square) + chess.square_name(move.to_square) + (move.promotion and chess.piece_symbol(move.promotion) or "")
+
+
+def normalize_fen(fen):
+    parts = (fen or "").strip().split()
+    if len(parts) < 4:
+        return (fen or "").strip()
+    return " ".join(parts[:4])
 
 
 def variation_san(start_fen, moves):
@@ -164,9 +175,25 @@ def build_rows(args, line_id, moves):
     ]
     node_rows = []
     parent_id = ""
+    board = make_board(start_fen)
     for index, move in enumerate(moves, start=1):
         node_id = f"{line_id}_{index:03d}"
-        node_rows.append([args.opening_id, line_id, node_id, parent_id, move_to_uci(move), "", ""])
+        fen_before = board.fen()
+        board.push(move)
+        fen_after = board.fen()
+        node_rows.append([
+            args.opening_id,
+            line_id,
+            node_id,
+            parent_id,
+            move_to_uci(move),
+            "",
+            "",
+            fen_before,
+            normalize_fen(fen_before),
+            fen_after,
+            normalize_fen(fen_after),
+        ])
         parent_id = node_id
     return opening_row, line_row, node_rows
 

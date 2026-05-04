@@ -30,13 +30,14 @@ from generate_missing_thumbnails import (  # noqa: E402
     render_board_png,
 )
 from new_line_rows import parse_moves, slugify, variation_san, move_to_uci  # noqa: E402
+from rebuild_node_fens import rebuild_node_fens  # noqa: E402
 
 HOST = "127.0.0.1"
 PORT = 8787
 
 OPENING_HEADERS = ["opening_id", "opening_name", "side", "starting_fen", "description", "tags", "published", "book_max_plies_game_mode", "allow_transpositions"]
 LINE_HEADERS = ["opening_id", "line_id", "line_name", "line_group", "line_priority", "drill_side", "start_fen", "elo", "moves_pgn", "thumb_ply"]
-NODE_HEADERS = ["opening_id", "line_id", "node_id", "parent_node_id", "move_uci", "learn_prompt", "mistake_map"]
+NODE_HEADERS = ["opening_id", "line_id", "node_id", "parent_node_id", "move_uci", "learn_prompt", "mistake_map", "fen_before", "fen_key", "fen_after", "fen_after_key"]
 
 DATA_LOCK = threading.Lock()
 PIECE_IMAGES = None
@@ -85,6 +86,15 @@ def render_thumbnail(line_id, start_fen, moves_pgn, drill_side, thumb_ply=None):
     flip = (drill_side or "").strip().lower().startswith("b")
     render_board_png(board, out_path, piece_images(), flip=flip)
     return out_path
+
+
+def refresh_node_fens(openings, lines, nodes):
+    result = rebuild_node_fens(openings, lines, nodes)
+    if result["warnings"]:
+        # Keep writes permissive for commentary-only edits, but leave clues in the sidecar console.
+        for warning in result["warnings"]:
+            print(f"FEN warning: {warning}", file=sys.stderr)
+    return result
 
 
 def create_line(payload):
@@ -163,6 +173,7 @@ def create_line(payload):
             })
             parent = node_id
 
+        refresh_node_fens(openings, lines, nodes)
         save_dataset("openings", openings, OPENING_HEADERS)
         save_dataset("lines", lines, LINE_HEADERS)
         save_dataset("nodes", nodes, NODE_HEADERS)
@@ -180,6 +191,8 @@ def create_line(payload):
 def update_node(node_id, fields):
     allowed = {"learn_prompt", "mistake_map", "move_uci", "parent_node_id"}
     with DATA_LOCK:
+        openings = load_dataset("openings")
+        lines = load_dataset("lines")
         nodes = load_dataset("nodes")
         index = find_index(nodes, node_id=node_id)
         if index == -1:
@@ -187,6 +200,8 @@ def update_node(node_id, fields):
         for key, value in fields.items():
             if key in allowed:
                 nodes[index][key] = "" if value is None else str(value)
+        if any(key in fields for key in ("move_uci", "parent_node_id")):
+            refresh_node_fens(openings, lines, nodes)
         save_dataset("nodes", nodes, NODE_HEADERS)
         return nodes[index]
 
@@ -202,12 +217,18 @@ def update_opening(opening_id, fields):
             if key in allowed:
                 openings[index][key] = "" if value is None else str(value)
         save_dataset("openings", openings, OPENING_HEADERS)
+        if "starting_fen" in fields:
+            lines = load_dataset("lines")
+            nodes = load_dataset("nodes")
+            refresh_node_fens(openings, lines, nodes)
+            save_dataset("nodes", nodes, NODE_HEADERS)
         return openings[index]
 
 
 def update_line(line_id, fields):
     allowed = {"line_name", "line_group", "line_priority", "drill_side", "elo", "start_fen", "moves_pgn", "thumb_ply"}
     with DATA_LOCK:
+        openings = load_dataset("openings")
         lines = load_dataset("lines")
         index = find_index(lines, line_id=line_id)
         if index == -1:
@@ -216,7 +237,21 @@ def update_line(line_id, fields):
             if key in allowed:
                 lines[index][key] = "" if value is None else str(value)
         save_dataset("lines", lines, LINE_HEADERS)
+        if "start_fen" in fields:
+            nodes = load_dataset("nodes")
+            refresh_node_fens(openings, lines, nodes)
+            save_dataset("nodes", nodes, NODE_HEADERS)
         return lines[index]
+
+
+def rebuild_all_fens():
+    with DATA_LOCK:
+        openings = load_dataset("openings")
+        lines = load_dataset("lines")
+        nodes = load_dataset("nodes")
+        result = refresh_node_fens(openings, lines, nodes)
+        save_dataset("nodes", nodes, NODE_HEADERS)
+        return result
 
 
 def regenerate_thumbnail(line_id, thumb_ply_override=None):
@@ -329,6 +364,9 @@ class Handler(SimpleHTTPRequestHandler):
             if path == "/admin/api/git/commit" and method == "POST":
                 payload = self._read_json()
                 self._send_json(200, {"ok": True, "result": git_commit(payload.get("message", ""))})
+                return
+            if path == "/admin/api/fens/rebuild" and method == "POST":
+                self._send_json(200, {"ok": True, "result": rebuild_all_fens()})
                 return
             self._send_json(404, {"error": "Not found"})
         except ValueError as exc:
