@@ -14,8 +14,6 @@ const MISTAKE_TEMPLATES_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1v
 const OPPONENT_DELAY_MS = 500;
 const LINE_ELO_OPTIONS = ["900", "1200", "1500", "1800", "2100", "2400", "2700", "3000"];
 const THUMBNAIL_PLACEHOLDER_SRC = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==";
-const WRITE_WEB_APP_URL = "";
-const WRITE_TOKEN = "";
 const ADMIN_API_BASE = "/admin/api";
 const LOCAL_DATA_BASE = "data";
 const ADMIN_HOSTS = new Set(["localhost", "127.0.0.1", "0.0.0.0", "::1"]);
@@ -149,7 +147,6 @@ const App = {
     this.$comment = $("#commentBox");
     this.$hint = $("#hintBtn");
     this.$free = $("#freeBtn");
-    this.$newLine = $("#newLineBtn");
     this.$reveal = $("#revealBtn");
     this.$lichess = $("#lichessBtn");
     this.$engineEval = $("#engineEval");
@@ -161,8 +158,8 @@ const App = {
     this.$boardZoomOut = $("#boardZoomOut");
     this.$openingThumb = $("#openingThumb");
     this.$lineThumb = $("#lineThumb");
-    this.$newLineModal = $("#newLineModal");
-    this.$newLineClose = $("#newLineClose");
+    this.$adminNewLineSection = $("#adminNewLineSection");
+    this.$adminNewLineToggle = $("#adminNewLineToggle");
     this.$newLineOpeningId = $("#newLineOpeningId");
     this.$newLineOpeningName = $("#newLineOpeningName");
     this.$newLineName = $("#newLineName");
@@ -215,7 +212,6 @@ const App = {
     this.$next.on("click", () => this.stepMove(1));
     this.$hint.on("click", () => this.handleHint());
     this.$free.on("click", () => this.handleFreeModeToggle());
-    this.$newLine.on("click", () => this.openNewLineModal());
     this.$reveal.on("click", () => this.handleRevealMove());
     this.$lichess.on("click", () => this.openLichessGame());
     this.$boardZoomIn.on("click", () => this.adjustBoardSize(1));
@@ -231,12 +227,6 @@ const App = {
         this.toggleSessionSelectors();
       }
     });
-    this.$newLineClose.on("click", () => this.closeNewLineModal());
-    this.$newLineModal.on("click", (event) => {
-      if (event.target === this.$newLineModal[0]) {
-        this.closeNewLineModal();
-      }
-    });
     this.$newLineName.on("input", () => this.syncNewLineIdFromName());
     this.$newLineId.on("input", () => this.$newLineId.data("manual", true));
     this.$newLineGenerate.on("click", () => this.generateNewLineRows());
@@ -244,11 +234,6 @@ const App = {
     this.$newLineSubmit.on("click", () => this.submitNewLineWrite());
     $(document).on("click", (event) => this.handleDocumentClick(event));
     $(document).on("keydown", (event) => {
-      if (event.key === "Escape" && !this.$newLineModal.hasClass("hidden")) {
-        event.preventDefault();
-        this.closeNewLineModal();
-        return;
-      }
       if (this.shouldIgnoreNavigationKey(event)) {
         return;
       }
@@ -285,6 +270,13 @@ const App = {
     window.open(url, "_blank", "noopener");
   },
   openNewLineModal() {
+    if (!isAdminMode() || !this.$adminNewLineSection.length) {
+      return;
+    }
+    if (this.$adminPanel && this.$adminPanel.hasClass("collapsed")) {
+      this.$adminPanel.removeClass("collapsed");
+      this.$adminToggle.attr("aria-expanded", "true");
+    }
     const opening = this.getSelectedOpening();
     const activeLine = this.getActiveLine();
     const movesText = this.state.lastFreeMovesText || this.state.moveHistory.join(" ");
@@ -300,12 +292,15 @@ const App = {
     this.$newLineStartFen.val(activeLine && activeLine.start_fen ? activeLine.start_fen : "");
     this.$newLineMoves.val(movesText);
     this.$newLineCreateOpening.prop("checked", false);
-    this.$newLineOutput.text("Generate rows to preview the sheet writes.");
-    this.$newLineModal.removeClass("hidden");
+    this.$newLineOutput.text("Preview the local JSON write before adding the line.");
+    this.$adminNewLineSection.prop("open", true);
+    this.$adminNewLineSection[0].scrollIntoView({ block: "start", behavior: "smooth" });
     this.$newLineName.trigger("focus");
   },
   closeNewLineModal() {
-    this.$newLineModal.addClass("hidden");
+    if (this.$adminNewLineSection && this.$adminNewLineSection.length) {
+      this.$adminNewLineSection.prop("open", false);
+    }
   },
   syncNewLineIdFromName() {
     if (this.$newLineId.data("manual")) {
@@ -352,22 +347,11 @@ const App = {
     if (!payload) {
       return;
     }
-    if (isAdminMode()) {
-      this.submitNewLineToAdmin(payload);
+    if (!isAdminMode()) {
+      this.$newLineOutput.text(`${this.$newLineOutput.text()}\n\nLocal admin mode is required. Start python scripts/admin_server.py and open http://localhost:8787/?admin=1.`);
       return;
     }
-    const endpoint = WRITE_WEB_APP_URL.trim();
-    const writeToken = WRITE_TOKEN.trim();
-    if (!endpoint) {
-      this.$newLineOutput.text(`${this.$newLineOutput.text()}\n\nNo writer is configured. Run the local sidecar (python scripts/admin_server.py) and open ?admin=1, or set WRITE_WEB_APP_URL.`);
-      return;
-    }
-    if (writeToken) {
-      payload.auth.writeToken = writeToken;
-    }
-    this.postNewLinePayload(endpoint, payload);
-    this.setStatus("Opening Google write flow.");
-    this.$newLineOutput.text(`${this.$newLineOutput.text()}\n\nSubmitted to Apps Script. Complete any Google authorization in the new tab.`);
+    this.submitNewLineToAdmin(payload);
   },
   submitNewLineToAdmin(payload) {
     const adminPayload = {
@@ -400,23 +384,6 @@ const App = {
         this.$newLineOutput.text(`${this.$newLineOutput.text()}\n\nSidecar write failed: ${error.message}`);
         this.setStatus("Sidecar write failed.");
       });
-  },
-  postNewLinePayload(endpoint, payload) {
-    const form = document.createElement("form");
-    form.method = "POST";
-    form.action = endpoint;
-    form.target = "_blank";
-    form.style.display = "none";
-
-    const input = document.createElement("input");
-    input.type = "hidden";
-    input.name = "payload";
-    input.value = JSON.stringify(payload);
-    form.appendChild(input);
-
-    document.body.appendChild(form);
-    form.submit();
-    document.body.removeChild(form);
   },
   setupAdminMode() {
     if (!isAdminMode()) {
@@ -452,13 +419,10 @@ const App = {
     this.adminSanByNodeId = {};
     this.adminPlyByNodeId = {};
     this.$adminPanel.removeClass("hidden");
+    this.$adminNewLineToggle.on("click", () => this.openNewLineModal());
     this.$adminToggle.on("click", () => {
       const collapsed = this.$adminPanel.toggleClass("collapsed").hasClass("collapsed");
       this.$adminToggle.attr("aria-expanded", String(!collapsed));
-    });
-    $(".admin-tab").on("click", (event) => {
-      const name = $(event.currentTarget).attr("data-tab");
-      this.adminSetTab(name);
     });
     this.$adminPickerSearch.on("input", () => this.adminFilterPicker(this.$adminPickerSearch.val()));
     $("#adminSaveOpening").on("click", () => this.adminSaveOpening());
@@ -473,18 +437,7 @@ const App = {
     $("#adminBatchClear").on("click", () => $("#adminBatchPromptText").val(""));
     $("#adminCommit").on("click", () => this.adminCommit());
     $("#adminReload").on("click", () => window.location.reload());
-    $("#adminOpenNewLine").on("click", () => this.openNewLineModal());
     this.adminPopulatePicker();
-  },
-  adminSetTab(name) {
-    $(".admin-tab").each((_, el) => {
-      const $el = $(el);
-      const active = $el.attr("data-tab") === name;
-      $el.toggleClass("active", active).attr("aria-selected", String(active));
-    });
-    $(".admin-tab-panel").each((_, el) => {
-      $(el).toggleClass("hidden", $(el).attr("data-panel") !== name);
-    });
   },
   adminPopulatePicker() {
     if (!this.$adminPickerList || !this.$adminPickerList.length) return;

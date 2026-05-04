@@ -27,7 +27,6 @@
           <button id="boardZoomIn" class="ghost" aria-label="Increase board size">+</button>
           <button id="hintBtn" class="ghost" title="Hints alternate between highlighting the piece and showing the prompt.">Hint</button>
           <button id="freeBtn" class="ghost" aria-pressed="false" title="Enable free play for both sides.">Free</button>
-          <button id="newLineBtn" class="ghost" title="Create a new study line from move notation.">New Line</button>
           <button id="lichessBtn" class="ghost">Lich</button>
         </div>
       </div>
@@ -99,74 +98,6 @@
     <div class="spinner">Loading…</div>
   </div>
 
-  <div id="newLineModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="newLineTitle">
-    <div class="modal-panel new-line-panel">
-      <div class="modal-header">
-        <h2 id="newLineTitle">New Line</h2>
-        <button id="newLineClose" class="icon-button" type="button" aria-label="Close">×</button>
-      </div>
-      <div class="new-line-grid">
-        <label>
-          Opening ID
-          <input id="newLineOpeningId" type="text" />
-        </label>
-        <label>
-          Opening name
-          <input id="newLineOpeningName" type="text" />
-        </label>
-        <label>
-          Line name
-          <input id="newLineName" type="text" />
-        </label>
-        <label>
-          Line ID
-          <input id="newLineId" type="text" placeholder="Auto from line name" />
-        </label>
-        <label>
-          Practice side
-          <select id="newLineDrillSide">
-            <option value="white">White</option>
-            <option value="black">Black</option>
-          </select>
-        </label>
-        <label>
-          Notation
-          <select id="newLineNotation">
-            <option value="auto">Auto</option>
-            <option value="uci">UCI</option>
-            <option value="san">SAN / PGN</option>
-          </select>
-        </label>
-        <label>
-          ELO
-          <input id="newLineElo" type="text" placeholder="Optional" />
-        </label>
-        <label>
-          Priority
-          <input id="newLinePriority" type="number" min="0" step="1" value="1" />
-        </label>
-        <label class="wide-field">
-          Start FEN
-          <input id="newLineStartFen" type="text" placeholder="Blank = normal start" />
-        </label>
-        <label class="wide-field">
-          Moves
-          <textarea id="newLineMoves" rows="5" placeholder="e2e4 e7e5 g1f3 or 1. e4 e5 2. Nf3"></textarea>
-        </label>
-        <label class="checkbox-field">
-          <input id="newLineCreateOpening" type="checkbox" />
-          Create opening row
-        </label>
-      </div>
-      <div class="modal-actions">
-        <button id="newLineGenerate" class="ghost" type="button">Generate rows</button>
-        <button id="newLineCopyRows" class="ghost" type="button">Copy rows</button>
-        <button id="newLineSubmit" class="ghost primary-action" type="button">Write to Sheets</button>
-      </div>
-      <pre id="newLineOutput" class="new-line-output" aria-live="polite"></pre>
-    </div>
-  </div>
-
   <aside id="adminPanel" class="admin-panel hidden" aria-label="Admin editor">
     <header class="admin-header">
       <div class="admin-header-left">
@@ -174,22 +105,83 @@
         <code id="adminLineId" class="admin-line-id">(no line)</code>
       </div>
       <div class="admin-header-actions">
+        <button id="adminNewLineToggle" class="ghost" type="button">New</button>
         <button id="adminToggle" class="icon-button" type="button" aria-expanded="true" title="Collapse / expand">≡</button>
       </div>
     </header>
-    <nav class="admin-tabs" role="tablist">
-      <button class="admin-tab active" type="button" role="tab" data-tab="edit" aria-selected="true">Edit</button>
-      <button class="admin-tab" type="button" role="tab" data-tab="add" aria-selected="false">Add</button>
-      <button class="admin-tab" type="button" role="tab" data-tab="tools" aria-selected="false">Tools</button>
-    </nav>
     <div id="adminBody" class="admin-body">
-      <section class="admin-tab-panel" data-panel="edit">
+      <details id="adminNewLineSection" class="admin-collapsible admin-new-line-section">
+        <summary><span>New Line</span> <span class="admin-meta">local JSON + thumbnail</span></summary>
+        <div class="new-line-grid">
+          <label>
+            Opening ID
+            <input id="newLineOpeningId" type="text" />
+          </label>
+          <label>
+            Opening name
+            <input id="newLineOpeningName" type="text" />
+          </label>
+          <label>
+            Line name
+            <input id="newLineName" type="text" />
+          </label>
+          <label>
+            Line ID
+            <input id="newLineId" type="text" placeholder="Auto from line name" />
+          </label>
+          <label>
+            Practice side
+            <select id="newLineDrillSide">
+              <option value="white">White</option>
+              <option value="black">Black</option>
+            </select>
+          </label>
+          <label>
+            Notation
+            <select id="newLineNotation">
+              <option value="auto">Auto</option>
+              <option value="uci">UCI</option>
+              <option value="san">SAN / PGN</option>
+            </select>
+          </label>
+          <label>
+            ELO
+            <input id="newLineElo" type="text" placeholder="Optional" />
+          </label>
+          <label>
+            Priority
+            <input id="newLinePriority" type="number" min="0" step="1" value="1" />
+          </label>
+          <label class="wide-field">
+            Start FEN
+            <input id="newLineStartFen" type="text" placeholder="Blank = normal start" />
+          </label>
+          <label class="wide-field">
+            Moves
+            <textarea id="newLineMoves" rows="5" placeholder="e2e4 e7e5 g1f3 or 1. e4 e5 2. Nf3"></textarea>
+          </label>
+          <label class="checkbox-field wide-field">
+            <input id="newLineCreateOpening" type="checkbox" />
+            Create opening row
+          </label>
+        </div>
+        <div class="admin-actions">
+          <button id="newLineGenerate" class="ghost" type="button">Preview write</button>
+          <button id="newLineCopyRows" class="ghost" type="button">Copy rows</button>
+          <button id="newLineSubmit" class="ghost primary-action" type="button">Add line locally</button>
+        </div>
+        <pre id="newLineOutput" class="new-line-output" aria-live="polite"></pre>
+      </details>
+
+      <details class="admin-collapsible" open>
+        <summary><span>Line Library</span> <span class="admin-meta">select to edit</span></summary>
         <div class="admin-picker">
           <input id="adminPickerSearch" type="search" placeholder="Search lines…" aria-label="Search lines" />
           <div id="adminPickerList" class="admin-picker-list" role="listbox" aria-label="Lines"></div>
         </div>
+      </details>
 
-        <details class="admin-collapsible" open>
+        <details class="admin-collapsible">
           <summary><span>Opening</span> <code id="adminOpeningId" class="admin-meta admin-mono"></code></summary>
           <label>Name <input id="adminOpeningName" type="text" placeholder="e.g. Italian Game" /></label>
           <details class="admin-collapsible nested">
@@ -227,7 +219,7 @@
           </div>
         </details>
 
-        <details class="admin-collapsible" open>
+        <details class="admin-collapsible">
           <summary>Thumbnail</summary>
           <div class="admin-thumb-row">
             <input id="adminThumbPly" type="range" min="0" max="0" value="0" step="1" aria-label="Thumbnail ply" />
@@ -260,17 +252,8 @@
           </details>
           <div id="adminNodes" class="admin-nodes"></div>
         </details>
-      </section>
 
-      <section class="admin-tab-panel hidden" data-panel="add">
-        <p class="admin-help">Open the New Line dialog to add a study line from UCI/SAN moves. The sidecar will write JSON, render the thumbnail, and you'll see it after reload.</p>
-        <div class="admin-actions">
-          <button id="adminOpenNewLine" class="ghost" type="button">Open New Line dialog</button>
-        </div>
-      </section>
-
-      <section class="admin-tab-panel hidden" data-panel="tools">
-        <details class="admin-collapsible" open>
+        <details class="admin-collapsible">
           <summary>Git</summary>
           <label>Commit message
             <input id="adminCommitMsg" type="text" placeholder="chessgym admin: edits" />
@@ -280,7 +263,6 @@
             <button id="adminReload" class="ghost" type="button">Reload page</button>
           </div>
         </details>
-      </section>
 
       <p id="adminStatus" class="admin-status" aria-live="polite"></p>
     </div>
