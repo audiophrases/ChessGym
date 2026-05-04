@@ -12,6 +12,17 @@ const THUMBNAIL_PLACEHOLDER_SRC = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP/
 const ADMIN_API_BASE = "/admin/api";
 const LOCAL_DATA_BASE = "data";
 const ADMIN_HOSTS = new Set(["localhost", "127.0.0.1", "0.0.0.0", "::1"]);
+const AI_PROMPT_STYLE_RULES = [
+  "Style Rules:",
+  "For the study side: Start with a strong verb (Develop, Challenge, Strike, Sacrifice, Activate, Counter, Deliver, Capture, Reposition, etc.). Describe what the move accomplishes positionally and tactically, without directly naming the move or square unless necessary. Make it educational and insightful so the learner can infer the move from the description.",
+  "For the opponent: Start with \"White\" or \"Black\" (whichever side the opponent is) and describe the move naturally, often highlighting typical human mistakes at intermediate/low ELO level (e.g. \"greedily\", \"prematurely\", \"awkwardly\", \"overextending\").",
+  "Mention the opening name subtly at key moments (e.g. \"entering the Traxler Counterattack\", \"in this sharp Italian Game line\") for context, but do not overdo it.",
+  "Use rich but concise language that conveys purpose, consequences, and strategic intent.",
+  "Build tension and drama naturally, especially on tactical blows and checkmates.",
+  "Keep a confident, instructive, and slightly motivational tone.",
+  "",
+  "Output only the code block with the list of sentences, nothing else."
+].join("\n");
 
 function isAdminMode() {
   try {
@@ -168,6 +179,7 @@ const App = {
     this.$newLineCreateOpening = $("#newLineCreateOpening");
     this.$newLineGenerate = $("#newLineGenerate");
     this.$newLineCopyRows = $("#newLineCopyRows");
+    this.$newLineAiPrompt = $("#newLineAiPrompt");
     this.$newLineSubmit = $("#newLineSubmit");
     this.$newLineOutput = $("#newLineOutput");
   },
@@ -226,6 +238,7 @@ const App = {
     this.$newLineId.on("input", () => this.$newLineId.data("manual", true));
     this.$newLineGenerate.on("click", () => this.generateNewLineRows());
     this.$newLineCopyRows.on("click", () => this.copyNewLineRows());
+    this.$newLineAiPrompt.on("click", () => this.copyNewLineAiPrompt());
     this.$newLineSubmit.on("click", () => this.submitNewLineWrite());
     $(document).on("click", (event) => this.handleDocumentClick(event));
     $(document).on("keydown", (event) => {
@@ -337,6 +350,31 @@ const App = {
         this.setStatus("Unable to copy new line rows.");
       });
   },
+  copyNewLineAiPrompt() {
+    let payload;
+    try {
+      payload = this.buildNewLinePayload();
+    } catch (error) {
+      this.$newLineOutput.text(error.message || String(error));
+      this.setStatus("AI prompt generation failed.");
+      return;
+    }
+    const prompt = this.buildAiPromptText({
+      openingName: payload.opening.row.opening_name || payload.opening.row.opening_id,
+      lineName: payload.line.line_name || payload.line.line_id,
+      practiceSide: payload.line.drill_side,
+      sanNotation: payload.line.moves_pgn
+    });
+    this.copyTextToClipboard(prompt)
+      .then(() => {
+        this.$newLineOutput.text("AI prompt copied to clipboard.");
+        this.setStatus("AI prompt copied.");
+      })
+      .catch(() => {
+        this.$newLineOutput.text("Unable to copy AI prompt.");
+        this.setStatus("Unable to copy AI prompt.");
+      });
+  },
   submitNewLineWrite() {
     const payload = this.generateNewLineRows();
     if (!payload) {
@@ -430,6 +468,7 @@ const App = {
     $("#adminBatchApply").on("click", () => this.adminBatchApplyPrompts(false));
     $("#adminBatchSaveAll").on("click", () => this.adminBatchApplyPrompts(true));
     $("#adminBatchClear").on("click", () => $("#adminBatchPromptText").val(""));
+    $("#adminAiPrompt").on("click", () => this.copyAdminLineAiPrompt());
     $("#adminCommit").on("click", () => this.adminCommit());
     $("#adminReload").on("click", () => window.location.reload());
     this.adminPopulatePicker();
@@ -794,6 +833,97 @@ const App = {
       );
     };
     next(0);
+  },
+  copyAdminLineAiPrompt() {
+    const line = this.getActiveLine();
+    if (!line) {
+      this.adminStatus("Select a line before copying an AI prompt.", true);
+      return;
+    }
+    const opening = this.data.openingsById[line.opening_id] || {};
+    const sanNotation = this.getSanNotationForLine(line, { startFen: this.$adminLineStartFen.val() }) || line.moves_pgn || "";
+    if (!sanNotation.trim()) {
+      this.adminStatus(`Unable to build SAN for ${line.line_id}.`, true);
+      return;
+    }
+    const prompt = this.buildAiPromptText({
+      openingName: this.$adminOpeningName.val() || opening.opening_name || opening.opening_id || line.opening_id,
+      lineName: this.$adminLineName.val() || line.line_name || line.line_id,
+      practiceSide: this.$adminLineDrillSide.val() || line.drill_side,
+      sanNotation
+    });
+    this.copyTextToClipboard(prompt)
+      .then(() => this.adminStatus(`AI prompt copied for ${line.line_id}.`))
+      .catch(() => this.adminStatus("Unable to copy AI prompt.", true));
+  },
+  buildAiPromptText(details) {
+    const openingName = String(details.openingName || "").trim() || "(not provided)";
+    const lineName = String(details.lineName || "").trim() || "(not provided)";
+    const practiceSide = formatSideLabel(details.practiceSide) || "(not provided)";
+    const sanNotation = String(details.sanNotation || "").trim();
+    return [
+      "You are an expert chess coach specializing in creating high-quality study lines. For each move in the sequence, produce exactly one sentence per half-move in a clean single-column format inside a code block.",
+      "",
+      `Opening: ${openingName}`,
+      `Line: ${lineName}`,
+      `Practice side: ${practiceSide}`,
+      "",
+      "SAN:",
+      sanNotation,
+      "",
+      AI_PROMPT_STYLE_RULES
+    ].join("\n");
+  },
+  getPreferredLineNodeKeys(line) {
+    if (!line || !line.line_id) {
+      return [];
+    }
+    const leafKeys = this.getLeafDescendants(line.line_id);
+    if (!leafKeys.length) {
+      return [];
+    }
+    const leafKey = leafKeys.slice().sort((aKey, bKey) => {
+      const aNode = this.data.nodesById[aKey];
+      const bNode = this.data.nodesById[bKey];
+      const aDepth = aNode ? aNode._depth || 0 : 0;
+      const bDepth = bNode ? bNode._depth || 0 : 0;
+      if (aDepth !== bDepth) {
+        return bDepth - aDepth;
+      }
+      return aKey.localeCompare(bKey);
+    })[0];
+    return this.buildPathToRoot(leafKey);
+  },
+  getSanNotationForLine(line, options = {}) {
+    const nodeKeys = this.getPreferredLineNodeKeys(line);
+    if (!nodeKeys.length) {
+      return line && line.moves_pgn ? line.moves_pgn : "";
+    }
+    const chess = new Chess();
+    const startFen = options.startFen !== undefined ? options.startFen : line.start_fen;
+    if (!loadFenForChess(chess, startFen || "")) {
+      return line.moves_pgn || "";
+    }
+    const moves = [];
+    for (const nodeKey of nodeKeys) {
+      const node = this.data.nodesById[nodeKey];
+      if (!node) {
+        continue;
+      }
+      const fenParts = chess.fen().split(/\s+/);
+      const color = fenParts[1] === "b" ? "black" : "white";
+      const moveNumber = parseInt(fenParts[5] || "1", 10) || 1;
+      const move = applyMoveUCI(chess, node.move_uci);
+      if (!move) {
+        return line.moves_pgn || "";
+      }
+      moves.push({
+        san: move.san,
+        color,
+        moveNumber
+      });
+    }
+    return moves.length ? formatSanMoves(moves) : (line.moves_pgn || "");
   },
   adminSaveOpening() {
     const line = this.getActiveLine();
@@ -4011,6 +4141,14 @@ function normalizeDrillSide(value) {
     return normalized;
   }
   return "";
+}
+
+function formatSideLabel(value) {
+  const side = normalizeDrillSide(value);
+  if (!side) {
+    return "";
+  }
+  return side.charAt(0).toUpperCase() + side.slice(1);
 }
 
 function getTodayLocal() {
