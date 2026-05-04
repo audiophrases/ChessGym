@@ -18369,7 +18369,7 @@
     "fen_after_key": ""
   },
   {
-    "opening_id": "budapest_defense",
+    "opening_id": "budapest_gambit",
     "line_id": "budapest_defense_budapest_defense_ng4_nd3_mate_01",
     "node_id": "budapest_defense_b_01",
     "parent_node_id": "",
@@ -18382,7 +18382,7 @@
     "fen_after_key": "rnbqkbnr/pppppppp/8/8/3P4/8/PPP1PPPP/RNBQKBNR b KQkq -"
   },
   {
-    "opening_id": "budapest_defense",
+    "opening_id": "budapest_gambit",
     "line_id": "budapest_defense_budapest_defense_ng4_nd3_mate_01",
     "node_id": "budapest_defense_b_02",
     "parent_node_id": "budapest_defense_b_01",
@@ -18395,7 +18395,7 @@
     "fen_after_key": "rnbqkb1r/pppppppp/5n2/8/3P4/8/PPP1PPPP/RNBQKBNR w KQkq -"
   },
   {
-    "opening_id": "budapest_defense",
+    "opening_id": "budapest_gambit",
     "line_id": "budapest_defense_budapest_defense_ng4_nd3_mate_01",
     "node_id": "budapest_defense_b_03",
     "parent_node_id": "budapest_defense_b_02",
@@ -18408,7 +18408,7 @@
     "fen_after_key": "rnbqkb1r/pppppppp/5n2/8/2PP4/8/PP2PPPP/RNBQKBNR b KQkq -"
   },
   {
-    "opening_id": "budapest_defense",
+    "opening_id": "budapest_gambit",
     "line_id": "budapest_defense_budapest_defense_ng4_nd3_mate_01",
     "node_id": "budapest_defense_b_04",
     "parent_node_id": "budapest_defense_b_03",
@@ -18421,7 +18421,7 @@
     "fen_after_key": "rnbqkb1r/pppp1ppp/5n2/4p3/2PP4/8/PP2PPPP/RNBQKBNR w KQkq -"
   },
   {
-    "opening_id": "budapest_defense",
+    "opening_id": "budapest_gambit",
     "line_id": "budapest_defense_budapest_defense_ng4_nd3_mate_01",
     "node_id": "budapest_defense_b_05",
     "parent_node_id": "budapest_defense_b_04",
@@ -18434,7 +18434,7 @@
     "fen_after_key": "rnbqkb1r/pppp1ppp/5n2/4p3/2PP4/5N2/PP2PPPP/RNBQKB1R b KQkq -"
   },
   {
-    "opening_id": "budapest_defense",
+    "opening_id": "budapest_gambit",
     "line_id": "budapest_defense_budapest_defense_ng4_nd3_mate_01",
     "node_id": "budapest_defense_b_06",
     "parent_node_id": "budapest_defense_b_05",
@@ -18447,7 +18447,7 @@
     "fen_after_key": "rnbqkb1r/pppp1ppp/8/4p3/2PP2n1/5N2/PP2PPPP/RNBQKB1R w KQkq -"
   },
   {
-    "opening_id": "budapest_defense",
+    "opening_id": "budapest_gambit",
     "line_id": "budapest_defense_budapest_defense_ng4_nd3_mate_01",
     "node_id": "budapest_defense_b_07",
     "parent_node_id": "budapest_defense_b_06",
@@ -18460,7 +18460,7 @@
     "fen_after_key": "rnbqkb1r/pppp1ppp/8/4P3/2P3n1/5N2/PP2PPPP/RNBQKB1R b KQkq -"
   },
   {
-    "opening_id": "budapest_defense",
+    "opening_id": "budapest_gambit",
     "line_id": "budapest_defense_budapest_defense_ng4_nd3_mate_01",
     "node_id": "budapest_defense_b_08",
     "parent_node_id": "budapest_defense_b_07",
@@ -18473,7 +18473,7 @@
     "fen_after_key": "r1bqkb1r/pppp1ppp/2n5/4P3/2P3n1/5N2/PP2PPPP/RNBQKB1R w KQkq -"
   },
   {
-    "opening_id": "budapest_defense",
+    "opening_id": "budapest_gambit",
     "line_id": "budapest_defense_budapest_defense_ng4_nd3_mate_01",
     "node_id": "budapest_defense_b_09",
     "parent_node_id": "budapest_defense_b_08",
@@ -18486,7 +18486,7 @@
     "fen_after_key": "r1bqkb1r/pppp1ppp/2n5/4P3/2P2Bn1/5N2/PP2PPPP/RN1QKB1R b KQkq -"
   },
   {
-    "opening_id": "budapest_defense",
+    "opening_id": "budapest_gambit",
     "line_id": "budapest_defense_budapest_defense_ng4_nd3_mate_01",
     "node_id": "budapest_defense_b_10",
     "parent_node_id": "budapest_defense_b_09",
@@ -18499,7 +18499,7 @@
     "fen_after_key": "r1bqk2r/pppp1ppp/2n5/4P3/1bP2Bn1/5N2/PP2PPPP/RN1QKB1R w KQkq -"
   },
   {
-    "opening_id": "budapest_defense",
+    "opening_id": "budapest_gambit",
     "line_id": "budapest_defense_budapest_defense_ng4_nd3_mate_01",
     "node_id": "budapest_defense_b_11",
     "parent_node_id": "budapest_defense_b_10",
@@ -18512,7 +18512,7 @@
     "fen_after_key": "r1bqk2r/pppp1ppp/2n5/4P3/1bP2Bn1/5N2/PP1NPPPP/R2QKB1R b KQkq -"
   },
   {
-    "opening_id": "budapest_defense",
+    "opening_id": "budapest_gambit",
     "line_id": "budapest_defense_budapest_defense_ng4_nd3_mate_01",
     "node_id": "budapest_defense_b_12",
     "parent_node_id": "budapest_defense_b_11",
@@ -18525,7 +18525,7 @@
     "fen_after_key": "r1b1k2r/ppppqppp/2n5/4P3/1bP2Bn1/5N2/PP1NPPPP/R2QKB1R w KQkq -"
   },
   {
-    "opening_id": "budapest_defense",
+    "opening_id": "budapest_gambit",
     "line_id": "budapest_defense_budapest_defense_ng4_nd3_mate_01",
     "node_id": "budapest_defense_b_13",
     "parent_node_id": "budapest_defense_b_12",
@@ -18538,7 +18538,7 @@
     "fen_after_key": "r1b1k2r/ppppqppp/2n5/4P3/1bP2Bn1/P4N2/1P1NPPPP/R2QKB1R b KQkq -"
   },
   {
-    "opening_id": "budapest_defense",
+    "opening_id": "budapest_gambit",
     "line_id": "budapest_defense_budapest_defense_ng4_nd3_mate_01",
     "node_id": "budapest_defense_b_14",
     "parent_node_id": "budapest_defense_b_13",
@@ -18551,7 +18551,7 @@
     "fen_after_key": "r1b1k2r/ppppqppp/8/4n3/1bP2Bn1/P4N2/1P1NPPPP/R2QKB1R w KQkq -"
   },
   {
-    "opening_id": "budapest_defense",
+    "opening_id": "budapest_gambit",
     "line_id": "budapest_defense_budapest_defense_ng4_nd3_mate_01",
     "node_id": "budapest_defense_b_15",
     "parent_node_id": "budapest_defense_b_14",
@@ -18564,7 +18564,7 @@
     "fen_after_key": "r1b1k2r/ppppqppp/8/4n3/1PP2Bn1/5N2/1P1NPPPP/R2QKB1R b KQkq -"
   },
   {
-    "opening_id": "budapest_defense",
+    "opening_id": "budapest_gambit",
     "line_id": "budapest_defense_budapest_defense_ng4_nd3_mate_01",
     "node_id": "budapest_defense_b_16",
     "parent_node_id": "budapest_defense_b_15",
@@ -22295,7 +22295,7 @@
     "fen_after_key": ""
   },
   {
-    "opening_id": "italian_game_blackburne_shilling_gambit",
+    "opening_id": "italian_game",
     "line_id": "italian_game_blackburne_shilling_gambit_italian_game_blackburne_shilling_gambit_qe4_nf3_trap_01",
     "node_id": "italian_game_black_01",
     "parent_node_id": "",
@@ -22308,7 +22308,7 @@
     "fen_after_key": "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq -"
   },
   {
-    "opening_id": "italian_game_blackburne_shilling_gambit",
+    "opening_id": "italian_game",
     "line_id": "italian_game_blackburne_shilling_gambit_italian_game_blackburne_shilling_gambit_qe4_nf3_trap_01",
     "node_id": "italian_game_black_02",
     "parent_node_id": "italian_game_black_01",
@@ -22321,7 +22321,7 @@
     "fen_after_key": "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq -"
   },
   {
-    "opening_id": "italian_game_blackburne_shilling_gambit",
+    "opening_id": "italian_game",
     "line_id": "italian_game_blackburne_shilling_gambit_italian_game_blackburne_shilling_gambit_qe4_nf3_trap_01",
     "node_id": "italian_game_black_03",
     "parent_node_id": "italian_game_black_02",
@@ -22334,7 +22334,7 @@
     "fen_after_key": "rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq -"
   },
   {
-    "opening_id": "italian_game_blackburne_shilling_gambit",
+    "opening_id": "italian_game",
     "line_id": "italian_game_blackburne_shilling_gambit_italian_game_blackburne_shilling_gambit_qe4_nf3_trap_01",
     "node_id": "italian_game_black_04",
     "parent_node_id": "italian_game_black_03",
@@ -22347,7 +22347,7 @@
     "fen_after_key": "r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq -"
   },
   {
-    "opening_id": "italian_game_blackburne_shilling_gambit",
+    "opening_id": "italian_game",
     "line_id": "italian_game_blackburne_shilling_gambit_italian_game_blackburne_shilling_gambit_qe4_nf3_trap_01",
     "node_id": "italian_game_black_05",
     "parent_node_id": "italian_game_black_04",
@@ -22360,7 +22360,7 @@
     "fen_after_key": "r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R b KQkq -"
   },
   {
-    "opening_id": "italian_game_blackburne_shilling_gambit",
+    "opening_id": "italian_game",
     "line_id": "italian_game_blackburne_shilling_gambit_italian_game_blackburne_shilling_gambit_qe4_nf3_trap_01",
     "node_id": "italian_game_black_06",
     "parent_node_id": "italian_game_black_05",
@@ -22373,7 +22373,7 @@
     "fen_after_key": "r1bqkbnr/pppp1ppp/8/4p3/2BnP3/5N2/PPPP1PPP/RNBQK2R w KQkq -"
   },
   {
-    "opening_id": "italian_game_blackburne_shilling_gambit",
+    "opening_id": "italian_game",
     "line_id": "italian_game_blackburne_shilling_gambit_italian_game_blackburne_shilling_gambit_qe4_nf3_trap_01",
     "node_id": "italian_game_black_07",
     "parent_node_id": "italian_game_black_06",
@@ -22386,7 +22386,7 @@
     "fen_after_key": "r1bqkbnr/pppp1ppp/8/4N3/2BnP3/8/PPPP1PPP/RNBQK2R b KQkq -"
   },
   {
-    "opening_id": "italian_game_blackburne_shilling_gambit",
+    "opening_id": "italian_game",
     "line_id": "italian_game_blackburne_shilling_gambit_italian_game_blackburne_shilling_gambit_qe4_nf3_trap_01",
     "node_id": "italian_game_black_08",
     "parent_node_id": "italian_game_black_07",
@@ -22399,7 +22399,7 @@
     "fen_after_key": "r1b1kbnr/pppp1ppp/8/4N1q1/2BnP3/8/PPPP1PPP/RNBQK2R w KQkq -"
   },
   {
-    "opening_id": "italian_game_blackburne_shilling_gambit",
+    "opening_id": "italian_game",
     "line_id": "italian_game_blackburne_shilling_gambit_italian_game_blackburne_shilling_gambit_qe4_nf3_trap_01",
     "node_id": "italian_game_black_09",
     "parent_node_id": "italian_game_black_08",
@@ -22412,7 +22412,7 @@
     "fen_after_key": "r1b1kbnr/pppp1Npp/8/6q1/2BnP3/8/PPPP1PPP/RNBQK2R b KQkq -"
   },
   {
-    "opening_id": "italian_game_blackburne_shilling_gambit",
+    "opening_id": "italian_game",
     "line_id": "italian_game_blackburne_shilling_gambit_italian_game_blackburne_shilling_gambit_qe4_nf3_trap_01",
     "node_id": "italian_game_black_10",
     "parent_node_id": "italian_game_black_09",
@@ -22425,7 +22425,7 @@
     "fen_after_key": "r1b1kbnr/pppp1Npp/8/8/2BnP3/8/PPPP1PqP/RNBQK2R w KQkq -"
   },
   {
-    "opening_id": "italian_game_blackburne_shilling_gambit",
+    "opening_id": "italian_game",
     "line_id": "italian_game_blackburne_shilling_gambit_italian_game_blackburne_shilling_gambit_qe4_nf3_trap_01",
     "node_id": "italian_game_black_11",
     "parent_node_id": "italian_game_black_10",
@@ -22438,7 +22438,7 @@
     "fen_after_key": "r1b1kbnr/pppp1Npp/8/8/2BnP3/8/PPPP1PqP/RNBQKR2 b Qkq -"
   },
   {
-    "opening_id": "italian_game_blackburne_shilling_gambit",
+    "opening_id": "italian_game",
     "line_id": "italian_game_blackburne_shilling_gambit_italian_game_blackburne_shilling_gambit_qe4_nf3_trap_01",
     "node_id": "italian_game_black_12",
     "parent_node_id": "italian_game_black_11",
@@ -22451,7 +22451,7 @@
     "fen_after_key": "r1b1kbnr/pppp1Npp/8/8/2Bnq3/8/PPPP1P1P/RNBQKR2 w Qkq -"
   },
   {
-    "opening_id": "italian_game_blackburne_shilling_gambit",
+    "opening_id": "italian_game",
     "line_id": "italian_game_blackburne_shilling_gambit_italian_game_blackburne_shilling_gambit_qe4_nf3_trap_01",
     "node_id": "italian_game_black_13",
     "parent_node_id": "italian_game_black_12",
@@ -22464,7 +22464,7 @@
     "fen_after_key": "r1b1kbnr/pppp1Npp/8/8/3nq3/8/PPPPBP1P/RNBQKR2 b Qkq -"
   },
   {
-    "opening_id": "italian_game_blackburne_shilling_gambit",
+    "opening_id": "italian_game",
     "line_id": "italian_game_blackburne_shilling_gambit_italian_game_blackburne_shilling_gambit_qe4_nf3_trap_01",
     "node_id": "italian_game_black_14",
     "parent_node_id": "italian_game_black_13",

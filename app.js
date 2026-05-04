@@ -458,9 +458,16 @@ const App = {
         this.$newLineOutput.text(
           `${this.$newLineOutput.text()}\n\nWritten via sidecar.\n` +
           `line_id: ${result.line_id}\nnodes: ${result.nodes_written}\nthumbnail: ${result.thumbnail}\n\n` +
-          `Reload the page to see the new line.`
+          `Loaded the new line in the selector.`
         );
         this.setStatus(`Wrote line ${result.line_id}.`);
+        this.adminReloadDataAfterStructureChange({
+          openingId: result.opening_id || payload.line.opening_id,
+          lineId: result.line_id || payload.line.line_id,
+          mode: this.state.mode
+        }).catch((error) => {
+          this.$newLineOutput.text(`${this.$newLineOutput.text()}\n\nReload failed: ${error.message}`);
+        });
       })
       .catch((error) => {
         this.$newLineOutput.text(`${this.$newLineOutput.text()}\n\nSidecar write failed: ${error.message}`);
@@ -1109,14 +1116,21 @@ const App = {
       .then((body) => {
         Object.assign(opening, body.opening);
         this.adminStatus(`Saved opening ${opening.opening_id}.`);
+        this.buildIndexes();
         this.adminPopulatePicker();
-        this.populateSelectors({ openingId: this.state.openingId, lineId: this.state.lineId, mode: this.state.mode });
+        this.populateSelectors({ openingId: opening.opening_id, lineId: this.state.lineId });
+        this.setLineStatus(this.getActiveLine());
+        this.refreshAdminPanel();
       })
       .catch((error) => this.adminStatus(`Save failed: ${error.message}`, true));
   },
   adminSaveLine() {
     const line = this.getActiveLine();
     if (!line) return;
+    const lineId = line.line_id;
+    const openingId = line.opening_id;
+    const previousStartFen = line.start_fen || "";
+    const previousDrillSide = line.drill_side || "";
     const fields = {
       line_name: this.$adminLineName.val(),
       drill_side: this.$adminLineDrillSide.val(),
@@ -1131,8 +1145,18 @@ const App = {
     })
       .then((body) => {
         Object.assign(line, body.line);
-        this.adminStatus(`Saved line ${line.line_id}.`);
+        this.buildIndexes();
+        this.populateSelectors({ openingId, lineId });
+        const startChanged = previousStartFen !== ((body.line && body.line.start_fen) || "");
+        const sideChanged = previousDrillSide !== ((body.line && body.line.drill_side) || "");
+        if (startChanged || sideChanged) {
+          this.prepareSession();
+        } else {
+          this.setLineStatus(this.getActiveLine());
+        }
+        this.adminStatus(`Saved line ${lineId}.`);
         this.adminPopulatePicker();
+        this.refreshAdminPanel();
       })
       .catch((error) => this.adminStatus(`Save failed: ${error.message}`, true));
   },
@@ -1222,7 +1246,7 @@ const App = {
     const sourceLabel = source.opening_name || sourceId;
     const targetLabel = target.opening_name || targetId;
     const sourceLineCount = (this.data.linesByOpeningId[sourceId] || []).length;
-    const selectedLineId = line ? line.line_id : "any";
+    const selectedLineId = line ? line.line_id : "";
     const message = `Merge "${sourceLabel}" (${sourceId}) into "${targetLabel}" (${targetId})?\n\n` +
       `This moves ${sourceLineCount} line(s), updates their nodes, and removes the source opening row.`;
     if (!window.confirm(message)) {
@@ -1844,6 +1868,10 @@ const App = {
     });
     return hasUnlearned ? "learning" : "practice";
   },
+  pickWeightedDisplayLine(lines, openingId = this.state.openingId) {
+    const pool = (lines || []).filter(Boolean);
+    return weightedPick(pool, (line) => this.getLineSelectionWeight(line, openingId));
+  },
   populateSelectors(defaults = {}) {
     const openings = this.data.openings
       .filter((o) => isPublished(o.published))
@@ -1860,7 +1888,7 @@ const App = {
     this.state.openingId = openingId;
     this.renderOpeningOptions(openings);
     this.updateOpeningSelectionDisplay();
-    this.state.lineId = defaults.lineId || "any";
+    this.state.lineId = defaults.lineId || this.state.lineId || "";
     this.populateLines(defaults.lineId);
   },
   populateLines(preferredLineId) {
@@ -1868,13 +1896,14 @@ const App = {
     const filteredLines = this.getManualSelectionLines(lines);
     const displayLines = this.sortLinesForSelector(filteredLines);
     const currentSelection = preferredLineId || this.state.lineId;
-    let nextSelection = "any";
-    if (currentSelection && currentSelection !== "any" && displayLines.some((line) => line.line_id === currentSelection)) {
-      nextSelection = currentSelection;
-    } else if (currentSelection === "any") {
-      nextSelection = "any";
+    let nextLine = null;
+    if (currentSelection && currentSelection !== "any") {
+      nextLine = displayLines.find((line) => line.line_id === currentSelection) || null;
     }
-    this.state.lineId = nextSelection;
+    if (!nextLine) {
+      nextLine = this.pickWeightedDisplayLine(displayLines);
+    }
+    this.state.lineId = nextLine ? nextLine.line_id : "";
     this.renderLineOptions(displayLines);
     this.updateLineSelectionDisplay();
     this.updateProgress();
@@ -1952,9 +1981,6 @@ const App = {
   renderLineOptions(lines) {
     const $target = this.$lineSelectOptions && this.$lineSelectOptions.length ? this.$lineSelectOptions : this.$lineList;
     $target.empty();
-    $target.append(
-      this.buildSelectOption("any", "Any line (weighted)", "Any_line", "Line option thumbnail", this.state.lineId)
-    );
     lines.forEach((line) => {
       const optionId = line.line_id;
       const label = line.line_name || optionId;
@@ -2120,9 +2146,8 @@ const App = {
     this.updateSelectedOption(this.$openingList, this.state.openingId);
   },
   updateLineSelectionDisplay() {
-    const lineLabel = this.state.lineId === "any"
-      ? "Any line (weighted)"
-      : (this.data.linesById[this.state.lineId]?.line_name || this.state.lineId || "Select line");
+    const line = this.data.linesById[this.state.lineId] || this.data.linesById[this.state.sessionLineId] || null;
+    const lineLabel = line ? (line.line_name || line.line_id) : (this.state.lineId || "Select line");
     this.$lineButton.text(lineLabel);
     this.updateSelectedOption(this.$lineList, this.state.lineId);
   },
@@ -2210,13 +2235,9 @@ const App = {
   },
   updateSelectorThumbnails() {
     this.setThumbnail(this.$openingThumb, this.state.openingId, "Opening thumbnail");
-    const lineId = this.state.lineId;
+    const lineId = this.state.lineId || this.state.sessionLineId;
     if (lineId && lineId !== "any") {
       this.setThumbnail(this.$lineThumb, lineId, "Line thumbnail");
-      return;
-    }
-    if (lineId === "any") {
-      this.setThumbnail(this.$lineThumb, "Any_line", "Line thumbnail");
       return;
     }
     this.clearThumbnail(this.$lineThumb);
@@ -3461,9 +3482,15 @@ const App = {
     let line = null;
     if (selection && selection !== "any") {
       line = lines.find((item) => item.line_id === selection) || null;
-    } else if (forceStart && lines.length) {
+    }
+    if (!line && forceStart && lines.length) {
       const pool = this.getFilteredLines(lines);
-      line = weightedPick(pool, (item) => this.getLineSelectionWeight(item));
+      line = this.pickWeightedDisplayLine(pool);
+      if (line) {
+        this.state.lineId = line.line_id;
+        this.updateLineSelectionDisplay();
+        this.updateSelectorThumbnails();
+      }
     }
     this.state.sessionLineId = line ? line.line_id : null;
     return line;

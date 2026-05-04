@@ -5,7 +5,7 @@
     "side": "both",
     "starting_fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
     "description": "Classic open game: rapid development, center control, kingside initiative.",
-    "tags": "open,beginner,development",
+    "tags": "open,beginner,development,italian,game,blackburne,shilling,gambit",
     "published": "TRUE",
     "book_max_plies_game_mode": "12",
     "allow_transpositions": "TRUE"
@@ -143,17 +143,6 @@
     "allow_transpositions": "TRUE"
   },
   {
-    "opening_id": "budapest_defense",
-    "opening_name": "Budapest Defense",
-    "side": "both",
-    "starting_fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
-    "description": "Training opening family for Budapest Defense.",
-    "tags": "budapest;defense",
-    "published": "TRUE",
-    "book_max_plies_game_mode": "16",
-    "allow_transpositions": "TRUE"
-  },
-  {
     "opening_id": "pirc_defense",
     "opening_name": "Pirc Defense",
     "side": "both",
@@ -203,7 +192,7 @@
     "side": "both",
     "starting_fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
     "description": "Training opening family for Budapest Gambit.",
-    "tags": "budapest;gambit",
+    "tags": "budapest,gambit,defense",
     "published": "TRUE",
     "book_max_plies_game_mode": "16",
     "allow_transpositions": "TRUE"
@@ -215,17 +204,6 @@
     "starting_fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
     "description": "Training opening family for Dutch Defense.",
     "tags": "dutch;defense",
-    "published": "TRUE",
-    "book_max_plies_game_mode": "16",
-    "allow_transpositions": "TRUE"
-  },
-  {
-    "opening_id": "italian_game_blackburne_shilling_gambit",
-    "opening_name": "Italian Game",
-    "side": "both",
-    "starting_fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
-    "description": "Training opening family for Italian Game; Blackburne Shilling Gambit.",
-    "tags": "italian;game;blackburne;shilling;gambit",
     "published": "TRUE",
     "book_max_plies_game_mode": "16",
     "allow_transpositions": "TRUE"
