@@ -212,9 +212,10 @@ def main():
             rep = candidates[0] if candidates else None
             board = board_at_mid_position(rep.get("start_fen", ""), rep.get("moves_pgn", ""), rep.get("thumb_ply")) if rep else board_at_mid_position(opening.get("starting_fen", ""), "")
             out_path = THUMB_DIR / f"{opening_id}.png"
-            render_board_png(board, out_path, piece_imgs, flip=False)
+            flip = is_black_study(rep) if rep else is_black_study(opening)
+            render_board_png(board, out_path, piece_imgs, flip=flip)
             created += 1
-            print(f"+ opening {opening_id}")
+            print(f"+ opening {opening_id} ({'black' if flip else 'white'} view)")
         except Exception as exc:
             failed.append((opening_id, str(exc)))
             print(f"! opening {opening_id}: {exc}")

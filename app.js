@@ -125,6 +125,7 @@ const App = {
   engine: null,
   sounds: {},
   thumbnailCache: new Map(),
+  thumbnailVersions: new Map(),
   init() {
     this.cacheElements();
     this.initThumbnailPreview();
@@ -846,6 +847,12 @@ const App = {
     }
     return "";
   },
+  currentBoardFlip() {
+    if (this.board && typeof this.board.orientation === "function") {
+      return this.board.orientation() === "black";
+    }
+    return this.state.userSide === "black";
+  },
   adminSaveThumb() {
     const line = this.getActiveLine();
     if (!line) return;
@@ -857,10 +864,10 @@ const App = {
     this.adminStatus(`Rendering line thumbnail from current board…`);
     this.adminFetch(`/thumbnail/${encodeURIComponent(line.line_id)}`, {
       method: "POST",
-      body: JSON.stringify({ fen })
+      body: JSON.stringify({ fen, flip: this.currentBoardFlip() })
     })
       .then((body) => {
-        this.thumbnailCache.delete(line.line_id);
+        this.bumpThumbnailVersion(line.line_id);
         this.updateSelectorThumbnails();
         this.adminStatus(`Wrote ${body.result.thumbnail}.`);
       })
@@ -880,10 +887,10 @@ const App = {
     this.adminStatus(`Rendering opening thumbnail ${opening.opening_id} from current board…`);
     this.adminFetch(`/opening-thumbnail/${encodeURIComponent(opening.opening_id)}`, {
       method: "POST",
-      body: JSON.stringify({ fen })
+      body: JSON.stringify({ fen, flip: this.currentBoardFlip() })
     })
       .then((body) => {
-        this.thumbnailCache.delete(opening.opening_id);
+        this.bumpThumbnailVersion(opening.opening_id);
         this.updateSelectorThumbnails();
         this.adminStatus(`Wrote ${body.result.thumbnail}.`);
       })
@@ -2242,6 +2249,27 @@ const App = {
     }
     this.clearThumbnail(this.$lineThumb);
   },
+  bumpThumbnailVersion(id) {
+    if (!id) {
+      return;
+    }
+    this.thumbnailCache.delete(id);
+    this.thumbnailVersions.set(id, Date.now().toString(36));
+    this.refreshThumbnailElements(id);
+  },
+  thumbnailUrl(id) {
+    const url = `Thumbnails/${id}.png`;
+    const version = this.thumbnailVersions.get(id);
+    return version ? `${url}?v=${encodeURIComponent(version)}` : url;
+  },
+  refreshThumbnailElements(id) {
+    $("img").each((_, img) => {
+      const $img = $(img);
+      if ($img.attr("data-thumbnail-id") === id) {
+        this.applyThumbnail($img, id, $img.attr("data-thumbnail-label") || "Thumbnail");
+      }
+    });
+  },
   setThumbnail($img, id, label) {
     if (!$img) {
       return;
@@ -2260,7 +2288,7 @@ const App = {
       this.thumbnailCache.delete(id);
     }
     this.clearThumbnail($img);
-    const url = `Thumbnails/${id}.png`;
+    const url = this.thumbnailUrl(id);
     const probe = new Image();
     probe.onload = () => {
       this.thumbnailCache.set(id, true);
@@ -2272,9 +2300,11 @@ const App = {
     probe.src = url;
   },
   applyThumbnail($img, id, label) {
-    const url = `Thumbnails/${id}.png`;
+    const url = this.thumbnailUrl(id);
     $img.attr("src", url);
     $img.attr("alt", `${label} ${id}`);
+    $img.attr("data-thumbnail-id", id);
+    $img.attr("data-thumbnail-label", label);
     $img.removeClass("is-placeholder");
     if ($img.hasClass("select-thumb")) {
       $img.closest(".select-with-thumb").addClass("with-thumb");
@@ -2283,6 +2313,7 @@ const App = {
   clearThumbnail($img) {
     $img.attr("alt", "");
     $img.attr("src", THUMBNAIL_PLACEHOLDER_SRC);
+    $img.removeAttr("data-thumbnail-id data-thumbnail-label");
     $img.addClass("is-placeholder");
     if ($img.hasClass("select-thumb")) {
       $img.closest(".select-with-thumb").removeClass("with-thumb");

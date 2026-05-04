@@ -103,6 +103,14 @@ def render_thumbnail(thumbnail_id, start_fen, moves_pgn, drill_side, thumb_ply=N
     return out_path
 
 
+def optional_bool(value):
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        return value
+    return str(value).strip().lower() in {"1", "true", "yes", "y", "black"}
+
+
 def refresh_node_fens(openings, lines, nodes):
     result = rebuild_node_fens(openings, lines, nodes)
     if result["warnings"]:
@@ -425,7 +433,7 @@ def rebuild_all_fens():
         return {**result, "fen_warnings": fen_warnings(result)}
 
 
-def regenerate_thumbnail(line_id, thumb_ply_override=None, fen=None):
+def regenerate_thumbnail(line_id, thumb_ply_override=None, fen=None, flip=None):
     with DATA_LOCK:
         lines = load_dataset("lines")
     index = find_index(lines, line_id=line_id)
@@ -439,12 +447,13 @@ def regenerate_thumbnail(line_id, thumb_ply_override=None, fen=None):
         line.get("moves_pgn", ""),
         line.get("drill_side", "white"),
         thumb_ply,
+        flip=flip,
         fen=fen,
     )
     return {"line_id": line_id, "thumbnail": str(out_path.relative_to(ROOT)).replace("\\", "/"), "thumb_ply": str(thumb_ply or "")}
 
 
-def regenerate_opening_thumbnail(opening_id, line_id=None, thumb_ply_override=None, fen=None):
+def regenerate_opening_thumbnail(opening_id, line_id=None, thumb_ply_override=None, fen=None, flip=None):
     with DATA_LOCK:
         openings = load_dataset("openings")
         lines = load_dataset("lines")
@@ -454,7 +463,7 @@ def regenerate_opening_thumbnail(opening_id, line_id=None, thumb_ply_override=No
     opening = openings[opening_index]
 
     if fen and str(fen).strip():
-        out_path = render_thumbnail(opening_id, "", "", "white", None, flip=False, fen=fen)
+        out_path = render_thumbnail(opening_id, "", "", opening.get("side", "white"), None, flip=flip, fen=fen)
         return {
             "opening_id": opening_id,
             "line_id": "",
@@ -479,7 +488,7 @@ def regenerate_opening_thumbnail(opening_id, line_id=None, thumb_ply_override=No
             selected_line.get("moves_pgn", ""),
             selected_line.get("drill_side", "white"),
             thumb_ply,
-            flip=False,
+            flip=flip,
         )
         return {
             "opening_id": opening_id,
@@ -488,7 +497,7 @@ def regenerate_opening_thumbnail(opening_id, line_id=None, thumb_ply_override=No
             "thumb_ply": str(thumb_ply or ""),
         }
 
-    out_path = render_thumbnail(opening_id, opening.get("starting_fen", ""), "", "white", None, flip=False)
+    out_path = render_thumbnail(opening_id, opening.get("starting_fen", ""), "", opening.get("side", "white"), None, flip=flip)
     return {
         "opening_id": opening_id,
         "line_id": "",
@@ -523,6 +532,11 @@ class Handler(SimpleHTTPRequestHandler):
 
     def log_message(self, fmt, *args):
         sys.stderr.write("[%s] %s\n" % (self.log_date_time_string(), fmt % args))
+
+    def end_headers(self):
+        if urlparse(self.path).path.startswith("/Thumbnails/"):
+            self.send_header("Cache-Control", "no-store")
+        super().end_headers()
 
     def _send_json(self, status, body):
         payload = json.dumps(body).encode("utf-8")
@@ -640,7 +654,8 @@ class Handler(SimpleHTTPRequestHandler):
                     payload = {}
                 override = payload.get("thumb_ply")
                 fen = payload.get("fen")
-                self._send_json(200, {"ok": True, "result": regenerate_thumbnail(match.group(1), override, fen)})
+                flip = optional_bool(payload.get("flip"))
+                self._send_json(200, {"ok": True, "result": regenerate_thumbnail(match.group(1), override, fen, flip)})
                 return
             match = re.match(r"^/admin/api/opening-thumbnail/([^/]+)$", path)
             if match and method == "POST":
@@ -650,7 +665,8 @@ class Handler(SimpleHTTPRequestHandler):
                 override = payload.get("thumb_ply")
                 line_id = payload.get("line_id")
                 fen = payload.get("fen")
-                self._send_json(200, {"ok": True, "result": regenerate_opening_thumbnail(match.group(1), line_id, override, fen)})
+                flip = optional_bool(payload.get("flip"))
+                self._send_json(200, {"ok": True, "result": regenerate_opening_thumbnail(match.group(1), line_id, override, fen, flip)})
                 return
             if path == "/admin/api/git/commit" and method == "POST":
                 payload = self._read_json()
