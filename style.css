@@ -879,7 +879,7 @@ body {
   box-shadow: -8px 0 24px rgba(0, 0, 0, 0.45);
   display: flex;
   flex-direction: column;
-  font-size: 13px;
+  font-size: 14px;
   z-index: 9000;
   resize: horizontal;
   overflow: hidden;
@@ -910,7 +910,7 @@ body.admin-mode {
 }
 
 .admin-header-left strong {
-  font-size: 13px;
+  font-size: 14px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: #d1d5db;
@@ -920,7 +920,7 @@ body.admin-mode {
   background: #111827;
   padding: 2px 6px;
   border-radius: 4px;
-  font-size: 11px;
+  font-size: 12px;
   color: #93c5fd;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1005,7 +1005,7 @@ body.admin-mode {
 .admin-meta {
   font-weight: 400;
   color: #9ca3af;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .admin-row {
@@ -1022,7 +1022,7 @@ body.admin-mode {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  font-size: 11px;
+  font-size: 12px;
   color: #d1d5db;
 }
 

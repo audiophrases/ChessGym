@@ -27,6 +27,7 @@
           <button id="boardZoomIn" class="ghost" aria-label="Increase board size">+</button>
           <button id="hintBtn" class="ghost" title="Hints alternate between highlighting the piece and showing the prompt.">Hint</button>
           <button id="freeBtn" class="ghost" aria-pressed="false" title="Enable free play for both sides.">Free</button>
+          <button id="flipBtn" class="ghost hidden" title="Flip the board orientation (Free mode).">Flip</button>
           <button id="lichessBtn" class="ghost">Lich</button>
         </div>
       </div>
@@ -182,90 +183,90 @@
         </div>
       </details>
 
-        <details class="admin-collapsible">
-          <summary><span>Opening</span> <code id="adminOpeningId" class="admin-meta admin-mono"></code></summary>
-          <label>Name <input id="adminOpeningName" type="text" placeholder="e.g. Italian Game" /></label>
-          <details class="admin-collapsible nested">
-            <summary>More</summary>
-            <label>Description <textarea id="adminOpeningDescription" rows="2"></textarea></label>
-            <label>Tags <input id="adminOpeningTags" type="text" /></label>
-          </details>
-          <div class="admin-actions">
-            <button id="adminSaveOpening" class="ghost" type="button">Save opening</button>
-          </div>
+      <details class="admin-collapsible">
+        <summary><span>Opening</span> <code id="adminOpeningId" class="admin-meta admin-mono"></code></summary>
+        <label>Name <input id="adminOpeningName" type="text" placeholder="e.g. Italian Game" /></label>
+        <details class="admin-collapsible nested">
+          <summary>More</summary>
+          <label>Description <textarea id="adminOpeningDescription" rows="2"></textarea></label>
+          <label>Tags <input id="adminOpeningTags" type="text" /></label>
         </details>
+        <div class="admin-actions">
+          <button id="adminSaveOpening" class="ghost" type="button">Save opening</button>
+        </div>
+      </details>
 
-        <details class="admin-collapsible" open>
-          <summary>Line</summary>
-          <label>Name <input id="adminLineName" type="text" /></label>
-          <div class="admin-row">
-            <label>Drill side
-              <select id="adminLineDrillSide">
-                <option value="white">White</option>
-                <option value="black">Black</option>
-              </select>
-            </label>
-            <label>Priority <input id="adminLinePriority" type="number" min="0" step="1" /></label>
-          </div>
-          <details class="admin-collapsible nested">
-            <summary>More</summary>
-            <div class="admin-row">
-              <label>ELO <input id="adminLineElo" type="text" /></label>
-              <label>Group <input id="adminLineGroup" type="text" /></label>
-            </div>
-            <label>Start FEN <input id="adminLineStartFen" type="text" placeholder="Blank = standard start" /></label>
-          </details>
-          <div class="admin-actions">
-            <button id="adminSaveLine" class="ghost" type="button">Save line</button>
-          </div>
-        </details>
-
-        <details class="admin-collapsible">
-          <summary>Thumbnail</summary>
-          <div class="admin-thumb-row">
-            <input id="adminThumbPly" type="range" min="0" max="0" value="0" step="1" aria-label="Thumbnail ply" />
-            <div class="admin-thumb-meta">
-              <span id="adminThumbLabel">ply 0 / 0</span>
-              <span id="adminThumbSan" class="admin-mono"></span>
-            </div>
-          </div>
-          <div class="admin-actions">
-            <button id="adminThumbPreview" class="ghost" type="button" title="Show this position on the board">Preview on board</button>
-            <button id="adminThumbSave" class="ghost" type="button">Save line</button>
-            <button id="adminOpeningThumbSave" class="ghost" type="button">Save opening</button>
-            <button id="adminThumbReset" class="ghost" type="button" title="Use the midpoint (default)">Reset to mid</button>
-          </div>
-        </details>
-
-        <details class="admin-collapsible" open>
-          <summary><span>Nodes</span> <span id="adminNodesMeta" class="admin-meta"></span></summary>
-          <div class="admin-actions admin-nodes-actions">
-            <button id="adminSaveDirty" class="ghost" type="button" disabled>Save all dirty</button>
-          </div>
-          <details class="admin-collapsible nested">
-            <summary>Batch paste prompts</summary>
-            <p class="admin-help">One prompt per line, applied to nodes top-to-bottom in ply order. Blank lines skip that node (leave existing). Extra lines beyond the node count are ignored.</p>
-            <textarea id="adminBatchPromptText" rows="6" placeholder="Develop the e-pawn.&#10;Control the center.&#10;..."></textarea>
-            <div class="admin-actions">
-              <button id="adminAiPrompt" class="ghost" type="button">AI prompt</button>
-              <button id="adminBatchApply" class="ghost" type="button">Apply to nodes</button>
-              <button id="adminBatchSaveAll" class="ghost" type="button" title="Apply, then save every dirty node">Apply + Save</button>
-              <button id="adminBatchClear" class="ghost" type="button" title="Clear the textarea">Clear</button>
-            </div>
-          </details>
-          <div id="adminNodes" class="admin-nodes"></div>
-        </details>
-
-        <details class="admin-collapsible">
-          <summary>Git</summary>
-          <label>Commit message
-            <input id="adminCommitMsg" type="text" placeholder="chessgym admin: edits" />
+      <details class="admin-collapsible" open>
+        <summary>Line</summary>
+        <label>Name <input id="adminLineName" type="text" /></label>
+        <div class="admin-row">
+          <label>Drill side
+            <select id="adminLineDrillSide">
+              <option value="white">White</option>
+              <option value="black">Black</option>
+            </select>
           </label>
+          <label>Priority <input id="adminLinePriority" type="number" min="0" step="1" /></label>
+        </div>
+        <details class="admin-collapsible nested">
+          <summary>More</summary>
+          <div class="admin-row">
+            <label>ELO <input id="adminLineElo" type="text" /></label>
+            <label>Group <input id="adminLineGroup" type="text" /></label>
+          </div>
+          <label>Start FEN <input id="adminLineStartFen" type="text" placeholder="Blank = standard start" /></label>
+        </details>
+        <div class="admin-actions">
+          <button id="adminSaveLine" class="ghost" type="button">Save line</button>
+        </div>
+      </details>
+
+      <details class="admin-collapsible">
+        <summary>Thumbnail</summary>
+        <div class="admin-thumb-row">
+          <input id="adminThumbPly" type="range" min="0" max="0" value="0" step="1" aria-label="Thumbnail ply" />
+          <div class="admin-thumb-meta">
+            <span id="adminThumbLabel">ply 0 / 0</span>
+            <span id="adminThumbSan" class="admin-mono"></span>
+          </div>
+        </div>
+        <div class="admin-actions">
+          <button id="adminThumbPreview" class="ghost" type="button" title="Show this position on the board">Preview on board</button>
+          <button id="adminThumbSave" class="ghost" type="button">Save line</button>
+          <button id="adminOpeningThumbSave" class="ghost" type="button">Save opening</button>
+          <button id="adminThumbReset" class="ghost" type="button" title="Use the midpoint (default)">Reset to mid</button>
+        </div>
+      </details>
+
+      <details class="admin-collapsible" open>
+        <summary><span>Nodes</span> <span id="adminNodesMeta" class="admin-meta"></span></summary>
+        <div class="admin-actions admin-nodes-actions">
+          <button id="adminSaveDirty" class="ghost" type="button" disabled>Save all dirty</button>
+        </div>
+        <details class="admin-collapsible nested">
+          <summary>Batch paste prompts</summary>
+          <p class="admin-help">One prompt per line, applied to nodes top-to-bottom in ply order. Blank lines skip that node (leave existing). Extra lines beyond the node count are ignored.</p>
+          <textarea id="adminBatchPromptText" rows="6" placeholder="Develop the e-pawn.&#10;Control the center.&#10;..."></textarea>
           <div class="admin-actions">
-            <button id="adminCommit" class="ghost" type="button">Commit</button>
-            <button id="adminReload" class="ghost" type="button">Reload page</button>
+            <button id="adminAiPrompt" class="ghost" type="button">AI prompt</button>
+            <button id="adminBatchApply" class="ghost" type="button">Apply to nodes</button>
+            <button id="adminBatchSaveAll" class="ghost" type="button" title="Apply, then save every dirty node">Apply + Save</button>
+            <button id="adminBatchClear" class="ghost" type="button" title="Clear the textarea">Clear</button>
           </div>
         </details>
+        <div id="adminNodes" class="admin-nodes"></div>
+      </details>
+
+      <details class="admin-collapsible">
+        <summary>Git</summary>
+        <label>Commit message
+          <input id="adminCommitMsg" type="text" placeholder="chessgym admin: edits" />
+        </label>
+        <div class="admin-actions">
+          <button id="adminCommit" class="ghost" type="button">Commit</button>
+          <button id="adminReload" class="ghost" type="button">Reload page</button>
+        </div>
+      </details>
 
       <p id="adminStatus" class="admin-status" aria-live="polite"></p>
     </div>

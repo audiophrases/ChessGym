@@ -7,6 +7,7 @@ Serves the static app at / and exposes editing endpoints under /admin/api/*.
 Reads and writes data/*.json. No authentication: only bind to localhost.
 """
 import json
+import os
 import re
 import subprocess
 import sys
@@ -35,6 +36,7 @@ from rebuild_node_fens import rebuild_node_fens  # noqa: E402
 
 HOST = "127.0.0.1"
 PORT = 8787
+ALLOWED_ORIGINS = {f"http://{HOST}:{PORT}", f"http://localhost:{PORT}"}
 
 OPENING_HEADERS = ["opening_id", "opening_name", "side", "starting_fen", "description", "tags", "published", "book_max_plies_game_mode", "allow_transpositions"]
 LINE_HEADERS = ["opening_id", "line_id", "line_name", "line_group", "line_priority", "drill_side", "start_fen", "elo", "moves_pgn", "thumb_ply"]
@@ -70,7 +72,13 @@ def save_dataset(name, rows, headers=None):
                     ordered[key] = "" if value is None else str(value)
             normalized.append(ordered)
         rows = normalized
-    path.write_text(json.dumps(rows, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    payload = json.dumps(rows, indent=2, ensure_ascii=False) + "\n"
+    tmp_path = path.with_suffix(path.suffix + ".tmp")
+    with open(tmp_path, "w", encoding="utf-8", newline="\n") as fh:
+        fh.write(payload)
+        fh.flush()
+        os.fsync(fh.fileno())
+    os.replace(tmp_path, path)
 
 
 def find_index(rows, **criteria):
@@ -96,6 +104,10 @@ def refresh_node_fens(openings, lines, nodes):
         for warning in result["warnings"]:
             print(f"FEN warning: {warning}", file=sys.stderr)
     return result
+
+
+def fen_warnings(result):
+    return list((result or {}).get("warnings") or [])
 
 
 def create_line(payload):
@@ -174,7 +186,7 @@ def create_line(payload):
             })
             parent = node_id
 
-        refresh_node_fens(openings, lines, nodes)
+        rebuild_result = refresh_node_fens(openings, lines, nodes)
         save_dataset("openings", openings, OPENING_HEADERS)
         save_dataset("lines", lines, LINE_HEADERS)
         save_dataset("nodes", nodes, NODE_HEADERS)
@@ -186,11 +198,13 @@ def create_line(payload):
         "line_name": line_name,
         "nodes_written": len(moves),
         "thumbnail": str(thumb_path.relative_to(ROOT)).replace("\\", "/"),
+        "fen_warnings": fen_warnings(rebuild_result),
     }
 
 
 def update_node(node_id, fields):
     allowed = {"learn_prompt", "mistake_map", "move_uci", "parent_node_id"}
+    warnings = []
     with DATA_LOCK:
         openings = load_dataset("openings")
         lines = load_dataset("lines")
@@ -202,13 +216,14 @@ def update_node(node_id, fields):
             if key in allowed:
                 nodes[index][key] = "" if value is None else str(value)
         if any(key in fields for key in ("move_uci", "parent_node_id")):
-            refresh_node_fens(openings, lines, nodes)
+            warnings = fen_warnings(refresh_node_fens(openings, lines, nodes))
         save_dataset("nodes", nodes, NODE_HEADERS)
-        return nodes[index]
+        return nodes[index], warnings
 
 
 def update_opening(opening_id, fields):
     allowed = {"opening_name", "side", "starting_fen", "description", "tags", "published", "book_max_plies_game_mode", "allow_transpositions"}
+    warnings = []
     with DATA_LOCK:
         openings = load_dataset("openings")
         index = find_index(openings, opening_id=opening_id)
@@ -221,13 +236,14 @@ def update_opening(opening_id, fields):
         if "starting_fen" in fields:
             lines = load_dataset("lines")
             nodes = load_dataset("nodes")
-            refresh_node_fens(openings, lines, nodes)
+            warnings = fen_warnings(refresh_node_fens(openings, lines, nodes))
             save_dataset("nodes", nodes, NODE_HEADERS)
-        return openings[index]
+        return openings[index], warnings
 
 
 def update_line(line_id, fields):
     allowed = {"line_name", "line_group", "line_priority", "drill_side", "elo", "start_fen", "moves_pgn", "thumb_ply"}
+    warnings = []
     with DATA_LOCK:
         openings = load_dataset("openings")
         lines = load_dataset("lines")
@@ -240,9 +256,9 @@ def update_line(line_id, fields):
         save_dataset("lines", lines, LINE_HEADERS)
         if "start_fen" in fields:
             nodes = load_dataset("nodes")
-            refresh_node_fens(openings, lines, nodes)
+            warnings = fen_warnings(refresh_node_fens(openings, lines, nodes))
             save_dataset("nodes", nodes, NODE_HEADERS)
-        return lines[index]
+        return lines[index], warnings
 
 
 def rebuild_all_fens():
@@ -252,7 +268,7 @@ def rebuild_all_fens():
         nodes = load_dataset("nodes")
         result = refresh_node_fens(openings, lines, nodes)
         save_dataset("nodes", nodes, NODE_HEADERS)
-        return result
+        return {**result, "fen_warnings": fen_warnings(result)}
 
 
 def regenerate_thumbnail(line_id, thumb_ply_override=None):
@@ -377,8 +393,28 @@ class Handler(SimpleHTTPRequestHandler):
             return
         return super().do_GET()
 
+    def _origin_allowed(self):
+        for header in ("Origin", "Referer"):
+            value = self.headers.get(header)
+            if not value:
+                continue
+            try:
+                parsed = urlparse(value)
+            except ValueError:
+                return False
+            base = f"{parsed.scheme}://{parsed.netloc}"
+            if base in ALLOWED_ORIGINS:
+                return True
+            return False
+        # Same-origin browser POSTs always send Origin or Referer; tools like
+        # curl that don't are acceptable since the listener is bound to loopback.
+        return True
+
     def _route_write(self, method):
         path = urlparse(self.path).path
+        if not self._origin_allowed():
+            self._send_json(403, {"error": "Forbidden origin"})
+            return
         try:
             if path == "/admin/api/line" and method == "POST":
                 payload = self._read_json()
@@ -387,17 +423,20 @@ class Handler(SimpleHTTPRequestHandler):
             match = re.match(r"^/admin/api/node/([^/]+)$", path)
             if match and method == "PATCH":
                 payload = self._read_json()
-                self._send_json(200, {"ok": True, "node": update_node(match.group(1), payload)})
+                node, warnings = update_node(match.group(1), payload)
+                self._send_json(200, {"ok": True, "node": node, "fen_warnings": warnings})
                 return
             match = re.match(r"^/admin/api/line/([^/]+)$", path)
             if match and method == "PATCH":
                 payload = self._read_json()
-                self._send_json(200, {"ok": True, "line": update_line(match.group(1), payload)})
+                line, warnings = update_line(match.group(1), payload)
+                self._send_json(200, {"ok": True, "line": line, "fen_warnings": warnings})
                 return
             match = re.match(r"^/admin/api/opening/([^/]+)$", path)
             if match and method == "PATCH":
                 payload = self._read_json()
-                self._send_json(200, {"ok": True, "opening": update_opening(match.group(1), payload)})
+                opening, warnings = update_opening(match.group(1), payload)
+                self._send_json(200, {"ok": True, "opening": opening, "fen_warnings": warnings})
                 return
             match = re.match(r"^/admin/api/thumbnail/([^/]+)$", path)
             if match and method == "POST":

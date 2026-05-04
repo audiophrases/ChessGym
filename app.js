@@ -153,6 +153,7 @@ const App = {
     this.$comment = $("#commentBox");
     this.$hint = $("#hintBtn");
     this.$free = $("#freeBtn");
+    this.$flip = $("#flipBtn");
     this.$reveal = $("#revealBtn");
     this.$lichess = $("#lichessBtn");
     this.$engineEval = $("#engineEval");
@@ -219,6 +220,7 @@ const App = {
     this.$next.on("click", () => this.stepMove(1));
     this.$hint.on("click", () => this.handleHint());
     this.$free.on("click", () => this.handleFreeModeToggle());
+    this.$flip.on("click", () => this.handleFlipBoard());
     this.$reveal.on("click", () => this.handleRevealMove());
     this.$lichess.on("click", () => this.openLichessGame());
     this.$boardZoomIn.on("click", () => this.adjustBoardSize(1));
@@ -776,8 +778,17 @@ const App = {
         if (status >= 400 || (body && body.ok === false)) {
           throw new Error((body && body.error) || `HTTP ${status}`);
         }
+        this.reportFenWarnings(body && body.fen_warnings);
         return body;
       });
+  },
+  reportFenWarnings(warnings) {
+    if (!Array.isArray(warnings) || !warnings.length) {
+      return;
+    }
+    const preview = warnings.slice(0, 3).join(" | ");
+    const suffix = warnings.length > 3 ? ` (+${warnings.length - 3} more, see sidecar log)` : "";
+    this.adminStatus(`FEN warning: ${preview}${suffix}`, true);
   },
   adminStatus(message, isError) {
     if (!this.$adminStatus) return;
@@ -2185,6 +2196,17 @@ const App = {
           ? "Exit free play and copy the UCI moves played in Free mode."
           : "Enable free play for both sides."
       );
+    if (this.$flip && this.$flip.length) {
+      this.$flip.toggleClass("hidden", !isActive);
+    }
+  },
+  handleFlipBoard() {
+    if (!this.board || !this.state.freeModeActive) {
+      return;
+    }
+    const current = (this.board.orientation && this.board.orientation()) || this.state.userSide || "white";
+    const next = current === "white" ? "black" : "white";
+    this.board.orientation(next);
   },
   showFreeCopyResult(result) {
     if (!result || result.status === "empty") {
