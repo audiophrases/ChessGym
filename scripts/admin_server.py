@@ -116,6 +116,30 @@ def fen_warnings(result):
     return list((result or {}).get("warnings") or [])
 
 
+def get_opening(openings, opening_id):
+    index = find_index(openings, opening_id=opening_id)
+    if index == -1:
+        return -1, None
+    return index, openings[index]
+
+
+def split_tag_values(value):
+    return [tag.strip() for tag in re.split(r"[;,]", str(value or "")) if tag.strip()]
+
+
+def merge_tag_values(*values):
+    merged = []
+    seen = set()
+    for value in values:
+        for tag in split_tag_values(value):
+            key = tag.lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            merged.append(tag)
+    return ",".join(merged)
+
+
 def create_line(payload):
     line_in = payload.get("line") or {}
     moves_text = (payload.get("moves") or "").strip()
@@ -264,6 +288,131 @@ def update_line(line_id, fields):
             warnings = fen_warnings(refresh_node_fens(openings, lines, nodes))
             save_dataset("nodes", nodes, NODE_HEADERS)
         return lines[index], warnings
+
+
+def move_line_to_opening(line_id, target_opening_id, source_opening_id=None):
+    target_opening_id = (target_opening_id or "").strip()
+    source_opening_id = (source_opening_id or "").strip()
+    if not target_opening_id:
+        raise ValueError("target_opening_id is required.")
+
+    with DATA_LOCK:
+        openings = load_dataset("openings")
+        lines = load_dataset("lines")
+        nodes = load_dataset("nodes")
+
+        _, target = get_opening(openings, target_opening_id)
+        if target is None:
+            raise ValueError(f"Target opening not found: {target_opening_id}")
+
+        matches = [
+            (index, line)
+            for index, line in enumerate(lines)
+            if (line.get("line_id") or "") == line_id
+            and (not source_opening_id or (line.get("opening_id") or "") == source_opening_id)
+        ]
+        if not matches:
+            source_note = f" in opening {source_opening_id}" if source_opening_id else ""
+            raise ValueError(f"Line not found{source_note}: {line_id}")
+        if len(matches) > 1:
+            raise ValueError(f"Line ID is not unique; choose a source opening before moving: {line_id}")
+
+        _, line = matches[0]
+        source_opening_id = line.get("opening_id", "") or source_opening_id
+        if source_opening_id == target_opening_id:
+            raise ValueError("Line is already in the target opening.")
+
+        line["opening_id"] = target_opening_id
+        nodes_moved = 0
+        for node in nodes:
+            if (node.get("line_id") or "") == line_id and (
+                not source_opening_id or (node.get("opening_id") or "") == source_opening_id
+            ):
+                node["opening_id"] = target_opening_id
+                nodes_moved += 1
+
+        rebuild_result = refresh_node_fens(openings, lines, nodes)
+        save_dataset("lines", lines, LINE_HEADERS)
+        save_dataset("nodes", nodes, NODE_HEADERS)
+
+    return {
+        "line_id": line_id,
+        "source_opening_id": source_opening_id,
+        "target_opening_id": target_opening_id,
+        "nodes_moved": nodes_moved,
+        "fen_warnings": fen_warnings(rebuild_result),
+    }
+
+
+def merge_openings(source_opening_id, target_opening_id, merge_metadata=True):
+    source_opening_id = (source_opening_id or "").strip()
+    target_opening_id = (target_opening_id or "").strip()
+    if not source_opening_id:
+        raise ValueError("source opening is required.")
+    if not target_opening_id:
+        raise ValueError("target_opening_id is required.")
+    if source_opening_id == target_opening_id:
+        raise ValueError("Source and target openings must be different.")
+
+    with DATA_LOCK:
+        openings = load_dataset("openings")
+        lines = load_dataset("lines")
+        nodes = load_dataset("nodes")
+
+        source_index, source = get_opening(openings, source_opening_id)
+        if source is None:
+            raise ValueError(f"Source opening not found: {source_opening_id}")
+        _, target = get_opening(openings, target_opening_id)
+        if target is None:
+            raise ValueError(f"Target opening not found: {target_opening_id}")
+
+        source_line_ids = {
+            line.get("line_id", "")
+            for line in lines
+            if (line.get("opening_id") or "") == source_opening_id and line.get("line_id")
+        }
+        target_line_ids = {
+            line.get("line_id", "")
+            for line in lines
+            if (line.get("opening_id") or "") == target_opening_id and line.get("line_id")
+        }
+        conflicts = sorted(source_line_ids & target_line_ids)
+        if conflicts:
+            preview = ", ".join(conflicts[:5])
+            suffix = f" (+{len(conflicts) - 5} more)" if len(conflicts) > 5 else ""
+            raise ValueError(f"Cannot merge openings with duplicate line_id values: {preview}{suffix}")
+
+        if merge_metadata:
+            target["tags"] = merge_tag_values(target.get("tags"), source.get("tags"))
+            for field in ("description", "side", "starting_fen", "published", "book_max_plies_game_mode", "allow_transpositions"):
+                if not target.get(field) and source.get(field):
+                    target[field] = source.get(field)
+
+        lines_moved = 0
+        for line in lines:
+            if (line.get("opening_id") or "") == source_opening_id:
+                line["opening_id"] = target_opening_id
+                lines_moved += 1
+
+        nodes_moved = 0
+        for node in nodes:
+            if (node.get("opening_id") or "") == source_opening_id or (node.get("line_id") or "") in source_line_ids:
+                node["opening_id"] = target_opening_id
+                nodes_moved += 1
+
+        del openings[source_index]
+        rebuild_result = refresh_node_fens(openings, lines, nodes)
+        save_dataset("openings", openings, OPENING_HEADERS)
+        save_dataset("lines", lines, LINE_HEADERS)
+        save_dataset("nodes", nodes, NODE_HEADERS)
+
+    return {
+        "source_opening_id": source_opening_id,
+        "target_opening_id": target_opening_id,
+        "lines_moved": lines_moved,
+        "nodes_moved": nodes_moved,
+        "fen_warnings": fen_warnings(rebuild_result),
+    }
 
 
 def rebuild_all_fens():
@@ -454,11 +603,35 @@ class Handler(SimpleHTTPRequestHandler):
                 line, warnings = update_line(match.group(1), payload)
                 self._send_json(200, {"ok": True, "line": line, "fen_warnings": warnings})
                 return
+            match = re.match(r"^/admin/api/line/([^/]+)/move$", path)
+            if match and method == "POST":
+                payload = self._read_json()
+                if not isinstance(payload, dict):
+                    payload = {}
+                result = move_line_to_opening(
+                    match.group(1),
+                    payload.get("target_opening_id", ""),
+                    payload.get("source_opening_id", ""),
+                )
+                self._send_json(200, {"ok": True, "result": result, "fen_warnings": result.get("fen_warnings", [])})
+                return
             match = re.match(r"^/admin/api/opening/([^/]+)$", path)
             if match and method == "PATCH":
                 payload = self._read_json()
                 opening, warnings = update_opening(match.group(1), payload)
                 self._send_json(200, {"ok": True, "opening": opening, "fen_warnings": warnings})
+                return
+            match = re.match(r"^/admin/api/opening/([^/]+)/merge$", path)
+            if match and method == "POST":
+                payload = self._read_json()
+                if not isinstance(payload, dict):
+                    payload = {}
+                result = merge_openings(
+                    match.group(1),
+                    payload.get("target_opening_id", ""),
+                    payload.get("merge_metadata", True) is not False,
+                )
+                self._send_json(200, {"ok": True, "result": result, "fen_warnings": result.get("fen_warnings", [])})
                 return
             match = re.match(r"^/admin/api/thumbnail/([^/]+)$", path)
             if match and method == "POST":

@@ -190,6 +190,20 @@
         </div>
       </details>
 
+      <details class="admin-collapsible">
+        <summary><span>Opening Tools</span> <span class="admin-meta">move / merge</span></summary>
+        <label>Target opening
+          <input id="adminTargetOpeningId" type="text" list="adminOpeningIdList" placeholder="opening_id" autocomplete="off" />
+          <datalist id="adminOpeningIdList"></datalist>
+        </label>
+        <div id="adminDuplicateOpenings" class="admin-duplicate-openings hidden" aria-live="polite"></div>
+        <p class="admin-help">Move selected line changes only this line and its nodes. Merge current opening moves every line into the target and removes the current opening row.</p>
+        <div class="admin-actions">
+          <button id="adminMoveLineOpening" class="ghost" type="button">Move selected line</button>
+          <button id="adminMergeOpening" class="ghost danger-action" type="button">Merge current opening</button>
+        </div>
+      </details>
+
       <details class="admin-collapsible" open>
         <summary>Line</summary>
         <label>Name <input id="adminLineName" type="text" /></label>

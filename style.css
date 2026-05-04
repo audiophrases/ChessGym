@@ -1112,6 +1112,11 @@ body.admin-mode {
   color: #fff;
 }
 .admin-panel .primary-action:hover { background: #1d4ed8; }
+.admin-panel .danger-action {
+  border-color: #991b1b;
+  background: #7f1d1d;
+}
+.admin-panel .danger-action:hover { background: #991b1b; }
 
 .admin-header-actions {
   display: flex;
@@ -1144,6 +1149,30 @@ body.admin-mode {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+}
+
+.admin-duplicate-openings {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  color: #9ca3af;
+  font-size: 11px;
+}
+
+.admin-target-chip {
+  border: 1px solid #374151;
+  border-radius: 999px;
+  background: #0f172a;
+  color: #e5e7eb;
+  cursor: pointer;
+  font: inherit;
+  padding: 2px 8px;
+}
+
+.admin-target-chip:hover {
+  border-color: #60a5fa;
+  color: #bfdbfe;
 }
 
 .admin-picker {

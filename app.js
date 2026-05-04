@@ -493,6 +493,9 @@ const App = {
     this.$adminPickerSearch = $("#adminPickerSearch");
     this.$adminPickerList = $("#adminPickerList");
     this.$adminSaveDirty = $("#adminSaveDirty");
+    this.$adminTargetOpeningId = $("#adminTargetOpeningId");
+    this.$adminOpeningIdList = $("#adminOpeningIdList");
+    this.$adminDuplicateOpenings = $("#adminDuplicateOpenings");
     this.adminDirtyNodes = new Set();
     this.adminSanByNodeId = {};
     this.adminPlyByNodeId = {};
@@ -505,6 +508,8 @@ const App = {
     this.$adminPickerSearch.on("input", () => this.adminFilterPicker(this.$adminPickerSearch.val()));
     $("#adminSaveOpening").on("click", () => this.adminSaveOpening());
     $("#adminSaveLine").on("click", () => this.adminSaveLine());
+    $("#adminMoveLineOpening").on("click", () => this.adminMoveLineToOpening());
+    $("#adminMergeOpening").on("click", () => this.adminMergeOpening());
     $("#adminThumbSave").on("click", () => this.adminSaveThumb());
     $("#adminOpeningThumbSave").on("click", () => this.adminSaveOpeningThumb());
     this.$adminSaveDirty.on("click", () => this.adminSaveAllDirty());
@@ -514,7 +519,11 @@ const App = {
     $("#adminAiPrompt").on("click", () => this.copyAdminLineAiPrompt());
     $("#adminCommit").on("click", () => this.adminCommit());
     $("#adminReload").on("click", () => window.location.reload());
+    this.$adminDuplicateOpenings.on("click", "button[data-opening-id]", (event) => {
+      this.$adminTargetOpeningId.val($(event.currentTarget).attr("data-opening-id") || "");
+    });
     this.adminPopulatePicker();
+    this.adminPopulateOpeningTargets();
   },
   adminPopulatePicker() {
     if (!this.$adminPickerList || !this.$adminPickerList.length) return;
@@ -594,6 +603,85 @@ const App = {
       $el.toggleClass("active", $el.attr("data-line-id") === lineId);
     });
   },
+  adminPopulateOpeningTargets() {
+    if (!this.$adminOpeningIdList || !this.$adminOpeningIdList.length) return;
+    const options = (this.data.openings || [])
+      .slice()
+      .sort((a, b) => {
+        const aName = (a.opening_name || a.opening_id || "").toString();
+        const bName = (b.opening_name || b.opening_id || "").toString();
+        return aName.localeCompare(bName, undefined, { sensitivity: "base" });
+      })
+      .map((opening) => {
+        const id = opening.opening_id || "";
+        const name = opening.opening_name || "";
+        return `<option value="${escapeHtml(id)}" label="${escapeHtml(name)}"></option>`;
+      })
+      .join("");
+    this.$adminOpeningIdList.html(options);
+  },
+  adminUpdateOpeningTools(line, opening) {
+    if (!this.$adminTargetOpeningId || !this.$adminTargetOpeningId.length) return;
+    const sourceId = (opening && opening.opening_id) || (line && line.opening_id) || this.state.openingId || "";
+    const previousSourceId = this.$adminTargetOpeningId.data("sourceOpeningId") || "";
+    if (previousSourceId !== sourceId) {
+      this.$adminTargetOpeningId.val("");
+      this.$adminTargetOpeningId.data("sourceOpeningId", sourceId);
+    }
+    this.$adminTargetOpeningId.attr("placeholder", sourceId ? `Target opening ID (not ${sourceId})` : "opening_id");
+
+    if (!this.$adminDuplicateOpenings || !this.$adminDuplicateOpenings.length) return;
+    this.$adminDuplicateOpenings.empty().addClass("hidden");
+    const key = normalizeOpeningNameKey(opening && opening.opening_name);
+    if (!key) return;
+    const duplicates = (this.data.openings || []).filter((candidate) =>
+      candidate.opening_id !== sourceId && normalizeOpeningNameKey(candidate.opening_name) === key
+    );
+    if (!duplicates.length) return;
+
+    this.$adminDuplicateOpenings.removeClass("hidden");
+    this.$adminDuplicateOpenings.append($("<span>").text("Same name:"));
+    duplicates.forEach((candidate) => {
+      const lineCount = (this.data.linesByOpeningId[candidate.opening_id] || []).length;
+      const label = `${candidate.opening_id}${lineCount ? ` (${lineCount})` : ""}`;
+      const $button = $("<button>")
+        .attr("type", "button")
+        .attr("data-opening-id", candidate.opening_id)
+        .addClass("admin-target-chip")
+        .text(label);
+      this.$adminDuplicateOpenings.append($button);
+    });
+  },
+  adminGetTargetOpeningId() {
+    const raw = String(this.$adminTargetOpeningId.val() || "").trim();
+    if (!raw) {
+      this.adminStatus("Choose a target opening first.", true);
+      return "";
+    }
+    let targetId = raw;
+    if (!this.data.openingsById[targetId]) {
+      const matches = (this.data.openings || []).filter((opening) =>
+        (opening.opening_name || "").toLowerCase() === raw.toLowerCase()
+      );
+      if (matches.length === 1) {
+        targetId = matches[0].opening_id;
+      } else if (matches.length > 1) {
+        this.adminStatus(`Multiple openings are named "${raw}". Use the opening_id.`, true);
+        return "";
+      }
+    }
+    if (!this.data.openingsById[targetId]) {
+      this.adminStatus(`Target opening not found: ${targetId}`, true);
+      return "";
+    }
+    return targetId;
+  },
+  adminConfirmDiscardDirtyNodes(actionLabel) {
+    if (!this.adminDirtyNodes || this.adminDirtyNodes.size === 0) {
+      return true;
+    }
+    return window.confirm(`${this.adminDirtyNodes.size} unsaved node edit(s) will be discarded before ${actionLabel}. Continue?`);
+  },
   adminSelectLineFromPicker(openingId, lineId) {
     if (this.adminDirtyNodes && this.adminDirtyNodes.size > 0) {
       if (!window.confirm(`${this.adminDirtyNodes.size} unsaved node edit(s) will be discarded. Continue?`)) {
@@ -637,12 +725,14 @@ const App = {
     if (this.$adminPickerList && !this.$adminPickerList.children().length && this.data.lines.length) {
       this.adminPopulatePicker();
     }
+    this.adminPopulateOpeningTargets();
     this.adminMarkActivePickerItem();
     if (!line) {
       this.$adminBody.addClass("empty");
       this.$adminLineId.text("(no line selected)");
       this.$adminNodes.empty();
       this.$adminNodesMeta.text("");
+      this.adminUpdateOpeningTools(null, this.getSelectedOpening());
       return;
     }
     this.$adminBody.removeClass("empty");
@@ -652,6 +742,7 @@ const App = {
     this.$adminOpeningName.val(opening.opening_name || "");
     this.$adminOpeningDescription.val(opening.description || "");
     this.$adminOpeningTags.val(opening.tags || "");
+    this.adminUpdateOpeningTools(line, opening);
     this.$adminLineName.val(line.line_name || "");
     this.$adminLineDrillSide.val(line.drill_side || "white");
     this.$adminLineGroup.val(line.line_group || "");
@@ -1044,6 +1135,121 @@ const App = {
         this.adminPopulatePicker();
       })
       .catch((error) => this.adminStatus(`Save failed: ${error.message}`, true));
+  },
+  adminReloadDataAfterStructureChange(defaults = {}) {
+    const mode = defaults.mode || this.state.mode || this.$mode.val() || "learning";
+    return this.fetchDataset()
+      .then((dataset) => {
+        this.data.openings = dataset.openings || [];
+        this.data.lines = dataset.lines || [];
+        this.data.nodes = dataset.nodes || [];
+        this.data.mistakeTemplates = dataset.mistake_templates || [];
+        this.buildIndexes();
+        this.state.mode = mode;
+        this.$mode.val(mode);
+        this.populateSelectors({
+          openingId: defaults.openingId || this.state.openingId,
+          lineId: defaults.lineId || this.state.lineId
+        });
+        this.prepareSession();
+        this.adminPopulatePicker();
+        this.refreshAdminPanel();
+      });
+  },
+  adminMoveLineToOpening() {
+    const line = this.getActiveLine();
+    if (!line) {
+      this.adminStatus("Select a line before moving it.", true);
+      return;
+    }
+    const targetId = this.adminGetTargetOpeningId();
+    if (!targetId) return;
+    const sourceId = line.opening_id || "";
+    if (targetId === sourceId) {
+      this.adminStatus("Target opening is already the line's opening.", true);
+      return;
+    }
+    if (!this.adminConfirmDiscardDirtyNodes("moving this line")) return;
+
+    const source = this.data.openingsById[sourceId] || {};
+    const target = this.data.openingsById[targetId] || {};
+    const lineLabel = line.line_name || line.line_id;
+    const sourceLabel = source.opening_name || sourceId;
+    const targetLabel = target.opening_name || targetId;
+    if (!window.confirm(`Move "${lineLabel}" from "${sourceLabel}" to "${targetLabel}"?`)) {
+      return;
+    }
+
+    this.adminStatus(`Moving ${line.line_id} to ${targetId}…`);
+    this.adminFetch(`/line/${encodeURIComponent(line.line_id)}/move`, {
+      method: "POST",
+      body: JSON.stringify({
+        source_opening_id: sourceId,
+        target_opening_id: targetId
+      })
+    })
+      .then((body) => {
+        const result = body.result || {};
+        const warnings = body.fen_warnings || result.fen_warnings || [];
+        return this.adminReloadDataAfterStructureChange({
+          openingId: targetId,
+          lineId: line.line_id,
+          mode: this.state.mode
+        }).then(() => {
+          const warningText = warnings.length ? ` ${warnings.length} FEN warning(s).` : "";
+          this.adminStatus(`Moved ${result.line_id || line.line_id} to ${targetId}.${warningText}`, warnings.length > 0);
+        });
+      })
+      .catch((error) => this.adminStatus(`Move failed: ${error.message}`, true));
+  },
+  adminMergeOpening() {
+    const line = this.getActiveLine();
+    const sourceId = (line && line.opening_id) || this.state.openingId || "";
+    if (!sourceId) {
+      this.adminStatus("Select an opening before merging.", true);
+      return;
+    }
+    const targetId = this.adminGetTargetOpeningId();
+    if (!targetId) return;
+    if (targetId === sourceId) {
+      this.adminStatus("Target opening must be different from the current opening.", true);
+      return;
+    }
+    if (!this.adminConfirmDiscardDirtyNodes("merging this opening")) return;
+
+    const source = this.data.openingsById[sourceId] || {};
+    const target = this.data.openingsById[targetId] || {};
+    const sourceLabel = source.opening_name || sourceId;
+    const targetLabel = target.opening_name || targetId;
+    const sourceLineCount = (this.data.linesByOpeningId[sourceId] || []).length;
+    const selectedLineId = line ? line.line_id : "any";
+    const message = `Merge "${sourceLabel}" (${sourceId}) into "${targetLabel}" (${targetId})?\n\n` +
+      `This moves ${sourceLineCount} line(s), updates their nodes, and removes the source opening row.`;
+    if (!window.confirm(message)) {
+      return;
+    }
+
+    this.adminStatus(`Merging ${sourceId} into ${targetId}…`);
+    this.adminFetch(`/opening/${encodeURIComponent(sourceId)}/merge`, {
+      method: "POST",
+      body: JSON.stringify({
+        target_opening_id: targetId,
+        merge_metadata: true
+      })
+    })
+      .then((body) => {
+        const result = body.result || {};
+        const warnings = body.fen_warnings || result.fen_warnings || [];
+        return this.adminReloadDataAfterStructureChange({
+          openingId: targetId,
+          lineId: selectedLineId,
+          mode: this.state.mode
+        }).then(() => {
+          const warningText = warnings.length ? ` ${warnings.length} FEN warning(s).` : "";
+          this.adminStatus(`Merged ${result.source_opening_id || sourceId} into ${targetId}; moved ${result.lines_moved || 0} line(s).${warningText}`, warnings.length > 0);
+        });
+      })
+      .catch((error) => this.adminStatus(`Merge failed: ${error.message}`, true));
   },
   adminCommit() {
     const message = (this.$adminCommitMsg.val() || "").trim();
@@ -4029,6 +4235,15 @@ function slugifyId(value) {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "_")
     .replace(/^_+|_+$/g, "");
+}
+
+function normalizeOpeningNameKey(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function loadPinnedLines() {
