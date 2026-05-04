@@ -27,6 +27,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 from generate_missing_thumbnails import (  # noqa: E402
     board_at_mid_position,
     load_piece_images,
+    parse_game,
     render_board_png,
 )
 from new_line_rows import parse_moves, slugify, variation_san, move_to_uci  # noqa: E402
@@ -79,12 +80,12 @@ def find_index(rows, **criteria):
     return -1
 
 
-def render_thumbnail(line_id, start_fen, moves_pgn, drill_side, thumb_ply=None):
+def render_thumbnail(thumbnail_id, start_fen, moves_pgn, drill_side, thumb_ply=None, flip=None):
     board = board_at_mid_position(start_fen, moves_pgn, thumb_ply)
     THUMB_DIR.mkdir(parents=True, exist_ok=True)
-    out_path = THUMB_DIR / f"{line_id}.png"
-    flip = (drill_side or "").strip().lower().startswith("b")
-    render_board_png(board, out_path, piece_images(), flip=flip)
+    out_path = THUMB_DIR / f"{thumbnail_id}.png"
+    resolved_flip = (drill_side or "").strip().lower().startswith("b") if flip is None else bool(flip)
+    render_board_png(board, out_path, piece_images(), flip=resolved_flip)
     return out_path
 
 
@@ -266,6 +267,49 @@ def regenerate_thumbnail(line_id, thumb_ply_override=None):
     return {"line_id": line_id, "thumbnail": str(out_path.relative_to(ROOT)).replace("\\", "/"), "thumb_ply": str(thumb_ply or "")}
 
 
+def regenerate_opening_thumbnail(opening_id, line_id=None, thumb_ply_override=None):
+    with DATA_LOCK:
+        openings = load_dataset("openings")
+        lines = load_dataset("lines")
+    opening_index = find_index(openings, opening_id=opening_id)
+    if opening_index == -1:
+        raise ValueError(f"Opening not found: {opening_id}")
+    opening = openings[opening_index]
+    candidates = [line for line in lines if (line.get("opening_id") or "") == opening_id]
+    selected_line = None
+    if line_id:
+        selected_line = next((line for line in candidates if (line.get("line_id") or "") == line_id), None)
+        if selected_line is None:
+            raise ValueError(f"Line not found in opening {opening_id}: {line_id}")
+    elif candidates:
+        selected_line = sorted(candidates, key=lambda line: len(parse_game(line.get("moves_pgn", ""))), reverse=True)[0]
+
+    if selected_line:
+        thumb_ply = thumb_ply_override if thumb_ply_override is not None else selected_line.get("thumb_ply")
+        out_path = render_thumbnail(
+            opening_id,
+            selected_line.get("start_fen", ""),
+            selected_line.get("moves_pgn", ""),
+            selected_line.get("drill_side", "white"),
+            thumb_ply,
+            flip=False,
+        )
+        return {
+            "opening_id": opening_id,
+            "line_id": selected_line.get("line_id", ""),
+            "thumbnail": str(out_path.relative_to(ROOT)).replace("\\", "/"),
+            "thumb_ply": str(thumb_ply or ""),
+        }
+
+    out_path = render_thumbnail(opening_id, opening.get("starting_fen", ""), "", "white", None, flip=False)
+    return {
+        "opening_id": opening_id,
+        "line_id": "",
+        "thumbnail": str(out_path.relative_to(ROOT)).replace("\\", "/"),
+        "thumb_ply": "",
+    }
+
+
 def git_commit(message):
     msg = (message or "").strip() or f"chessgym admin: edits {datetime.now().isoformat(timespec='seconds')}"
     cmds = [
@@ -360,6 +404,13 @@ class Handler(SimpleHTTPRequestHandler):
                 payload = self._read_json()
                 override = payload.get("thumb_ply") if isinstance(payload, dict) else None
                 self._send_json(200, {"ok": True, "result": regenerate_thumbnail(match.group(1), override)})
+                return
+            match = re.match(r"^/admin/api/opening-thumbnail/([^/]+)$", path)
+            if match and method == "POST":
+                payload = self._read_json()
+                override = payload.get("thumb_ply") if isinstance(payload, dict) else None
+                line_id = payload.get("line_id") if isinstance(payload, dict) else None
+                self._send_json(200, {"ok": True, "result": regenerate_opening_thumbnail(match.group(1), line_id, override)})
                 return
             if path == "/admin/api/git/commit" and method == "POST":
                 payload = self._read_json()

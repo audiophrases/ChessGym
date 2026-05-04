@@ -462,6 +462,7 @@ const App = {
     $("#adminSaveLine").on("click", () => this.adminSaveLine());
     $("#adminThumbPreview").on("click", () => this.adminPreviewThumb());
     $("#adminThumbSave").on("click", () => this.adminSaveThumb());
+    $("#adminOpeningThumbSave").on("click", () => this.adminSaveOpeningThumb());
     $("#adminThumbReset").on("click", () => this.adminResetThumb());
     this.$adminThumbPly.on("input", () => this.adminUpdateThumbLabel());
     this.$adminSaveDirty.on("click", () => this.adminSaveAllDirty());
@@ -719,6 +720,31 @@ const App = {
         this.adminStatus(`Wrote ${body.result.thumbnail} (ply ${ply}).`);
       })
       .catch((error) => this.adminStatus(`Thumbnail failed: ${error.message}`, true));
+  },
+  adminSaveOpeningThumb() {
+    const opening = this.getSelectedOpening();
+    const line = this.getActiveLine();
+    if (!opening) {
+      this.adminStatus("Select an opening before rendering its thumbnail.", true);
+      return;
+    }
+    const ply = parseInt(this.$adminThumbPly.val(), 10) || 0;
+    const body = {
+      line_id: line ? line.line_id : "",
+      thumb_ply: String(ply)
+    };
+    this.adminStatus(`Rendering opening thumbnail ${opening.opening_id}…`);
+    this.adminFetch(`/opening-thumbnail/${encodeURIComponent(opening.opening_id)}`, {
+      method: "POST",
+      body: JSON.stringify(body)
+    })
+      .then((body) => {
+        this.thumbnailCache.delete(opening.opening_id);
+        this.updateSelectorThumbnails();
+        const source = body.result.line_id ? ` from ${body.result.line_id}` : "";
+        this.adminStatus(`Wrote ${body.result.thumbnail}${source}.`);
+      })
+      .catch((error) => this.adminStatus(`Opening thumbnail failed: ${error.message}`, true));
   },
   adminResetThumb() {
     const line = this.getActiveLine();

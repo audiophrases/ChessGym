@@ -40,6 +40,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Generate ChessGym thumbnails for missing or selected lines/openings.")
     parser.add_argument("--refresh-lines", choices=["missing", "all"], default="missing")
     parser.add_argument("--line-ids", default="", help="Comma-separated line_id list to regenerate (overwrites existing).")
+    parser.add_argument("--opening-ids", default="", help="Comma-separated opening_id list to regenerate (overwrites existing).")
     parser.add_argument("--skip-lines", action="store_true")
     parser.add_argument("--skip-openings", action="store_true")
     return parser.parse_args()
@@ -142,10 +143,15 @@ def main():
     piece_imgs = load_piece_images()
 
     selected_line_ids = {item.strip() for item in args.line_ids.split(",") if item.strip()}
+    selected_opening_ids = {item.strip() for item in args.opening_ids.split(",") if item.strip()}
     known_line_ids = {(row.get("line_id") or "").strip() for row in lines}
+    known_opening_ids = {(row.get("opening_id") or "").strip() for row in openings}
     unknown_selected = sorted(selected_line_ids - known_line_ids)
     if unknown_selected:
         print(f"Warning: unknown line_ids ignored: {', '.join(unknown_selected)}")
+    unknown_selected_openings = sorted(selected_opening_ids - known_opening_ids)
+    if unknown_selected_openings:
+        print(f"Warning: unknown opening_ids ignored: {', '.join(unknown_selected_openings)}")
 
     target_lines = []
     if not args.skip_lines:
@@ -165,7 +171,10 @@ def main():
             opening_id = (row.get("opening_id") or "").strip()
             if not opening_id:
                 continue
-            if opening_id not in existing:
+            if selected_opening_ids:
+                if opening_id in selected_opening_ids:
+                    target_openings.append(row)
+            elif opening_id not in existing:
                 target_openings.append(row)
 
     print(f"Line thumbnails to render: {len(target_lines)}")
@@ -201,7 +210,7 @@ def main():
         try:
             candidates = sorted(lines_by_opening.get(opening_id, []), key=line_complexity, reverse=True)
             rep = candidates[0] if candidates else None
-            board = board_at_mid_position(rep.get("start_fen", ""), rep.get("moves_pgn", "")) if rep else board_at_mid_position(opening.get("starting_fen", ""), "")
+            board = board_at_mid_position(rep.get("start_fen", ""), rep.get("moves_pgn", ""), rep.get("thumb_ply")) if rep else board_at_mid_position(opening.get("starting_fen", ""), "")
             out_path = THUMB_DIR / f"{opening_id}.png"
             render_board_png(board, out_path, piece_imgs, flip=False)
             created += 1
