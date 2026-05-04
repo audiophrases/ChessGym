@@ -1,13 +1,13 @@
 /*
   ChessGym uses four JSON datasets:
   - openings: core opening metadata (opening_id, starting_fen, book_max_plies_game_mode, etc.).
-  - lines: named training lines (opening_id, line_id, line_name, line_group, line_priority, drill_side, start_fen, elo, moves_pgn).
+  - lines: named training lines (opening_id, line_id, line_name, line_group, drill_side, start_fen, tags, moves_pgn).
   - nodes: per-position instructions and FEN lookup data (opening_id, line_id, node_id, parent_node_id, move_uci, learn_prompt, mistake_map, fen_before, fen_key, fen_after, fen_after_key).
   - mistake_templates: global messaging for mapped mistakes (mistake_code -> coach_message, why_wrong, hint).
 */
 
 const OPPONENT_DELAY_MS = 500;
-const LINE_ELO_OPTIONS = ["900", "1200", "1500", "1800", "2100", "2400", "2700", "3000"];
+const PINNED_LINES_KEY = "chessgym.pinnedLines";
 const THUMBNAIL_PLACEHOLDER_SRC = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==";
 const ADMIN_API_BASE = "/admin/api";
 const LOCAL_DATA_BASE = "data";
@@ -39,7 +39,7 @@ function isAdminMode() {
   }
 }
 const OPENING_HEADERS = ["opening_id", "opening_name", "side", "starting_fen", "description", "tags", "published", "book_max_plies_game_mode", "allow_transpositions"];
-const LINE_HEADERS = ["opening_id", "line_id", "line_name", "line_group", "line_priority", "drill_side", "start_fen", "elo", "moves_pgn"];
+const LINE_HEADERS = ["opening_id", "line_id", "line_name", "line_group", "drill_side", "start_fen", "tags", "moves_pgn"];
 const NODE_HEADERS = ["opening_id", "line_id", "node_id", "parent_node_id", "move_uci", "learn_prompt", "mistake_map", "fen_before", "fen_key", "fen_after", "fen_after_key"];
 
 const App = {
@@ -57,7 +57,6 @@ const App = {
     rootNodesByLineId: {},
     nodesByOpeningFen: {},
     nodesByFen: {},
-    linePriorityById: {},
     mistakeTemplatesByCode: {}
   },
   state: {
@@ -118,7 +117,8 @@ const App = {
     lastFreeMovesText: "",
     boardSizeIndex: 2,
     outOfLine: false,
-    eloFilters: new Set(),
+    pinnedLines: loadPinnedLines(),
+    lineSearchQuery: "",
   },
   chess: null,
   board: null,
@@ -140,7 +140,8 @@ const App = {
     this.$lineButton = $("#lineSelectBtn");
     this.$lineList = $("#lineSelectList");
     this.$dueBtn = $("#dueBtn");
-    this.$eloFilters = $("input[name='eloFilter']");
+    this.$lineSearchInput = $("#lineSearchInput");
+    this.$lineSelectOptions = $("#lineSelectOptions");
     this.$mode = $("#modeSelect");
     this.$strength = $("#strengthSelect");
     this.$prev = $("#prevBtn");
@@ -173,8 +174,8 @@ const App = {
     this.$newLineId = $("#newLineId");
     this.$newLineDrillSide = $("#newLineDrillSide");
     this.$newLineNotation = $("#newLineNotation");
-    this.$newLineElo = $("#newLineElo");
-    this.$newLinePriority = $("#newLinePriority");
+    this.$newLineTags = $("#newLineTags");
+    this.$newLineOpeningNameList = $("#newLineOpeningNameList");
     this.$newLineStartFen = $("#newLineStartFen");
     this.$newLineMoves = $("#newLineMoves");
     this.$newLineCreateOpening = $("#newLineCreateOpening");
@@ -213,7 +214,8 @@ const App = {
     this.$openingList.on("mouseleave", ".select-option", () => this.hideThumbnailPreview());
     this.$lineList.on("mouseleave", ".select-option", () => this.hideThumbnailPreview());
     this.$dueBtn.on("click", () => this.onStudyDueToggle());
-    this.$eloFilters.on("change", () => this.onEloFilterChange());
+    this.$lineSearchInput.on("input", () => this.onLineSearchChange());
+    this.$lineSearchInput.on("click", (event) => event.stopPropagation());
     this.$mode.on("change", () => this.onModeChange());
     this.$strength.on("change", () => this.onStrengthChange());
     this.$prev.on("click", () => this.stepMove(-1));
@@ -238,6 +240,8 @@ const App = {
     });
     this.$newLineName.on("input", () => this.syncNewLineIdFromName());
     this.$newLineId.on("input", () => this.$newLineId.data("manual", true));
+    this.$newLineOpeningName.on("input", () => this.syncOpeningIdFromName());
+    this.$newLineOpeningId.on("input", () => this.$newLineOpeningId.data("manual", true));
     this.$newLineGenerate.on("click", () => this.generateNewLineRows());
     this.$newLineCopyRows.on("click", () => this.copyNewLineRows());
     this.$newLineAiPrompt.on("click", () => this.copyNewLineAiPrompt());
@@ -290,19 +294,21 @@ const App = {
     const opening = this.getSelectedOpening();
     const activeLine = this.getActiveLine();
     const movesText = this.state.lastFreeMovesText || this.state.moveHistory.join(" ");
-    this.$newLineOpeningId.val(opening ? opening.opening_id || "" : "");
-    this.$newLineOpeningName.val(opening ? opening.opening_name || "" : "");
+    this.$newLineOpeningId.val(opening ? opening.opening_id || "" : "").removeData("manual");
+    this.$newLineOpeningName.val(opening ? opening.opening_name || "" : "").removeData("lastSlug");
     this.$newLineName.val("");
     this.$newLineId.val("").removeData("manual");
     this.$newLineName.removeData("lastSlug");
     this.$newLineDrillSide.val((activeLine && activeLine.drill_side) || this.state.userSide || "white");
     this.$newLineNotation.val("auto");
-    this.$newLineElo.val("");
-    this.$newLinePriority.val("1");
+    if (this.$newLineTags && this.$newLineTags.length) {
+      this.$newLineTags.val("");
+    }
     this.$newLineStartFen.val(activeLine && activeLine.start_fen ? activeLine.start_fen : "");
     this.$newLineMoves.val(movesText);
     this.$newLineCreateOpening.prop("checked", false);
     this.$newLineOutput.text("Preview the local JSON write before adding the line.");
+    this.populateOpeningNameDatalist();
     this.$adminNewLineSection.prop("open", true);
     this.$adminNewLineSection[0].scrollIntoView({ block: "start", behavior: "smooth" });
     this.$newLineName.trigger("focus");
@@ -324,6 +330,47 @@ const App = {
     const nextSlug = slugifyId(this.$newLineName.val());
     this.$newLineName.data("lastSlug", nextSlug);
     this.$newLineId.val(nextSlug);
+  },
+  syncOpeningIdFromName() {
+    const typedName = (this.$newLineOpeningName.val() || "").trim();
+    const matched = (this.data.openings || []).find(
+      (op) => (op.opening_name || "").toLowerCase() === typedName.toLowerCase()
+    );
+    if (matched) {
+      this.$newLineOpeningId.val(matched.opening_id).removeData("manual");
+      this.$newLineOpeningName.data("lastSlug", slugifyId(typedName));
+      return;
+    }
+    if (this.$newLineOpeningId.data("manual")) {
+      return;
+    }
+    const previousSlug = slugifyId(this.$newLineOpeningName.data("lastSlug") || "");
+    const current = this.$newLineOpeningId.val();
+    if (current && current !== previousSlug) {
+      this.$newLineOpeningId.data("manual", true);
+      return;
+    }
+    const nextSlug = slugifyId(typedName);
+    this.$newLineOpeningName.data("lastSlug", typedName);
+    this.$newLineOpeningId.val(nextSlug);
+  },
+  populateOpeningNameDatalist() {
+    if (!this.$newLineOpeningNameList || !this.$newLineOpeningNameList.length) {
+      return;
+    }
+    const seen = new Set();
+    const options = (this.data.openings || [])
+      .slice()
+      .sort((a, b) => (a.opening_name || a.opening_id || "").localeCompare(b.opening_name || b.opening_id || ""))
+      .filter((op) => {
+        const name = (op.opening_name || "").trim();
+        if (!name || seen.has(name.toLowerCase())) return false;
+        seen.add(name.toLowerCase());
+        return true;
+      })
+      .map((op) => `<option value="${escapeHtml(op.opening_name)}"></option>`)
+      .join("");
+    this.$newLineOpeningNameList.html(options);
   },
   generateNewLineRows() {
     try {
@@ -436,9 +483,8 @@ const App = {
     this.$adminOpeningTags = $("#adminOpeningTags");
     this.$adminLineName = $("#adminLineName");
     this.$adminLineDrillSide = $("#adminLineDrillSide");
-    this.$adminLineElo = $("#adminLineElo");
     this.$adminLineGroup = $("#adminLineGroup");
-    this.$adminLinePriority = $("#adminLinePriority");
+    this.$adminLineTags = $("#adminLineTags");
     this.$adminLineStartFen = $("#adminLineStartFen");
     this.$adminNodes = $("#adminNodes");
     this.$adminNodesMeta = $("#adminNodesMeta");
@@ -446,9 +492,6 @@ const App = {
     this.$adminCommitMsg = $("#adminCommitMsg");
     this.$adminPickerSearch = $("#adminPickerSearch");
     this.$adminPickerList = $("#adminPickerList");
-    this.$adminThumbPly = $("#adminThumbPly");
-    this.$adminThumbLabel = $("#adminThumbLabel");
-    this.$adminThumbSan = $("#adminThumbSan");
     this.$adminSaveDirty = $("#adminSaveDirty");
     this.adminDirtyNodes = new Set();
     this.adminSanByNodeId = {};
@@ -462,11 +505,8 @@ const App = {
     this.$adminPickerSearch.on("input", () => this.adminFilterPicker(this.$adminPickerSearch.val()));
     $("#adminSaveOpening").on("click", () => this.adminSaveOpening());
     $("#adminSaveLine").on("click", () => this.adminSaveLine());
-    $("#adminThumbPreview").on("click", () => this.adminPreviewThumb());
     $("#adminThumbSave").on("click", () => this.adminSaveThumb());
     $("#adminOpeningThumbSave").on("click", () => this.adminSaveOpeningThumb());
-    $("#adminThumbReset").on("click", () => this.adminResetThumb());
-    this.$adminThumbPly.on("input", () => this.adminUpdateThumbLabel());
     this.$adminSaveDirty.on("click", () => this.adminSaveAllDirty());
     $("#adminBatchApply").on("click", () => this.adminBatchApplyPrompts(false));
     $("#adminBatchSaveAll").on("click", () => this.adminBatchApplyPrompts(true));
@@ -479,27 +519,49 @@ const App = {
   adminPopulatePicker() {
     if (!this.$adminPickerList || !this.$adminPickerList.length) return;
     const lines = (this.data.lines || []).slice().sort((a, b) => {
+      const aPinned = this.isLinePinned(a.line_id) ? 0 : 1;
+      const bPinned = this.isLinePinned(b.line_id) ? 0 : 1;
+      if (aPinned !== bPinned) return aPinned - bPinned;
       const oa = (a.opening_id || "").localeCompare(b.opening_id || "");
       if (oa !== 0) return oa;
       return (a.line_name || a.line_id || "").localeCompare(b.line_name || b.line_id || "");
     });
     this.$adminPickerList.empty();
     let lastOpening = null;
+    let lastWasPinnedGroup = false;
     lines.forEach((line) => {
-      if (line.opening_id !== lastOpening) {
-        const opening = this.data.openingsById[line.opening_id];
-        const label = opening ? (opening.opening_name || opening.opening_id) : line.opening_id;
-        this.$adminPickerList.append(`<div class="admin-picker-group">${label}</div>`);
-        lastOpening = line.opening_id;
+      const pinned = this.isLinePinned(line.line_id);
+      const groupKey = pinned ? "__pinned__" : line.opening_id;
+      if (groupKey !== lastOpening) {
+        let label;
+        if (pinned) {
+          label = "★ Pinned";
+          lastWasPinnedGroup = true;
+        } else {
+          const opening = this.data.openingsById[line.opening_id];
+          label = opening ? (opening.opening_name || opening.opening_id) : line.opening_id;
+          lastWasPinnedGroup = false;
+        }
+        this.$adminPickerList.append(`<div class="admin-picker-group">${escapeHtml(label)}</div>`);
+        lastOpening = groupKey;
       }
       const nodeCount = (this.data.nodesByLineId[line.line_id] || []).length;
       const $btn = $(
         `<button type="button" class="admin-picker-item" data-line-id="${line.line_id}" data-opening-id="${line.opening_id}">
+          <span class="admin-pin-toggle" role="button" aria-label="${pinned ? "Unpin" : "Pin"} line" title="${pinned ? "Unpin" : "Pin"} line">${pinned ? "★" : "☆"}</span>
           <span class="admin-picker-name"></span>
           <span class="admin-picker-meta">${nodeCount} · ${line.drill_side || "?"}</span>
         </button>`
       );
+      if (pinned) {
+        $btn.find(".admin-pin-toggle").addClass("is-pinned");
+      }
       $btn.find(".admin-picker-name").text(line.line_name || line.line_id);
+      $btn.find(".admin-pin-toggle").on("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        this.togglePinnedLine(line.line_id);
+      });
       $btn.on("click", () => this.adminSelectLineFromPicker(line.opening_id, line.line_id));
       this.$adminPickerList.append($btn);
     });
@@ -592,20 +654,15 @@ const App = {
     this.$adminOpeningTags.val(opening.tags || "");
     this.$adminLineName.val(line.line_name || "");
     this.$adminLineDrillSide.val(line.drill_side || "white");
-    this.$adminLineElo.val(line.elo || "");
     this.$adminLineGroup.val(line.line_group || "");
-    this.$adminLinePriority.val(line.line_priority || "1");
+    if (this.$adminLineTags && this.$adminLineTags.length) {
+      this.$adminLineTags.val(line.tags || "");
+    }
     this.$adminLineStartFen.val(line.start_fen || "");
 
     const { sanByNodeId, plyByNodeId, total } = this.computeSanForLine(line);
     this.adminSanByNodeId = sanByNodeId;
     this.adminPlyByNodeId = plyByNodeId;
-
-    this.$adminThumbPly.attr("max", total);
-    const savedPly = parseInt(line.thumb_ply, 10);
-    const initialPly = Number.isFinite(savedPly) ? Math.max(0, Math.min(total, savedPly)) : Math.max(1, Math.floor(total / 2));
-    this.$adminThumbPly.val(initialPly);
-    this.adminUpdateThumbLabel();
 
     this.adminDirtyNodes = new Set();
     this.$adminSaveDirty.prop("disabled", true);
@@ -894,11 +951,20 @@ const App = {
       .catch(() => this.adminStatus("Unable to copy AI prompt.", true));
   },
   buildAiPromptText(details) {
-    const openingName = String(details.openingName || "").trim() || "(not provided)";
-    const lineName = String(details.lineName || "").trim() || "(not provided)";
+    const rawOpening = String(details.openingName || "").trim();
+    const rawLine = String(details.lineName || "").trim();
+    const openingName = rawOpening || "(not provided)";
+    const lineName = rawLine || "(not provided)";
     const practiceSide = formatSideLabel(details.practiceSide) || "(not provided)";
     const sanNotation = String(details.sanNotation || "").trim();
-    return [
+    const missingNotes = [];
+    if (!rawOpening) {
+      missingNotes.push("- Opening name is missing. Identify the opening from the SAN and propose a clear, conventional name (e.g. \"Italian Game\", \"Caro-Kann Defense\"). Put your suggestion on a line beginning with `Opening:`.");
+    }
+    if (!rawLine) {
+      missingNotes.push("- Line name is missing. Propose a short, descriptive line name that captures the tactical or strategic theme of the sequence (3-6 words, no punctuation). Put your suggestion on a line beginning with `Line:`.");
+    }
+    const sections = [
       "You are an expert chess coach specializing in creating high-quality study lines. For each move in the sequence, produce exactly one sentence per half-move in a clean single-column format inside a code block.",
       "",
       `Opening: ${openingName}`,
@@ -907,9 +973,15 @@ const App = {
       "",
       "SAN:",
       sanNotation,
-      "",
-      AI_PROMPT_STYLE_RULES
-    ].join("\n");
+      ""
+    ];
+    if (missingNotes.length) {
+      sections.push("Additional task — when fields are missing, fill them in BEFORE the move-by-move code block:");
+      sections.push(...missingNotes);
+      sections.push("");
+    }
+    sections.push(AI_PROMPT_STYLE_RULES);
+    return sections.join("\n");
   },
   getPreferredLineNodeKeys(line) {
     if (!line || !line.line_id) {
@@ -994,9 +1066,8 @@ const App = {
     const fields = {
       line_name: this.$adminLineName.val(),
       drill_side: this.$adminLineDrillSide.val(),
-      elo: this.$adminLineElo.val(),
       line_group: this.$adminLineGroup.val(),
-      line_priority: this.$adminLinePriority.val(),
+      tags: (this.$adminLineTags && this.$adminLineTags.length) ? this.$adminLineTags.val() : (line.tags || ""),
       start_fen: this.$adminLineStartFen.val()
     };
     this.adminStatus(`Saving line ${line.line_id}…`);
@@ -1050,10 +1121,9 @@ const App = {
       line_id: lineId,
       line_name: lineName,
       line_group: "",
-      line_priority: this.$newLinePriority.val().trim() || "1",
       drill_side: drillSide,
       start_fen: startFen,
-      elo: this.$newLineElo.val().trim(),
+      tags: (this.$newLineTags && this.$newLineTags.length) ? this.$newLineTags.val().trim() : "",
       moves_pgn: parsed.movesPgn
     };
     const openingRow = {
@@ -1236,8 +1306,6 @@ const App = {
         this.data.linesByOpeningId[key] = [];
       }
       this.data.linesByOpeningId[key].push(line);
-      const priority = parseFloat(line.line_priority || "1");
-      this.data.linePriorityById[line.line_id] = Number.isFinite(priority) && priority > 0 ? priority : 1;
     });
 
     this.data.nodes.forEach((node) => {
@@ -1296,11 +1364,6 @@ const App = {
     const bSession = sessionLineId && b.line_id === sessionLineId;
     if (aSession !== bSession) {
       return aSession ? -1 : 1;
-    }
-    const aPriority = this.data.linePriorityById[a.line_id] || 1;
-    const bPriority = this.data.linePriorityById[b.line_id] || 1;
-    if (aPriority !== bPriority) {
-      return bPriority - aPriority;
     }
     return this.compareNodesDeterministic(a, b);
   },
@@ -1651,6 +1714,11 @@ const App = {
   },
   sortLinesForSelector(lines) {
     return (lines || []).slice().sort((a, b) => {
+      const aPinned = this.isLinePinned(a.line_id) ? 0 : 1;
+      const bPinned = this.isLinePinned(b.line_id) ? 0 : 1;
+      if (aPinned !== bPinned) {
+        return aPinned - bPinned;
+      }
       const aName = (a.line_name || a.line_id || "").toString();
       const bName = (b.line_name || b.line_id || "").toString();
       const byName = aName.localeCompare(bName, undefined, { sensitivity: "base" });
@@ -1659,6 +1727,27 @@ const App = {
       }
       return (a.line_id || "").toString().localeCompare((b.line_id || "").toString(), undefined, { sensitivity: "base" });
     });
+  },
+  isLinePinned(lineId) {
+    return !!(lineId && this.state.pinnedLines && this.state.pinnedLines[lineId]);
+  },
+  togglePinnedLine(lineId) {
+    if (!lineId) return;
+    if (!this.state.pinnedLines) {
+      this.state.pinnedLines = {};
+    }
+    if (this.state.pinnedLines[lineId]) {
+      delete this.state.pinnedLines[lineId];
+    } else {
+      this.state.pinnedLines[lineId] = true;
+    }
+    savePinnedLines(this.state.pinnedLines);
+    if (this.state.lineSearchQuery && this.state.lineSearchQuery.trim()) {
+      this.renderLineSearchResults(this.state.lineSearchQuery);
+    } else {
+      this.populateLines(this.state.lineId);
+    }
+    this.adminPopulatePicker();
   },
   onOpeningChange(nextOpeningId) {
     if (!nextOpeningId) {
@@ -1692,19 +1781,76 @@ const App = {
     });
   },
   renderLineOptions(lines) {
-    this.$lineList.empty();
-    this.$lineList.append(
+    const $target = this.$lineSelectOptions && this.$lineSelectOptions.length ? this.$lineSelectOptions : this.$lineList;
+    $target.empty();
+    $target.append(
       this.buildSelectOption("any", "Any line (weighted)", "Any_line", "Line option thumbnail", this.state.lineId)
     );
     lines.forEach((line) => {
       const optionId = line.line_id;
       const label = line.line_name || optionId;
-      this.$lineList.append(
-        this.buildSelectOption(optionId, label, optionId, "Line option thumbnail", this.state.lineId)
+      $target.append(
+        this.buildSelectOption(optionId, label, optionId, "Line option thumbnail", this.state.lineId, {
+          pinnable: true,
+          lineId: optionId
+        })
       );
     });
   },
-  buildSelectOption(value, label, thumbnailId, thumbnailLabel, selectedValue) {
+  onLineSearchChange() {
+    const query = (this.$lineSearchInput && this.$lineSearchInput.val()) || "";
+    this.state.lineSearchQuery = query;
+    if (!query.trim()) {
+      this.populateLines(this.state.lineId);
+      return;
+    }
+    if (this.$lineList && !this.$lineList.hasClass("is-open")) {
+      this.$lineList.addClass("is-open");
+      this.$lineButton.attr("aria-expanded", "true");
+    }
+    this.renderLineSearchResults(query);
+  },
+  renderLineSearchResults(query) {
+    const needle = (query || "").trim().toLowerCase();
+    const $target = this.$lineSelectOptions && this.$lineSelectOptions.length ? this.$lineSelectOptions : this.$lineList;
+    $target.empty();
+    if (!needle) {
+      return;
+    }
+    const matches = (this.data.lines || []).filter((line) => {
+      const haystack = `${line.line_name || ""} ${line.line_id || ""} ${this.lookupOpeningName(line.opening_id) || ""}`.toLowerCase();
+      return haystack.includes(needle);
+    });
+    matches.sort((a, b) => {
+      const aPinned = this.isLinePinned(a.line_id) ? 0 : 1;
+      const bPinned = this.isLinePinned(b.line_id) ? 0 : 1;
+      if (aPinned !== bPinned) return aPinned - bPinned;
+      return (a.line_name || a.line_id || "").localeCompare(b.line_name || b.line_id || "", undefined, { sensitivity: "base" });
+    });
+    if (!matches.length) {
+      $target.append('<div class="select-empty">No lines match.</div>');
+      return;
+    }
+    matches.slice(0, 80).forEach((line) => {
+      const openingName = this.lookupOpeningName(line.opening_id) || line.opening_id;
+      const label = line.line_name || line.line_id;
+      $target.append(
+        this.buildSelectOption(line.line_id, label, line.line_id, "Line option thumbnail", this.state.lineId, {
+          pinnable: true,
+          lineId: line.line_id,
+          openingId: line.opening_id,
+          metaText: openingName,
+          crossOpening: true
+        })
+      );
+    });
+  },
+  lookupOpeningName(openingId) {
+    const opening = this.data.openingsById[openingId];
+    return opening ? opening.opening_name || opening.opening_id : openingId || "";
+  },
+  buildSelectOption(value, label, thumbnailId, thumbnailLabel, selectedValue, options) {
+    const opts = options || {};
     const $option = $("<button>")
       .addClass("select-option")
       .attr("type", "button")
@@ -1712,6 +1858,9 @@ const App = {
       .attr("data-value", value);
     if (thumbnailId) {
       $option.attr("data-thumbnail-id", thumbnailId);
+    }
+    if (opts.openingId) {
+      $option.attr("data-opening-id", opts.openingId);
     }
     if (selectedValue && value === selectedValue) {
       $option.addClass("is-selected");
@@ -1722,6 +1871,34 @@ const App = {
       .attr("alt", "");
     const $label = $("<span>").addClass("option-label").text(label);
     $option.append($thumb, $label);
+    if (opts.metaText) {
+      const $meta = $("<span>").addClass("option-meta").text(opts.metaText);
+      $option.append($meta);
+    }
+    if (opts.pinnable && opts.lineId) {
+      const isPinned = this.isLinePinned(opts.lineId);
+      const $pin = $("<span>")
+        .addClass("pin-toggle")
+        .attr("role", "button")
+        .attr("tabindex", "0")
+        .attr("aria-label", isPinned ? "Unpin line" : "Pin line")
+        .attr("title", isPinned ? "Unpin line" : "Pin line")
+        .toggleClass("is-pinned", isPinned)
+        .text(isPinned ? "★" : "☆");
+      $pin.on("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        this.togglePinnedLine(opts.lineId);
+      });
+      $pin.on("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          event.stopPropagation();
+          this.togglePinnedLine(opts.lineId);
+        }
+      });
+      $option.append($pin);
+    }
     if (thumbnailId) {
       this.setThumbnail($thumb, thumbnailId, thumbnailLabel);
     } else {
@@ -1791,13 +1968,18 @@ const App = {
     });
   },
   handleSelectOption(event, type) {
-    const value = $(event.currentTarget).data("value");
+    const $target = $(event.currentTarget);
+    const value = $target.data("value");
     if (type === "opening") {
       this.closeSelectList("opening");
       this.onOpeningChange(value);
       return;
     }
+    const crossOpeningId = $target.attr("data-opening-id");
     this.closeSelectList("line");
+    if (crossOpeningId && crossOpeningId !== this.state.openingId) {
+      this.onOpeningChange(crossOpeningId);
+    }
     this.onLineChange(value);
   },
   toggleSelectList(type) {
@@ -1820,6 +2002,11 @@ const App = {
     list.removeClass("is-open");
     button.attr("aria-expanded", "false");
     this.hideThumbnailPreview();
+    if (type === "line" && this.state.lineSearchQuery) {
+      this.$lineSearchInput.val("");
+      this.state.lineSearchQuery = "";
+      this.populateLines(this.state.lineId);
+    }
   },
   closeAllSelectLists() {
     this.$openingList.removeClass("is-open");
@@ -1827,6 +2014,11 @@ const App = {
     this.$openingButton.attr("aria-expanded", "false");
     this.$lineButton.attr("aria-expanded", "false");
     this.hideThumbnailPreview();
+    if (this.$lineSearchInput && this.state.lineSearchQuery) {
+      this.$lineSearchInput.val("");
+      this.state.lineSearchQuery = "";
+      this.populateLines(this.state.lineId);
+    }
   },
   handleDocumentClick(event) {
     const target = event.target;
@@ -1911,18 +2103,6 @@ const App = {
     const label = this.state.studyDueOnly ? "Study All Lines" : "Study Due Lines";
     this.$dueBtn.text(label);
     this.populateLines();
-    this.prepareSession();
-  },
-  onEloFilterChange() {
-    const selected = new Set();
-    this.$eloFilters.filter(":checked").each((_, input) => {
-      const value = $(input).val();
-      if (LINE_ELO_OPTIONS.includes(value)) {
-        selected.add(value);
-      }
-    });
-    this.state.eloFilters = selected;
-    this.populateLines(this.state.lineId);
     this.prepareSession();
   },
   onModeChange() {
@@ -2477,9 +2657,7 @@ const App = {
     }
     const sameLine = expected ? matches.filter((node) => node.line_id === expected.line_id) : [];
     const pool = sameLine.length ? sameLine : matches;
-    const highestPriority = Math.max(...pool.map((node) => this.data.linePriorityById[node.line_id] || 1));
-    const topPriority = pool.filter((node) => (this.data.linePriorityById[node.line_id] || 1) === highestPriority);
-    return topPriority[Math.floor(Math.random() * topPriority.length)];
+    return pool[Math.floor(Math.random() * pool.length)];
   },
   handleMistakeBranchJump(branchNode, expected, uci, legalMove) {
     this.state.mistakes += 1;
@@ -3089,15 +3267,7 @@ const App = {
     return dueLines.length ? dueLines : lines;
   },
   getManualSelectionLines(lines) {
-    const dueLines = this.getFilteredLines(lines);
-    return this.getLinesMatchingEloFilter(dueLines);
-  },
-  getLinesMatchingEloFilter(lines) {
-    const selected = this.state.eloFilters;
-    if (!selected || selected.size === 0) {
-      return lines;
-    }
-    return lines.filter((line) => selected.has(String(line.elo || "").trim()));
+    return this.getFilteredLines(lines);
   },
   getDueLines(lines) {
     const srData = loadSR();
@@ -3109,13 +3279,12 @@ const App = {
     });
   },
   getLineSelectionWeight(line, openingId = this.state.openingId) {
-    const basePriority = this.data.linePriorityById[line.line_id] || 1;
     const srData = loadSR();
     const sr = ensureSRDefaults(srData[getLineKey(openingId, line.line_id)]);
     const completed = sr.stats.completed || 0;
     const learned = sr.stats.learned || 0;
     const studyCount = completed + learned;
-    return basePriority / (1 + studyCount);
+    return 1 / (1 + studyCount);
   },
   resolveSessionLine(forceStart) {
     const lines = this.data.linesByOpeningId[this.state.openingId] || [];
@@ -3526,9 +3695,7 @@ const App = {
       ? candidates.filter((candidate) => candidate.line_id === preferredLineId)
       : [];
     const pool = preferred.length ? preferred : candidates;
-    const highestPriority = Math.max(...pool.map((candidate) => this.data.linePriorityById[candidate.line_id] || 1));
-    const topPriority = pool.filter((candidate) => (this.data.linePriorityById[candidate.line_id] || 1) === highestPriority);
-    return topPriority[Math.floor(Math.random() * topPriority.length)];
+    return pool[Math.floor(Math.random() * pool.length)];
   },
   getExpectedNodeFromPlan() {
     const plan = this.state.sessionPlan;
@@ -3899,6 +4066,25 @@ function slugifyId(value) {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "_")
     .replace(/^_+|_+$/g, "");
+}
+
+function loadPinnedLines() {
+  try {
+    const raw = window.localStorage.getItem(PINNED_LINES_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch (error) {
+    return {};
+  }
+}
+
+function savePinnedLines(map) {
+  try {
+    window.localStorage.setItem(PINNED_LINES_KEY, JSON.stringify(map || {}));
+  } catch (error) {
+    // Storage may be disabled; pins simply won't persist.
+  }
 }
 
 function tokenizeMoveText(text) {

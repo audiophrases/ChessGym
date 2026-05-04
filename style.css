@@ -256,22 +256,67 @@ body {
   color: var(--muted);
 }
 
-.elo-filter {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(64px, 1fr));
-  gap: 6px 10px;
+.select-search {
+  position: sticky;
+  top: 0;
+  padding: 6px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  z-index: 1;
 }
 
-.elo-option {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.85rem;
+.select-search input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 6px 8px;
+  font-size: 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
   color: var(--text);
 }
 
-.elo-option input {
-  margin: 0;
+.select-options {
+  display: flex;
+  flex-direction: column;
+}
+
+.pin-toggle {
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 0 6px;
+  line-height: 1;
+}
+
+.pin-toggle:hover {
+  color: var(--accent);
+}
+
+.pin-toggle.is-pinned {
+  color: #f59e0b;
+}
+
+.option-meta {
+  font-size: 11px;
+  color: var(--muted);
+  margin-left: 6px;
+}
+
+.admin-pin-toggle {
+  border: none;
+  background: transparent;
+  color: #6b7280;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 0 4px;
+  margin-right: 4px;
+}
+
+.admin-pin-toggle.is-pinned {
+  color: #fbbf24;
 }
 
 .header-actions {

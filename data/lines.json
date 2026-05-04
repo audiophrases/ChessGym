@@ -1023,7 +1023,7 @@
     "start_fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
     "elo": "1200",
     "moves_pgn": "1. d4 f5 2. Bg5 h6 3. Bh4 g5 4. Bg3 f4 5. e3 fxg3 6. Qh5#",
-    "thumb_ply": "",
+    "thumb_ply": "6",
     "": ""
   },
   {
@@ -1043,7 +1043,7 @@
     "opening_id": "italian_game_blackburne_shilling_gambit",
     "line_id": "italian_game_blackburne_shilling_gambit_italian_game_blackburne_shilling_gambit_qe4_nf3_trap_01",
     "line_name": "Italian Game: Blackburne Shilling Gambit (Qe4+ Nf3# Trap)",
-    "line_group": "Italian Game; Blackburne Shilling Gambit",
+    "line_group": "Italian Game",
     "line_priority": "10",
     "drill_side": "black",
     "start_fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",

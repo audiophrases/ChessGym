@@ -71,17 +71,14 @@
               <button id="lineSelectBtn" class="select-trigger" type="button" aria-haspopup="listbox" aria-expanded="false">
                 Select line
               </button>
-              <div id="lineSelectList" class="select-list" role="listbox" aria-label="Line options"></div>
+              <div id="lineSelectList" class="select-list" role="listbox" aria-label="Line options">
+                <div class="select-search">
+                  <input id="lineSearchInput" type="search" placeholder="Search any line by name…" aria-label="Search lines across openings" autocomplete="off" />
+                </div>
+                <div id="lineSelectOptions" class="select-options"></div>
+              </div>
             </div>
             <button id="dueBtn" class="ghost">Study Due Lines</button>
-          </div>
-          <div class="field">
-            <div class="elo-filter" id="eloFilter" role="group" aria-label="Line elo filter">
-              <label class="elo-option"><input type="checkbox" name="eloFilter" value="900" />900</label>
-              <label class="elo-option"><input type="checkbox" name="eloFilter" value="1200" />1200</label>
-              <label class="elo-option"><input type="checkbox" name="eloFilter" value="1500" />1500</label>
-              <label class="elo-option"><input type="checkbox" name="eloFilter" value="1800" />1800</label>
-            </div>
           </div>
           <div class="field">
             <select id="modeSelect" aria-label="Mode">
@@ -115,12 +112,13 @@
         <summary><span>New Line</span> <span class="admin-meta">local JSON + thumbnail</span></summary>
         <div class="new-line-grid">
           <label>
-            Opening ID
-            <input id="newLineOpeningId" type="text" />
+            Opening name
+            <input id="newLineOpeningName" type="text" list="newLineOpeningNameList" autocomplete="off" />
+            <datalist id="newLineOpeningNameList"></datalist>
           </label>
           <label>
-            Opening name
-            <input id="newLineOpeningName" type="text" />
+            Opening ID
+            <input id="newLineOpeningId" type="text" placeholder="Auto from opening name" />
           </label>
           <label>
             Line name
@@ -144,10 +142,6 @@
               <option value="uci">UCI</option>
               <option value="san">SAN / PGN</option>
             </select>
-          </label>
-          <label>
-            ELO
-            <input id="newLineElo" type="text" placeholder="Optional" />
           </label>
           <label>
             Priority
@@ -211,7 +205,6 @@
         <details class="admin-collapsible nested">
           <summary>More</summary>
           <div class="admin-row">
-            <label>ELO <input id="adminLineElo" type="text" /></label>
             <label>Group <input id="adminLineGroup" type="text" /></label>
           </div>
           <label>Start FEN <input id="adminLineStartFen" type="text" placeholder="Blank = standard start" /></label>

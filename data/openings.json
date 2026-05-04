@@ -221,7 +221,7 @@
   },
   {
     "opening_id": "italian_game_blackburne_shilling_gambit",
-    "opening_name": "Italian Game; Blackburne Shilling Gambit",
+    "opening_name": "Italian Game",
     "side": "both",
     "starting_fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
     "description": "Training opening family for Italian Game; Blackburne Shilling Gambit.",

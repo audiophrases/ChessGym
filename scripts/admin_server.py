@@ -39,7 +39,7 @@ PORT = 8787
 ALLOWED_ORIGINS = {f"http://{HOST}:{PORT}", f"http://localhost:{PORT}"}
 
 OPENING_HEADERS = ["opening_id", "opening_name", "side", "starting_fen", "description", "tags", "published", "book_max_plies_game_mode", "allow_transpositions"]
-LINE_HEADERS = ["opening_id", "line_id", "line_name", "line_group", "line_priority", "drill_side", "start_fen", "elo", "moves_pgn", "thumb_ply"]
+LINE_HEADERS = ["opening_id", "line_id", "line_name", "line_group", "line_priority", "drill_side", "start_fen", "moves_pgn", "thumb_ply"]
 NODE_HEADERS = ["opening_id", "line_id", "node_id", "parent_node_id", "move_uci", "learn_prompt", "mistake_map", "fen_before", "fen_key", "fen_after", "fen_after_key"]
 
 DATA_LOCK = threading.Lock()
@@ -168,7 +168,6 @@ def create_line(payload):
             "line_priority": (line_in.get("line_priority") or "1").strip(),
             "drill_side": drill_side,
             "start_fen": start_fen,
-            "elo": (line_in.get("elo") or "").strip(),
             "moves_pgn": moves_pgn,
         })
 
@@ -242,7 +241,7 @@ def update_opening(opening_id, fields):
 
 
 def update_line(line_id, fields):
-    allowed = {"line_name", "line_group", "line_priority", "drill_side", "elo", "start_fen", "moves_pgn", "thumb_ply"}
+    allowed = {"line_name", "line_group", "line_priority", "drill_side", "start_fen", "moves_pgn", "thumb_ply"}
     warnings = []
     with DATA_LOCK:
         openings = load_dataset("openings")
