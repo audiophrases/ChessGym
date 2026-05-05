@@ -132,6 +132,7 @@ const App = {
   thumbnailCache: new Map(),
   thumbnailVersions: new Map(),
   init() {
+    this.configureSuggestionInboxFromUrl();
     this.cacheElements();
     this.initThumbnailPreview();
     this.bindEvents();
@@ -383,6 +384,34 @@ const App = {
   closeSuggestionModal() {
     if (this.$suggestionModal && this.$suggestionModal.length) {
       this.$suggestionModal.addClass("hidden");
+    }
+  },
+  configureSuggestionInboxFromUrl() {
+    let params;
+    try {
+      params = new URLSearchParams(window.location.search);
+    } catch (error) {
+      return;
+    }
+    const settings = [
+      ["suggestion_api", SUGGESTION_API_BASE_KEY],
+      ["suggestion_submit_token", SUGGESTION_SUBMIT_TOKEN_KEY],
+      ["suggestion_admin_token", SUGGESTION_ADMIN_TOKEN_KEY]
+    ];
+    let changed = false;
+    settings.forEach(([paramName, storageKey]) => {
+      const value = params.get(paramName);
+      if (!value) {
+        return;
+      }
+      safeLocalStorageSet(storageKey, value);
+      params.delete(paramName);
+      changed = true;
+    });
+    if (changed && window.history && window.history.replaceState) {
+      const nextQuery = params.toString();
+      const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ""}${window.location.hash || ""}`;
+      window.history.replaceState({}, document.title, nextUrl);
     }
   },
   buildSuggestionPayloadFromForm() {
@@ -4738,6 +4767,14 @@ function safeLocalStorageGet(key) {
     return window.localStorage.getItem(key) || "";
   } catch (error) {
     return "";
+  }
+}
+
+function safeLocalStorageSet(key, value) {
+  try {
+    window.localStorage.setItem(key, value);
+  } catch (error) {
+    // Storage may be disabled; the setting just won't persist.
   }
 }
 

@@ -259,6 +259,20 @@ def update_suggestion(suggestion_id, fields):
         return suggestions[index]
 
 
+def delete_suggestion(suggestion_id):
+    suggestion_id = (suggestion_id or "").strip()
+    if not suggestion_id:
+        raise ValueError("Suggestion id is required.")
+    with DATA_LOCK:
+        suggestions = load_suggestions()
+        index = find_index(suggestions, id=suggestion_id)
+        if index == -1:
+            raise ValueError(f"Suggestion not found: {suggestion_id}")
+        del suggestions[index]
+        save_suggestions(suggestions)
+    return {"id": suggestion_id}
+
+
 def create_line(payload):
     line_in = payload.get("line") or {}
     moves_text = (payload.get("moves") or "").strip()
@@ -731,6 +745,9 @@ class Handler(SimpleHTTPRequestHandler):
                 payload = self._read_json()
                 self._send_json(200, {"ok": True, "suggestion": update_suggestion(match.group(1), payload)})
                 return
+            if match and method == "DELETE":
+                self._send_json(200, {"ok": True, "result": delete_suggestion(match.group(1))})
+                return
             if path == "/admin/api/line" and method == "POST":
                 payload = self._read_json()
                 self._send_json(200, {"ok": True, "result": create_line(payload)})
@@ -816,6 +833,9 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_PATCH(self):
         self._route_write("PATCH")
+
+    def do_DELETE(self):
+        self._route_write("DELETE")
 
 
 def main():

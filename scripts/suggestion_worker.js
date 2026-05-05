@@ -11,6 +11,7 @@
   - POST /suggestions
   - GET /suggestions
   - PATCH /suggestions/:id
+  - DELETE /suggestions/:id
 */
 
 const MAX_TEXT = {
@@ -70,6 +71,13 @@ export default {
         return json({ ok: true, suggestion }, 200, corsHeaders);
       }
 
+      if (match && request.method === "DELETE") {
+        requireAdminToken(request, env);
+        const id = decodeURIComponent(match[1]);
+        await deleteSuggestion(env, id);
+        return json({ ok: true, id }, 200, corsHeaders);
+      }
+
       return json({ error: "Not found" }, 404, corsHeaders);
     } catch (error) {
       const status = Number.isInteger(error.status) ? error.status : 500;
@@ -89,7 +97,7 @@ function buildCorsHeaders(request, env) {
     : (allowed.includes(origin) ? origin : allowed[0] || origin);
   return {
     "Access-Control-Allow-Origin": allowOrigin,
-    "Access-Control-Allow-Methods": "GET, POST, PATCH, OPTIONS",
+    "Access-Control-Allow-Methods": "GET, POST, PATCH, DELETE, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, Authorization, X-ChessGym-Submit-Token",
     "Access-Control-Max-Age": "86400",
     "Cache-Control": "no-store"
@@ -231,4 +239,13 @@ async function updateSuggestion(env, id, body) {
   suggestion.updated_at = new Date().toISOString();
   await env.SUGGESTIONS.put(key, JSON.stringify(suggestion));
   return suggestion;
+}
+
+async function deleteSuggestion(env, id) {
+  const key = storageKey(id);
+  const raw = await env.SUGGESTIONS.get(key);
+  if (!raw) {
+    throw httpError(404, "Suggestion not found.");
+  }
+  await env.SUGGESTIONS.delete(key);
 }

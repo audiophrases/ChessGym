@@ -1,0 +1,17 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "chessgym-suggestions",
+  "main": "scripts/suggestion_worker.js",
+  "compatibility_date": "2026-05-05",
+  "workers_dev": true,
+  "kv_namespaces": [
+    {
+      "binding": "SUGGESTIONS",
+      "id": "745b805c4fb14eb08a264c03fc795d4c"
+    }
+  ],
+  "vars": {
+    "ALLOWED_ORIGINS": "*"
+  }
+}
+
