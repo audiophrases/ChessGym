@@ -8,6 +8,10 @@
 
 const OPPONENT_DELAY_MS = 500;
 const PINNED_LINES_KEY = "chessgym.pinnedLines";
+const SUGGESTION_API_BASE_KEY = "chessgym.suggestionApiBase";
+const SUGGESTION_SUBMIT_TOKEN_KEY = "chessgym.suggestionSubmitToken";
+const SUGGESTION_ADMIN_TOKEN_KEY = "chessgym.suggestionAdminToken";
+const SUGGESTION_DRAFTS_KEY = "chessgym.suggestionDrafts";
 const THUMBNAIL_PLACEHOLDER_SRC = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==";
 const ADMIN_API_BASE = "/admin/api";
 const LOCAL_DATA_BASE = "data";
@@ -160,6 +164,20 @@ const App = {
     this.$flip = $("#flipBtn");
     this.$reveal = $("#revealBtn");
     this.$lichess = $("#lichessBtn");
+    this.$suggestLine = $("#suggestLineBtn");
+    this.$suggestionModal = $("#suggestionModal");
+    this.$suggestionClose = $("#suggestionClose");
+    this.$suggestionOpeningName = $("#suggestionOpeningName");
+    this.$suggestionOpeningId = $("#suggestionOpeningId");
+    this.$suggestionLineName = $("#suggestionLineName");
+    this.$suggestionDrillSide = $("#suggestionDrillSide");
+    this.$suggestionStartFen = $("#suggestionStartFen");
+    this.$suggestionMoves = $("#suggestionMoves");
+    this.$suggestionComment = $("#suggestionComment");
+    this.$suggestionContact = $("#suggestionContact");
+    this.$suggestionSaveDraft = $("#suggestionSaveDraft");
+    this.$suggestionSubmit = $("#suggestionSubmit");
+    this.$suggestionStatus = $("#suggestionStatus");
     this.$engineEval = $("#engineEval");
     this.$overlay = $("#loadingOverlay");
     this.$strengthField = $("#strengthField");
@@ -233,6 +251,15 @@ const App = {
     this.$flip.on("click", () => this.handleFlipBoard());
     this.$reveal.on("click", () => this.handleRevealMove());
     this.$lichess.on("click", () => this.openLichessGame());
+    this.$suggestLine.on("click", () => this.openSuggestionModal());
+    this.$suggestionClose.on("click", () => this.closeSuggestionModal());
+    this.$suggestionModal.on("click", (event) => {
+      if (event.target === this.$suggestionModal[0]) {
+        this.closeSuggestionModal();
+      }
+    });
+    this.$suggestionSaveDraft.on("click", () => this.saveSuggestionDraftFromForm());
+    this.$suggestionSubmit.on("click", () => this.submitSuggestion());
     this.$boardZoomIn.on("click", () => this.adjustBoardSize(1));
     this.$boardZoomOut.on("click", () => this.adjustBoardSize(-1));
     this.$comment.on("click", "#winProbPill", (event) => {
@@ -325,6 +352,150 @@ const App = {
     if (this.$adminNewLineSection && this.$adminNewLineSection.length) {
       this.$adminNewLineSection.prop("open", false);
     }
+  },
+  openSuggestionModal(suggestion = null) {
+    if (!this.$suggestionModal || !this.$suggestionModal.length) {
+      return;
+    }
+    const opening = this.getSelectedOpening();
+    const line = this.getActiveLine();
+    const snapshot = this.state.freeModeSnapshot;
+    const freeMoves = this.state.freeModeActive ? this.getFreeModeMoves().join(" ") : "";
+    const movesText = suggestion
+      ? (suggestion.moves_text || "")
+      : (freeMoves || this.state.lastFreeMovesText || "");
+    const startFen = suggestion
+      ? (suggestion.start_fen || "")
+      : ((snapshot && snapshot.fen && snapshot.fen !== "start") ? snapshot.fen : ((line && line.start_fen) || (opening && opening.starting_fen) || ""));
+
+    this.$suggestionOpeningName.val(suggestion ? (suggestion.opening_name || "") : (opening ? opening.opening_name || "" : ""));
+    this.$suggestionOpeningId.val(suggestion ? (suggestion.opening_id || "") : (opening ? opening.opening_id || "" : ""));
+    this.$suggestionLineName.val(suggestion ? (suggestion.line_name || "") : "");
+    this.$suggestionDrillSide.val(normalizeDrillSide(suggestion ? suggestion.drill_side : (line && line.drill_side)) || this.state.userSide || "white");
+    this.$suggestionStartFen.val(startFen);
+    this.$suggestionMoves.val(movesText);
+    this.$suggestionComment.val(suggestion ? (suggestion.comment || "") : "");
+    this.$suggestionContact.val(suggestion ? (suggestion.contact || "") : "");
+    this.$suggestionStatus.text("");
+    this.$suggestionModal.removeClass("hidden");
+    this.$suggestionLineName.trigger("focus");
+  },
+  closeSuggestionModal() {
+    if (this.$suggestionModal && this.$suggestionModal.length) {
+      this.$suggestionModal.addClass("hidden");
+    }
+  },
+  buildSuggestionPayloadFromForm() {
+    const opening = this.getSelectedOpening();
+    const line = this.getActiveLine();
+    return {
+      opening_id: (this.$suggestionOpeningId.val() || "").trim(),
+      opening_name: (this.$suggestionOpeningName.val() || "").trim(),
+      source_line_id: line ? line.line_id || "" : "",
+      source_line_name: line ? line.line_name || "" : "",
+      line_name: (this.$suggestionLineName.val() || "").trim(),
+      drill_side: normalizeDrillSide(this.$suggestionDrillSide.val()) || this.state.userSide || "",
+      start_fen: (this.$suggestionStartFen.val() || "").trim(),
+      current_fen: this.chess ? this.chess.fen() : "",
+      moves_text: (this.$suggestionMoves.val() || "").trim(),
+      notation: "auto",
+      comment: (this.$suggestionComment.val() || "").trim(),
+      contact: (this.$suggestionContact.val() || "").trim(),
+      source_url: window.location.href,
+      source_opening_name: opening ? opening.opening_name || "" : ""
+    };
+  },
+  getSuggestionApiBase() {
+    let explicit = "";
+    try {
+      const params = new URLSearchParams(window.location.search);
+      explicit = params.get("suggestion_api") || "";
+    } catch (error) {
+      explicit = "";
+    }
+    const configured = explicit
+      || window.CHESSGYM_SUGGESTION_API_BASE
+      || safeLocalStorageGet(SUGGESTION_API_BASE_KEY)
+      || "";
+    if (configured) {
+      return String(configured).replace(/\/+$/, "");
+    }
+    try {
+      return ADMIN_HOSTS.has(window.location.hostname) ? ADMIN_API_BASE : "";
+    } catch (error) {
+      return "";
+    }
+  },
+  suggestionHeaders(admin = false) {
+    const headers = { "Content-Type": "application/json" };
+    const tokenKey = admin ? SUGGESTION_ADMIN_TOKEN_KEY : SUGGESTION_SUBMIT_TOKEN_KEY;
+    const token = safeLocalStorageGet(tokenKey);
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+    return headers;
+  },
+  fetchSuggestionApi(path, options = {}) {
+    const base = this.getSuggestionApiBase();
+    if (!base) {
+      return Promise.reject(new Error("Suggestion inbox is not configured."));
+    }
+    const request = {
+      ...options,
+      headers: {
+        ...this.suggestionHeaders(!!options.admin),
+        ...(options.headers || {})
+      }
+    };
+    delete request.admin;
+    return fetch(`${base}${path}`, request);
+  },
+  saveSuggestionDraftFromForm() {
+    const payload = this.buildSuggestionPayloadFromForm();
+    this.saveSuggestionDraft(payload);
+    this.$suggestionStatus.text("Draft saved on this device.");
+    this.setStatus("Suggestion draft saved.");
+  },
+  saveSuggestionDraft(payload) {
+    const drafts = loadSuggestionDrafts();
+    drafts.unshift({
+      ...payload,
+      id: `draft_${Date.now().toString(36)}`,
+      created_at: new Date().toISOString()
+    });
+    saveSuggestionDrafts(drafts.slice(0, 50));
+  },
+  submitSuggestion() {
+    const payload = this.buildSuggestionPayloadFromForm();
+    if (!payload.moves_text && !payload.comment) {
+      this.$suggestionStatus.text("Add moves or a comment before submitting.");
+      return;
+    }
+    this.$suggestionSubmit.prop("disabled", true);
+    this.$suggestionStatus.text("Submitting...");
+    this.fetchSuggestionApi("/suggestions", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    })
+      .then((res) => res.json().then((body) => ({ status: res.status, body })))
+      .then(({ status, body }) => {
+        if (status >= 400 || !body.ok) {
+          throw new Error(body.error || `HTTP ${status}`);
+        }
+        this.$suggestionStatus.text("Suggestion submitted.");
+        this.setStatus("Suggestion submitted.");
+        if (isAdminMode()) {
+          this.adminLoadSuggestions();
+        }
+      })
+      .catch((error) => {
+        this.saveSuggestionDraft(payload);
+        this.$suggestionStatus.text(`${error.message} Saved as a local draft.`);
+        this.setStatus("Suggestion saved as draft.");
+      })
+      .finally(() => {
+        this.$suggestionSubmit.prop("disabled", false);
+      });
   },
   syncNewLineIdFromName() {
     if (this.$newLineId.data("manual")) {
@@ -507,6 +678,9 @@ const App = {
     this.$adminCommitMsg = $("#adminCommitMsg");
     this.$adminPickerSearch = $("#adminPickerSearch");
     this.$adminPickerList = $("#adminPickerList");
+    this.$adminSuggestionMeta = $("#adminSuggestionMeta");
+    this.$adminSuggestionList = $("#adminSuggestionList");
+    this.$adminSuggestionRefresh = $("#adminSuggestionRefresh");
     this.$adminSaveDirty = $("#adminSaveDirty");
     this.$adminTargetOpeningId = $("#adminTargetOpeningId");
     this.$adminOpeningIdList = $("#adminOpeningIdList");
@@ -534,11 +708,17 @@ const App = {
     $("#adminAiPrompt").on("click", () => this.copyAdminLineAiPrompt());
     $("#adminCommit").on("click", () => this.adminCommit());
     $("#adminReload").on("click", () => window.location.reload());
+    this.$adminSuggestionRefresh.on("click", () => this.adminLoadSuggestions());
+    this.$adminSuggestionList.on("click", "button[data-suggestion-action]", (event) => {
+      const $button = $(event.currentTarget);
+      this.handleSuggestionInboxAction($button.attr("data-suggestion-action"), $button.attr("data-suggestion-id"));
+    });
     this.$adminDuplicateOpenings.on("click", "button[data-opening-id]", (event) => {
       this.$adminTargetOpeningId.val($(event.currentTarget).attr("data-opening-id") || "");
     });
     this.adminPopulatePicker();
     this.adminPopulateOpeningTargets();
+    this.adminLoadSuggestions();
   },
   adminPopulatePicker() {
     if (!this.$adminPickerList || !this.$adminPickerList.length) return;
@@ -634,6 +814,153 @@ const App = {
       })
       .join("");
     this.$adminOpeningIdList.html(options);
+  },
+  adminLoadSuggestions() {
+    if (!this.$adminSuggestionList || !this.$adminSuggestionList.length) {
+      return;
+    }
+    this.$adminSuggestionMeta.text("loading");
+    this.fetchSuggestionApi("/suggestions", { method: "GET", admin: true })
+      .then((res) => res.json().then((body) => ({ status: res.status, body })))
+      .then(({ status, body }) => {
+        if (status >= 400 || !body.ok) {
+          throw new Error(body.error || `HTTP ${status}`);
+        }
+        this.renderSuggestionInbox(body.suggestions || []);
+      })
+      .catch((error) => {
+        this.$adminSuggestionMeta.text("unavailable");
+        this.$adminSuggestionList.empty().append($("<p>").addClass("admin-help").text(error.message));
+      });
+  },
+  renderSuggestionInbox(suggestions) {
+    this.adminSuggestionsById = {};
+    const visible = (suggestions || []).filter((item) => (item.status || "pending") !== "archived");
+    visible.forEach((item) => {
+      if (item.id) {
+        this.adminSuggestionsById[item.id] = item;
+      }
+    });
+    const pendingCount = visible.filter((item) => (item.status || "pending") === "pending").length;
+    this.$adminSuggestionMeta.text(`${pendingCount} pending`);
+    this.$adminSuggestionList.empty();
+    if (!visible.length) {
+      this.$adminSuggestionList.append($("<p>").addClass("admin-help").text("No active suggestions."));
+      return;
+    }
+    visible.forEach((suggestion) => {
+      const title = suggestion.line_name || suggestion.source_line_name || "Suggested line";
+      const opening = suggestion.opening_name || suggestion.opening_id || "Unknown opening";
+      const status = suggestion.status || "pending";
+      const created = suggestion.created_at ? new Date(suggestion.created_at).toLocaleString() : "";
+      const moves = compactText(suggestion.moves_text || "", 220);
+      const comment = compactText(suggestion.comment || "", 220);
+      const contact = suggestion.contact || "";
+      const $item = $("<article>").addClass("admin-suggestion-item").toggleClass("is-done", status === "done");
+      const $header = $("<div>").addClass("admin-suggestion-header");
+      $header.append($("<strong>").text(title));
+      $header.append($("<span>").addClass("admin-suggestion-status").text(status));
+      $item.append($header);
+      $item.append($("<div>").addClass("admin-suggestion-meta").text([opening, created, contact].filter(Boolean).join(" · ")));
+      if (moves) {
+        $item.append($("<pre>").addClass("admin-suggestion-preview").text(moves));
+      }
+      if (comment) {
+        $item.append($("<p>").addClass("admin-suggestion-comment").text(comment));
+      }
+      const $actions = $("<div>").addClass("admin-actions");
+      $actions.append(this.buildSuggestionActionButton(suggestion.id, "use", "Use"));
+      if (status === "done") {
+        $actions.append(this.buildSuggestionActionButton(suggestion.id, "pending", "Reopen"));
+      } else {
+        $actions.append(this.buildSuggestionActionButton(suggestion.id, "done", "Done"));
+      }
+      $actions.append(this.buildSuggestionActionButton(suggestion.id, "archived", "Archive"));
+      $item.append($actions);
+      this.$adminSuggestionList.append($item);
+    });
+  },
+  buildSuggestionActionButton(id, action, label) {
+    return $("<button>")
+      .attr("type", "button")
+      .attr("data-suggestion-id", id || "")
+      .attr("data-suggestion-action", action)
+      .addClass("ghost")
+      .text(label);
+  },
+  handleSuggestionInboxAction(action, suggestionId) {
+    const suggestion = this.adminSuggestionsById && this.adminSuggestionsById[suggestionId];
+    if (!suggestion) {
+      this.adminStatus("Suggestion not found.", true);
+      return;
+    }
+    if (action === "use") {
+      this.populateNewLineFromSuggestion(suggestion);
+      return;
+    }
+    if (action === "done" || action === "pending" || action === "archived") {
+      this.updateSuggestionStatus(suggestionId, action);
+    }
+  },
+  populateNewLineFromSuggestion(suggestion) {
+    if (!isAdminMode()) {
+      return;
+    }
+    if (this.$adminPanel && this.$adminPanel.hasClass("collapsed")) {
+      this.$adminPanel.removeClass("collapsed");
+      this.$adminToggle.attr("aria-expanded", "true");
+    }
+    this.openNewLineModal();
+    const openingId = suggestion.opening_id || this.state.openingId || "";
+    const openingName = suggestion.opening_name || (this.data.openingsById[openingId] && this.data.openingsById[openingId].opening_name) || openingId;
+    const lineName = suggestion.line_name || suggestion.source_line_name || "Suggested line";
+    const suggestedId = suggestion.line_id || slugifyId(lineName);
+    this.$newLineOpeningId.val(openingId).data("manual", true);
+    this.$newLineOpeningName.val(openingName).data("lastSlug", slugifyId(openingName));
+    this.$newLineName.val(lineName).removeData("lastSlug");
+    this.$newLineId.val(this.uniqueLineId(suggestedId || lineName)).data("manual", true);
+    this.$newLineDrillSide.val(normalizeDrillSide(suggestion.drill_side) || this.state.userSide || "white");
+    this.$newLineNotation.val("auto");
+    this.$newLineTags.val("suggested");
+    this.$newLineStartFen.val(suggestion.start_fen || "");
+    this.$newLineMoves.val(suggestion.moves_text || "");
+    this.$newLineCreateOpening.prop("checked", !!(openingId && !this.data.openingsById[openingId]));
+    const details = [
+      "Loaded suggestion into the new-line form.",
+      suggestion.comment ? `Comment: ${suggestion.comment}` : "",
+      suggestion.contact ? `Contact: ${suggestion.contact}` : "",
+      suggestion.current_fen ? `Current FEN: ${suggestion.current_fen}` : "",
+      suggestion.id ? `Suggestion ID: ${suggestion.id}` : ""
+    ].filter(Boolean).join("\n");
+    this.$newLineOutput.text(details);
+    this.adminStatus("Suggestion loaded into New Line.");
+  },
+  uniqueLineId(value) {
+    const base = slugifyId(value) || `suggested_line_${Date.now().toString(36)}`;
+    let candidate = base;
+    let index = 2;
+    while (this.data.linesById[candidate]) {
+      candidate = `${base}_${index}`;
+      index += 1;
+    }
+    return candidate;
+  },
+  updateSuggestionStatus(suggestionId, status) {
+    this.adminStatus(`Updating suggestion…`);
+    this.fetchSuggestionApi(`/suggestions/${encodeURIComponent(suggestionId)}`, {
+      method: "PATCH",
+      admin: true,
+      body: JSON.stringify({ status })
+    })
+      .then((res) => res.json().then((body) => ({ status: res.status, body })))
+      .then(({ status: httpStatus, body }) => {
+        if (httpStatus >= 400 || !body.ok) {
+          throw new Error(body.error || `HTTP ${httpStatus}`);
+        }
+        this.adminStatus("Suggestion updated.");
+        this.adminLoadSuggestions();
+      })
+      .catch((error) => this.adminStatus(`Suggestion update failed: ${error.message}`, true));
   },
   adminUpdateOpeningTools(line, opening) {
     if (!this.$adminTargetOpeningId || !this.$adminTargetOpeningId.length) return;
@@ -4404,6 +4731,41 @@ function loadPinnedLines() {
   } catch (error) {
     return {};
   }
+}
+
+function safeLocalStorageGet(key) {
+  try {
+    return window.localStorage.getItem(key) || "";
+  } catch (error) {
+    return "";
+  }
+}
+
+function loadSuggestionDrafts() {
+  try {
+    const raw = window.localStorage.getItem(SUGGESTION_DRAFTS_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (error) {
+    return [];
+  }
+}
+
+function saveSuggestionDrafts(drafts) {
+  try {
+    window.localStorage.setItem(SUGGESTION_DRAFTS_KEY, JSON.stringify(Array.isArray(drafts) ? drafts : []));
+  } catch (error) {
+    // Draft storage is best-effort.
+  }
+}
+
+function compactText(value, limit) {
+  const text = String(value || "").replace(/\s+/g, " ").trim();
+  if (!limit || text.length <= limit) {
+    return text;
+  }
+  return `${text.slice(0, Math.max(0, limit - 1)).trim()}…`;
 }
 
 function savePinnedLines(map) {

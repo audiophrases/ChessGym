@@ -29,6 +29,7 @@
           <button id="freeBtn" class="ghost" aria-pressed="false" title="Enable free play for both sides.">Free</button>
           <button id="flipBtn" class="ghost hidden" title="Flip the board orientation (Free mode).">Flip</button>
           <button id="lichessBtn" class="ghost">Lich</button>
+          <button id="suggestLineBtn" class="ghost" type="button">Suggest</button>
         </div>
       </div>
       <div class="footer-prompt">
@@ -97,6 +98,57 @@
 
   <div id="loadingOverlay" class="overlay">
     <div class="spinner">Loading…</div>
+  </div>
+
+  <div id="suggestionModal" class="suggestion-modal hidden" role="dialog" aria-modal="true" aria-labelledby="suggestionTitle">
+    <div class="suggestion-card">
+      <header class="suggestion-header">
+        <strong id="suggestionTitle">Suggest Line</strong>
+        <button id="suggestionClose" class="icon-button" type="button" aria-label="Close">×</button>
+      </header>
+      <div class="suggestion-grid">
+        <label>
+          Opening
+          <input id="suggestionOpeningName" type="text" autocomplete="off" />
+        </label>
+        <label>
+          Opening ID
+          <input id="suggestionOpeningId" type="text" autocomplete="off" />
+        </label>
+        <label>
+          Line name
+          <input id="suggestionLineName" type="text" autocomplete="off" />
+        </label>
+        <label>
+          Side
+          <select id="suggestionDrillSide">
+            <option value="white">White</option>
+            <option value="black">Black</option>
+          </select>
+        </label>
+        <label class="wide-field">
+          Start FEN
+          <input id="suggestionStartFen" type="text" placeholder="Blank = normal start" />
+        </label>
+        <label class="wide-field">
+          Moves
+          <textarea id="suggestionMoves" rows="5" placeholder="PGN, SAN, or UCI moves"></textarea>
+        </label>
+        <label class="wide-field">
+          Comment
+          <textarea id="suggestionComment" rows="3"></textarea>
+        </label>
+        <label class="wide-field">
+          Contact
+          <input id="suggestionContact" type="text" autocomplete="off" />
+        </label>
+      </div>
+      <div class="suggestion-actions">
+        <button id="suggestionSaveDraft" class="ghost" type="button">Save draft</button>
+        <button id="suggestionSubmit" class="ghost primary-action" type="button">Submit</button>
+      </div>
+      <p id="suggestionStatus" class="suggestion-status" aria-live="polite"></p>
+    </div>
   </div>
 
   <aside id="adminPanel" class="admin-panel hidden" aria-label="Admin editor">
@@ -178,6 +230,14 @@
           <input id="adminPickerSearch" type="search" placeholder="Search lines…" aria-label="Search lines" />
           <div id="adminPickerList" class="admin-picker-list" role="listbox" aria-label="Lines"></div>
         </div>
+      </details>
+
+      <details class="admin-collapsible" open>
+        <summary><span>Suggestion Inbox</span> <span id="adminSuggestionMeta" class="admin-meta"></span></summary>
+        <div class="admin-actions">
+          <button id="adminSuggestionRefresh" class="ghost" type="button">Refresh</button>
+        </div>
+        <div id="adminSuggestionList" class="admin-suggestion-list" aria-live="polite"></div>
       </details>
 
       <details class="admin-collapsible">

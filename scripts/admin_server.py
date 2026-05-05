@@ -16,6 +16,7 @@ from datetime import datetime
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse
+from uuid import uuid4
 
 import chess
 import chess.pgn
@@ -41,6 +42,7 @@ ALLOWED_ORIGINS = {f"http://{HOST}:{PORT}", f"http://localhost:{PORT}"}
 OPENING_HEADERS = ["opening_id", "opening_name", "side", "starting_fen", "description", "tags", "published", "book_max_plies_game_mode", "allow_transpositions"]
 LINE_HEADERS = ["opening_id", "line_id", "line_name", "line_group", "drill_side", "start_fen", "tags", "moves_pgn", "thumb_ply"]
 NODE_HEADERS = ["opening_id", "line_id", "node_id", "parent_node_id", "move_uci", "learn_prompt", "mistake_map", "fen_before", "fen_key", "fen_after", "fen_after_key"]
+SUGGESTION_STATUSES = {"pending", "done", "archived"}
 
 DATA_LOCK = threading.Lock()
 PIECE_IMAGES = None
@@ -146,6 +148,115 @@ def merge_tag_values(*values):
             seen.add(key)
             merged.append(tag)
     return ",".join(merged)
+
+
+def utc_now_iso():
+    return datetime.utcnow().isoformat(timespec="seconds") + "Z"
+
+
+def text_field(source, key, limit=4000):
+    value = source.get(key)
+    if value is None:
+        return ""
+    return str(value).strip()[:limit]
+
+
+def load_suggestions():
+    return load_dataset("suggestions")
+
+
+def save_suggestions(rows):
+    save_dataset("suggestions", rows)
+
+
+def normalize_suggestion(payload, request_meta=None):
+    request_meta = request_meta or {}
+    now = utc_now_iso()
+    suggestion = {
+        "id": text_field(payload, "id", 80) or uuid4().hex,
+        "status": "pending",
+        "created_at": text_field(payload, "created_at", 40) or now,
+        "updated_at": now,
+        "opening_id": text_field(payload, "opening_id", 160),
+        "opening_name": text_field(payload, "opening_name", 240),
+        "source_line_id": text_field(payload, "source_line_id", 160),
+        "source_line_name": text_field(payload, "source_line_name", 240),
+        "line_name": text_field(payload, "line_name", 240),
+        "line_id": text_field(payload, "line_id", 160),
+        "drill_side": text_field(payload, "drill_side", 16),
+        "start_fen": text_field(payload, "start_fen", 240),
+        "current_fen": text_field(payload, "current_fen", 240),
+        "moves_text": text_field(payload, "moves_text", 8000),
+        "notation": text_field(payload, "notation", 24) or "auto",
+        "comment": text_field(payload, "comment", 4000),
+        "contact": text_field(payload, "contact", 240),
+        "source_url": text_field(payload, "source_url", 800) or request_meta.get("source_url", ""),
+        "user_agent": text_field(payload, "user_agent", 400) or request_meta.get("user_agent", ""),
+    }
+    if suggestion["drill_side"] not in ("white", "black"):
+        suggestion["drill_side"] = ""
+    if suggestion["notation"] not in ("auto", "uci", "san"):
+        suggestion["notation"] = "auto"
+    if not suggestion["moves_text"] and not suggestion["comment"]:
+        raise ValueError("Suggestion needs moves or a comment.")
+    return suggestion
+
+
+def create_suggestion(payload, request_meta=None):
+    suggestion = normalize_suggestion(payload, request_meta)
+    with DATA_LOCK:
+        suggestions = load_suggestions()
+        existing_ids = {row.get("id", "") for row in suggestions}
+        while suggestion["id"] in existing_ids:
+            suggestion["id"] = uuid4().hex
+        suggestions.append(suggestion)
+        save_suggestions(suggestions)
+    return suggestion
+
+
+def suggestion_sort_timestamp(row):
+    try:
+        raw = (row.get("created_at") or "1970-01-01T00:00:00Z").replace("Z", "+00:00")
+        return datetime.fromisoformat(raw).timestamp()
+    except (TypeError, ValueError):
+        return 0
+
+
+def list_suggestions():
+    suggestions = load_suggestions()
+    status_order = {"pending": 0, "done": 1, "archived": 2}
+    return sorted(
+        suggestions,
+        key=lambda row: (
+            status_order.get(row.get("status", "pending"), 0),
+            -suggestion_sort_timestamp(row),
+        ),
+    )
+
+
+def update_suggestion(suggestion_id, fields):
+    suggestion_id = (suggestion_id or "").strip()
+    if not suggestion_id:
+        raise ValueError("Suggestion id is required.")
+    allowed = {"status", "admin_note"}
+    with DATA_LOCK:
+        suggestions = load_suggestions()
+        index = find_index(suggestions, id=suggestion_id)
+        if index == -1:
+            raise ValueError(f"Suggestion not found: {suggestion_id}")
+        for key, value in fields.items():
+            if key not in allowed:
+                continue
+            if key == "status":
+                status = str(value or "").strip().lower()
+                if status not in SUGGESTION_STATUSES:
+                    raise ValueError(f"Unknown suggestion status: {status}")
+                suggestions[index]["status"] = status
+            else:
+                suggestions[index][key] = "" if value is None else str(value)[:4000]
+        suggestions[index]["updated_at"] = utc_now_iso()
+        save_suggestions(suggestions)
+        return suggestions[index]
 
 
 def create_line(payload):
@@ -573,6 +684,12 @@ class Handler(SimpleHTTPRequestHandler):
         if path == "/admin/api/health":
             self._send_json(200, {"ok": True, "root": str(ROOT)})
             return
+        if path == "/admin/api/suggestions":
+            try:
+                self._send_json(200, {"ok": True, "suggestions": list_suggestions()})
+            except Exception as exc:
+                self._send_json(500, {"error": str(exc)})
+            return
         if path.startswith("/admin/api/"):
             self._send_json(404, {"error": "Not found"})
             return
@@ -601,6 +718,19 @@ class Handler(SimpleHTTPRequestHandler):
             self._send_json(403, {"error": "Forbidden origin"})
             return
         try:
+            if path == "/admin/api/suggestions" and method == "POST":
+                payload = self._read_json()
+                request_meta = {
+                    "source_url": self.headers.get("Referer", ""),
+                    "user_agent": self.headers.get("User-Agent", ""),
+                }
+                self._send_json(200, {"ok": True, "suggestion": create_suggestion(payload, request_meta)})
+                return
+            match = re.match(r"^/admin/api/suggestions/([^/]+)$", path)
+            if match and method == "PATCH":
+                payload = self._read_json()
+                self._send_json(200, {"ok": True, "suggestion": update_suggestion(match.group(1), payload)})
+                return
             if path == "/admin/api/line" and method == "POST":
                 payload = self._read_json()
                 self._send_json(200, {"ok": True, "result": create_line(payload)})
