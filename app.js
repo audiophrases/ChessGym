@@ -2377,6 +2377,7 @@ const App = {
         this.buildSelectOption(optionId, label, optionId, "Opening option thumbnail", this.state.openingId)
       );
     });
+    this.syncSelectSizer("opening");
   },
   renderLineOptions(lines) {
     const $target = this.$lineSelectOptions && this.$lineSelectOptions.length ? this.$lineSelectOptions : this.$lineList;
@@ -2391,6 +2392,7 @@ const App = {
         })
       );
     });
+    this.syncSelectSizer("line");
   },
   onLineSearchChange() {
     const query = (this.$lineSearchInput && this.$lineSearchInput.val()) || "";
@@ -2452,6 +2454,7 @@ const App = {
     matches.sort((a, b) => this.compareCrossOpeningLines(a, b, { pinnedFirst: true }));
     if (!matches.length) {
       $target.append('<div class="select-empty">No lines match.</div>');
+      this.syncSelectSizer("line");
       return;
     }
     this.renderCrossOpeningLineOptions(matches.slice(0, 80));
@@ -2473,6 +2476,7 @@ const App = {
     matches.sort((a, b) => this.compareCrossOpeningLines(a, b));
     if (!matches.length) {
       $target.append(`<div class="select-empty">${needle ? "No pinned lines match." : "No pinned lines yet."}</div>`);
+      this.syncSelectSizer("line");
       return;
     }
     this.renderCrossOpeningLineOptions(matches);
@@ -2492,6 +2496,7 @@ const App = {
         })
       );
     });
+    this.syncSelectSizer("line");
   },
   compareCrossOpeningLines(a, b, options = {}) {
     if (options.pinnedFirst) {
@@ -2613,12 +2618,57 @@ const App = {
     const label = opening ? opening.opening_name || opening.opening_id : "Select opening";
     this.$openingButton.text(label);
     this.updateSelectedOption(this.$openingList, this.state.openingId);
+    this.syncSelectSizer("opening");
   },
   updateLineSelectionDisplay() {
     const line = this.data.linesById[this.state.lineId] || this.data.linesById[this.state.sessionLineId] || null;
     const lineLabel = line ? (line.line_name || line.line_id) : (this.state.lineId || "Select line");
     this.$lineButton.text(lineLabel);
     this.updateSelectedOption(this.$lineList, this.state.lineId);
+    this.syncSelectSizer("line");
+  },
+  syncSelectSizer(type) {
+    const { button, list } = this.getSelectElements(type);
+    if (!button || !button.length) {
+      return;
+    }
+    const $select = button.closest(".custom-select");
+    if (!$select.length) {
+      return;
+    }
+    let $sizer = $select.children(".select-width-sizer");
+    if (!$sizer.length) {
+      $sizer = $("<span>")
+        .addClass("select-width-sizer")
+        .attr("aria-hidden", "true");
+      $select.append($sizer);
+    }
+    const lines = [];
+    const addLine = (value) => {
+      const text = (value || "").toString().replace(/\s+/g, " ").trim();
+      if (text) {
+        lines.push(text);
+      }
+    };
+    addLine(button.text());
+    if (list && list.length) {
+      list.find(".option-label, .option-meta, .select-empty").each((_, element) => {
+        addLine($(element).text());
+      });
+    }
+    if (type === "line" && this.$lineSearchInput && this.$lineSearchInput.length) {
+      addLine(this.$lineSearchInput.attr("placeholder"));
+    }
+    const uniqueLines = [...new Set(lines)];
+    $sizer.empty();
+    (uniqueLines.length ? uniqueLines : [button.text() || "Select"]).forEach((line, index) => {
+      if (index > 0) {
+        $sizer.append(document.createElement("br"));
+      }
+      $sizer.append(document.createTextNode(line));
+    });
+    const hasPinnableOptions = type === "line" && !!(list && list.find(".pin-toggle").length);
+    $select.toggleClass("has-pinnable-options", hasPinnableOptions);
   },
   updateSelectedOption($list, selectedValue) {
     if (!$list) {
