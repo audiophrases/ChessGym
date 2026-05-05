@@ -12,6 +12,7 @@ const SUGGESTION_API_BASE_KEY = "chessgym.suggestionApiBase";
 const SUGGESTION_SUBMIT_TOKEN_KEY = "chessgym.suggestionSubmitToken";
 const SUGGESTION_ADMIN_TOKEN_KEY = "chessgym.suggestionAdminToken";
 const SUGGESTION_DRAFTS_KEY = "chessgym.suggestionDrafts";
+const PUBLIC_SUGGESTION_API_BASE = "https://chessgym-suggestions.eugenime.workers.dev";
 const THUMBNAIL_PLACEHOLDER_SRC = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==";
 const ADMIN_API_BASE = "/admin/api";
 const LOCAL_DATA_BASE = "data";
@@ -464,9 +465,9 @@ const App = {
       return String(configured).replace(/\/+$/, "");
     }
     try {
-      return ADMIN_HOSTS.has(window.location.hostname) ? ADMIN_API_BASE : "";
+      return ADMIN_HOSTS.has(window.location.hostname) ? ADMIN_API_BASE : PUBLIC_SUGGESTION_API_BASE;
     } catch (error) {
-      return "";
+      return PUBLIC_SUGGESTION_API_BASE;
     }
   },
   suggestionHeaders(admin = false) {

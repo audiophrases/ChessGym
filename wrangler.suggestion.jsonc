@@ -11,7 +11,8 @@
     }
   ],
   "vars": {
-    "ALLOWED_ORIGINS": "*"
+    "ALLOWED_ORIGINS": "https://audiophrases.github.io,http://localhost:8787,http://127.0.0.1:8787",
+    "REQUIRE_SUBMIT_TOKEN": "false"
   }
 }
 

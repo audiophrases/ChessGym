@@ -4,14 +4,15 @@
   Cloudflare Worker bindings:
   - KV namespace: SUGGESTIONS
   - Secret: ADMIN_TOKEN
-  - Optional secret: SUBMIT_TOKEN
+  - Optional secret: SUBMIT_TOKEN, used only when REQUIRE_SUBMIT_TOKEN=true
   - Optional env: ALLOWED_ORIGINS=https://your-site.example,http://localhost:8787
+  - Optional env: REQUIRE_SUBMIT_TOKEN=true to lock down public submissions
 
   Endpoints:
-  - POST /suggestions
-  - GET /suggestions
-  - PATCH /suggestions/:id
-  - DELETE /suggestions/:id
+  - POST /suggestions       public
+  - GET /suggestions        admin token required
+  - PATCH /suggestions/:id  admin token required
+  - DELETE /suggestions/:id admin token required
 */
 
 const MAX_TEXT = {
@@ -146,8 +147,12 @@ function requireAdminToken(request, env) {
 }
 
 function requireSubmitToken(request, env) {
-  if (!env.SUBMIT_TOKEN) {
+  const shouldRequireToken = ["1", "true", "yes"].includes(String(env.REQUIRE_SUBMIT_TOKEN || "").trim().toLowerCase());
+  if (!shouldRequireToken) {
     return;
+  }
+  if (!env.SUBMIT_TOKEN) {
+    throw httpError(500, "Missing SUBMIT_TOKEN.");
   }
   const supplied = bearerToken(request) || request.headers.get("X-ChessGym-Submit-Token") || "";
   if (supplied !== env.SUBMIT_TOKEN) {
