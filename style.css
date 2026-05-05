@@ -106,11 +106,12 @@ body {
 
 .select-with-thumb {
   display: inline-grid;
+  grid-template-columns: minmax(0, 1fr);
   align-items: center;
   justify-items: stretch;
   position: relative;
   width: fit-content;
-  max-width: min(520px, 100%);
+  max-width: min(100%, calc(100vw - 32px));
 }
 
 .select-with-thumb .select-trigger {
@@ -120,6 +121,7 @@ body {
   min-width: 0;
   padding-left: 88px;
   padding-right: 36px;
+  overflow-wrap: anywhere;
 }
 
 .select-with-thumb.with-thumb .select-trigger {
@@ -130,6 +132,7 @@ body {
   grid-area: 1 / 1;
   justify-self: start;
   width: max-content;
+  max-width: calc(100vw - 32px);
   height: 0;
   padding: 8px 42px 8px 88px;
   border: 1px solid transparent;
@@ -138,6 +141,10 @@ body {
   white-space: pre;
   font: inherit;
   pointer-events: none;
+}
+
+.footer-bar .select-width-sizer {
+  font-size: 0.95rem;
 }
 
 .custom-select.has-pinnable-options .select-width-sizer {
@@ -515,7 +522,7 @@ body {
 .footer-bar .selector-field {
   flex: 0 1 auto;
   min-width: 0;
-  max-width: 520px;
+  max-width: 100%;
 }
 
 .mode-suggest-field {

@@ -2,7 +2,7 @@
   {
     "opening_id": "bishops_opening",
     "line_id": "bishops_h_pawn_raid_01",
-    "line_name": "Bishop's Opening: h-Pawn Attack",
+    "line_name": "h-Pawn Attack",
     "line_group": "Bishop’s Opening",
     "drill_side": "white",
     "start_fen": "",
@@ -16,7 +16,7 @@
   {
     "opening_id": "bishops_opening",
     "line_id": "bishops_qh8_mate_01",
-    "line_name": "Bishop's Opening: Qh8# Mating Attack",
+    "line_name": "Qh8# Mating Attack",
     "line_group": "Bishop’s Opening",
     "drill_side": "white",
     "start_fen": "",
@@ -30,7 +30,7 @@
   {
     "opening_id": "budapest_gambit",
     "line_id": "budapest_defense_budapest_defense_ng4_nd3_mate_01",
-    "line_name": "Budapest Gambit: ...Ng4 and ...Nd3# Tactical Line",
+    "line_name": "...Ng4 and ...Nd3# Tactical Line",
     "line_group": "Budapest Defense",
     "drill_side": "black",
     "start_fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
@@ -44,7 +44,7 @@
   {
     "opening_id": "caro_kann",
     "line_id": "caro_resilient_core_01",
-    "line_name": "Caro-Kann Defense: Advance Variation — ...c5 Counterplay",
+    "line_name": "Advance Variation — ...c5 Counterplay",
     "line_group": "Advance Caro-Kann",
     "drill_side": "black",
     "start_fen": "",
@@ -58,7 +58,7 @@
   {
     "opening_id": "caro_kann",
     "line_id": "caro_d4_heist_03",
-    "line_name": "Caro-Kann Defense: Advance Variation — ...Nxd4 Tactic",
+    "line_name": "Advance Variation — ...Nxd4 Tactic",
     "line_group": "Advance Caro-Kann",
     "drill_side": "black",
     "start_fen": "",
@@ -72,7 +72,7 @@
   {
     "opening_id": "caro_kann",
     "line_id": "caro_structure_break_04",
-    "line_name": "Caro-Kann Defense: Advance Variation — ...Qb6 Pressure",
+    "line_name": "Advance Variation: ...Qb6 Pressure",
     "line_group": "Advance Caro-Kann",
     "drill_side": "black",
     "start_fen": "",
@@ -86,7 +86,7 @@
   {
     "opening_id": "caro_kann",
     "line_id": "caro_pawn_wedge_05",
-    "line_name": "Caro-Kann Defense: Advance Variation — ...h5 Kingside Clamp",
+    "line_name": "Advance Variation — ...h5 Kingside Clamp",
     "line_group": "Advance Caro-Kann",
     "drill_side": "black",
     "start_fen": "",
@@ -100,7 +100,7 @@
   {
     "opening_id": "caro_kann",
     "line_id": "caro_kann_caro_kann_defense_greek_gift_nxf7_01",
-    "line_name": "Caro-Kann Defense: Alien Gambit",
+    "line_name": "Alien Gambit",
     "line_group": "Alien Gambit",
     "drill_side": "white",
     "start_fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
@@ -114,7 +114,7 @@
   {
     "opening_id": "italian_game",
     "line_id": "italian_black_rousseau_center_fork_01",
-    "line_name": "Italian Game: Rousseau Gambit — Center Counterstrike ...d5",
+    "line_name": "Rousseau Gambit — Center Counterstrike ...d5",
     "line_group": "Rousseau Gambit",
     "drill_side": "black",
     "start_fen": "",
@@ -128,7 +128,7 @@
   {
     "opening_id": "italian_game",
     "line_id": "italian_black_rousseau_g2_raid_01",
-    "line_name": "Italian Game: Rousseau Gambit — ...Qg5-Qxf5 Raid",
+    "line_name": "Rousseau Gambit — ...Qg5-Qxf5 Raid",
     "line_group": "Rousseau Gambit",
     "drill_side": "black",
     "start_fen": "",
@@ -142,7 +142,7 @@
   {
     "opening_id": "italian_game",
     "line_id": "italian_black_rousseau_queen_harpoon_01",
-    "line_name": "Italian Game: Rousseau Gambit — Queen Trap ...Nd4 ...Nxc2+",
+    "line_name": "Rousseau Gambit — Queen Trap ...Nd4 ...Nxc2+",
     "line_group": "Rousseau Gambit",
     "drill_side": "black",
     "start_fen": "",
@@ -156,7 +156,7 @@
   {
     "opening_id": "italian_game",
     "line_id": "italian_black_rousseau_queen_sweep_bxc6_01",
-    "line_name": "Italian Game: Rousseau Gambit — Bxc6+ Intermezzo",
+    "line_name": "Rousseau Gambit — Bxc6+ Intermezzo",
     "line_group": "Rousseau Gambit",
     "drill_side": "black",
     "start_fen": "",
@@ -170,7 +170,7 @@
   {
     "opening_id": "italian_game",
     "line_id": "italian_black_traxler_center_smash_01",
-    "line_name": "Italian Game: Traxler Counterattack — Nxf7 Main Trap",
+    "line_name": "Traxler Counterattack — Nxf7 Main Trap",
     "line_group": "Traxler Counterattack",
     "drill_side": "black",
     "start_fen": "",
@@ -184,7 +184,7 @@
   {
     "opening_id": "italian_game",
     "line_id": "italian_black_traxler_corner_crush_01",
-    "line_name": "Italian Game: Traxler Counterattack — Corner Mate Pattern",
+    "line_name": "Traxler Counterattack — Corner Mate Pattern",
     "line_group": "Traxler Counterattack",
     "drill_side": "black",
     "start_fen": "",
@@ -198,7 +198,7 @@
   {
     "opening_id": "italian_game",
     "line_id": "italian_black_traxler_desperate_attack_01",
-    "line_name": "Italian Game: Traxler Counterattack — Practical Counterplay",
+    "line_name": "Traxler Counterattack — Practical Counterplay",
     "line_group": "Traxler Counterattack",
     "drill_side": "black",
     "start_fen": "",
@@ -212,7 +212,7 @@
   {
     "opening_id": "italian_game",
     "line_id": "italian_black_traxler_queen_plunder_01",
-    "line_name": "Italian Game: Traxler Counterattack — Queen-Win ...Qxd1",
+    "line_name": "Traxler Counterattack — Queen-Win ...Qxd1",
     "line_group": "Traxler Counterattack",
     "drill_side": "black",
     "start_fen": "",
@@ -226,7 +226,7 @@
   {
     "opening_id": "italian_game",
     "line_id": "italian_black_traxler_queen_snare_01",
-    "line_name": "Italian Game: Traxler Counterattack — Queen Trap ...Bxd1",
+    "line_name": "Traxler Counterattack — Queen Trap ...Bxd1",
     "line_group": "Traxler Counterattack",
     "drill_side": "black",
     "start_fen": "",
@@ -254,7 +254,7 @@
   {
     "opening_id": "italian_game",
     "line_id": "italian_fried_liver_ke8_01",
-    "line_name": "Italian Game: Fried Liver Attack — 7...Ke8 Defense",
+    "line_name": "Fried Liver Attack — 7...Ke8 Defense",
     "line_group": "Fried Liver",
     "drill_side": "white",
     "start_fen": "",
@@ -268,7 +268,7 @@
   {
     "opening_id": "italian_game",
     "line_id": "italian_fried_liver_punish_kg8_01",
-    "line_name": "Italian Game: Fried Liver Attack — 7...Kg8 Punish",
+    "line_name": "Fried Liver Attack — 7...Kg8 Punish",
     "line_group": "Tactical",
     "drill_side": "white",
     "start_fen": "",
@@ -282,7 +282,7 @@
   {
     "opening_id": "italian_game",
     "line_id": "italian_fried_liver_rook_rampage_01",
-    "line_name": "Italian Game: Fried Liver Attack — 7...Ke6 Rook Lift",
+    "line_name": "Fried Liver Attack — 7...Ke6 Rook Lift",
     "line_group": "Fried Liver",
     "drill_side": "white",
     "start_fen": "",
@@ -310,7 +310,7 @@
   {
     "opening_id": "italian_game",
     "line_id": "italian_pawn_phalanx_01",
-    "line_name": "Italian Game: Giuoco Piano",
+    "line_name": "Giuoco Piano",
     "line_group": "Giuoco Piano",
     "drill_side": "white",
     "start_fen": "",
@@ -324,7 +324,7 @@
   {
     "opening_id": "italian_game",
     "line_id": "italian_pinning_pressure_01",
-    "line_name": "Italian Game: Evans-Type Structure — Pin and Qxa5",
+    "line_name": "Evans-Type Structure — Pin and Qxa5",
     "line_group": "Italian Gambits",
     "drill_side": "white",
     "start_fen": "",
@@ -338,7 +338,7 @@
   {
     "opening_id": "italian_game",
     "line_id": "italian_queen_forklift_01",
-    "line_name": "Italian Game: Early d4 Gambit",
+    "line_name": "Early d4 Gambit",
     "line_group": "Bc4 Gambits",
     "drill_side": "white",
     "start_fen": "",
@@ -352,7 +352,7 @@
   {
     "opening_id": "italian_game",
     "line_id": "italian_queen_skewer_b4_01",
-    "line_name": "Italian Game: Evans-Type Structure — Qxb4 Recovery",
+    "line_name": "Evans-Type Structure — Qxb4 Recovery",
     "line_group": "Italian Gambits",
     "drill_side": "white",
     "start_fen": "",
@@ -380,7 +380,7 @@
   {
     "opening_id": "italian_game",
     "line_id": "italian_rook_gambit_01",
-    "line_name": "Italian Game: Evans-Type Tactical Exchange Line",
+    "line_name": "Evans-Type Tactical Exchange Line",
     "line_group": "Italian Gambits",
     "drill_side": "white",
     "start_fen": "",
@@ -394,7 +394,7 @@
   {
     "opening_id": "italian_game",
     "line_id": "italian_rook_lasso_01",
-    "line_name": "Italian Game: Bishop's Opening Gambit",
+    "line_name": "Bishop's Opening Gambit",
     "line_group": "Bc4 Gambits",
     "drill_side": "white",
     "start_fen": "",
@@ -422,7 +422,7 @@
   {
     "opening_id": "italian_game",
     "line_id": "italian_two_knights_queen_skewer_01",
-    "line_name": "Italian Game: Two Knights Defense — Bxd8 Queen-Win",
+    "line_name": "Two Knights Defense — Bxd8 Queen-Win",
     "line_group": "Two Knights Tactics",
     "drill_side": "white",
     "start_fen": "",
@@ -436,7 +436,7 @@
   {
     "opening_id": "italian_game",
     "line_id": "italian_game_two_knights_defense_mainline_na5_qd4_qxc6_01",
-    "line_name": "Italian Game: Two Knights Defense — Mainline ...Na5 ...Qd4 ...Qxc6",
+    "line_name": "Two Knights Defense — Mainline ...Na5 ...Qd4 ...Qxc6",
     "line_group": "Fried Liver",
     "drill_side": "black",
     "start_fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
@@ -464,7 +464,7 @@
   {
     "opening_id": "italian_game",
     "line_id": "italian_game_black_bxf7_ke8_qf6_h6_01",
-    "line_name": "Italian Game: Anti-Bxf7+ Consolidation (...Qf6 ...h6)",
+    "line_name": "Anti-Bxf7+ Consolidation (...Qf6 ...h6)",
     "line_group": "Italian Gambits",
     "drill_side": "black",
     "start_fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
@@ -478,7 +478,7 @@
   {
     "opening_id": "italian_game",
     "line_id": "italian_game_italian_practical_trap_f6_d5_qf7_01",
-    "line_name": "Italian Game: Tactical Trap (...f6 ...d5 ...Qf7#)",
+    "line_name": "Tactical Trap (...f6 ...d5 ...Qf7#)",
     "line_group": "Rousseau Gambit",
     "drill_side": "white",
     "start_fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
@@ -506,7 +506,7 @@
   {
     "opening_id": "italian_game",
     "line_id": "italian_game_italian_game_rousseau_gambit_qb5_01",
-    "line_name": "Italian Game: Rousseau Gambit — Qb5# Pattern",
+    "line_name": "Rousseau Gambit — Qb5# Pattern",
     "line_group": "Rousseau Gambit",
     "drill_side": "white",
     "start_fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
@@ -534,7 +534,7 @@
   {
     "opening_id": "kings_gambit",
     "line_id": "kings_free_pawn_02",
-    "line_name": "King's Gambit Accepted: Development and Pawn Recovery",
+    "line_name": "Accepted: Development and Pawn Recovery",
     "line_group": "King’s Gambit Accepted",
     "drill_side": "white",
     "start_fen": "",
@@ -548,7 +548,7 @@
   {
     "opening_id": "kings_gambit",
     "line_id": "kings_pawn_riposte_03",
-    "line_name": "King's Gambit Accepted: Allgaier-Type Piece Activity",
+    "line_name": "Accepted: Allgaier-Type Piece Activity",
     "line_group": "King’s Gambit Accepted",
     "drill_side": "white",
     "start_fen": "",
@@ -562,7 +562,7 @@
   {
     "opening_id": "kings_gambit",
     "line_id": "kings_material_gain_04",
-    "line_name": "King's Gambit Accepted: Tactical Material-Win Line",
+    "line_name": "Accepted: Tactical Material-Win Line",
     "line_group": "King’s Gambit Accepted",
     "drill_side": "white",
     "start_fen": "",
@@ -576,7 +576,7 @@
   {
     "opening_id": "kings_gambit",
     "line_id": "kings_queen_snare_05",
-    "line_name": "King's Gambit Accepted: Queen-Win Tactical Line",
+    "line_name": "Accepted: Queen-Win Tactical Line",
     "line_group": "King’s Gambit Accepted",
     "drill_side": "white",
     "start_fen": "",
@@ -590,7 +590,7 @@
   {
     "opening_id": "london_system",
     "line_id": "london_c7_sting_01",
-    "line_name": "London System: Nb5-c7+ Tactical Sequence",
+    "line_name": "Nb5-c7+ Tactical Sequence",
     "line_group": "London System",
     "drill_side": "white",
     "start_fen": "",
@@ -604,7 +604,7 @@
   {
     "opening_id": "london_system",
     "line_id": "london_f_pawn_folly_01",
-    "line_name": "London System: Punish ...f6 with Qxe5+",
+    "line_name": "Punish ...f6 with Qxe5+",
     "line_group": "London System",
     "drill_side": "white",
     "start_fen": "",
@@ -618,7 +618,7 @@
   {
     "opening_id": "london_system",
     "line_id": "london_g7_heist_01",
-    "line_name": "London System: Qg4-Qxg7 Queen Exchange Line",
+    "line_name": "Qg4-Qxg7 Queen Exchange Line",
     "line_group": "London System",
     "drill_side": "white",
     "start_fen": "",
@@ -632,7 +632,7 @@
   {
     "opening_id": "london_system",
     "line_id": "london_queen_ransom_01",
-    "line_name": "London System: Nb5-Nc7+ Queen-Win Sequence",
+    "line_name": "Nb5-Nc7+ Queen-Win Sequence",
     "line_group": "London System",
     "drill_side": "white",
     "start_fen": "",
@@ -646,7 +646,7 @@
   {
     "opening_id": "london_system",
     "line_id": "london_rook_lure_01",
-    "line_name": "London System: Bxb8 and Qxf5 Tactical Line",
+    "line_name": "Bxb8 and Qxf5 Tactical Line",
     "line_group": "London System",
     "drill_side": "white",
     "start_fen": "",
@@ -660,7 +660,7 @@
   {
     "opening_id": "london_system",
     "line_id": "london_system_london_system_queen_hunt_mate_01",
-    "line_name": "London System: Queenside Counter and Mating Net",
+    "line_name": "Queenside Counter and Mating Net",
     "line_group": "London System",
     "drill_side": "black",
     "start_fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
@@ -702,7 +702,7 @@
   {
     "opening_id": "pterodactyl_defense_eastern_anhanguera",
     "line_id": "pterodactyl_defense_eastern_anhanguera_pterodactyl_defense_eastern_anhanguera_01",
-    "line_name": "Pterodactyl Defense (Eastern",
+    "line_name": "Eastern Anhanguera Queen Raid",
     "line_group": "Eastern Anhanguera Queen Raid",
     "drill_side": "white",
     "start_fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
@@ -716,7 +716,7 @@
   {
     "opening_id": "queen_s_gambit_accepted",
     "line_id": "queen_s_gambit_accepted_queen_s_gambit_accepted_qf3_trap_mate_01",
-    "line_name": "Queen's Gambit Accepted: Qf3 Trap (...Qd1#)",
+    "line_name": "Qf3 Trap (...Qd1#)",
     "line_group": "Queen's Gambit Accepted",
     "drill_side": "black",
     "start_fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
@@ -744,7 +744,7 @@
   {
     "opening_id": "russian_game",
     "line_id": "russian_three_knights_stafford_01",
-    "line_name": "Petrov Defense: Stafford Gambit — Greek Gift Mate Pattern",
+    "line_name": "Stafford Gambit — Greek Gift Mate Pattern",
     "line_group": "Petrov / Three Knights",
     "drill_side": "black",
     "start_fen": "",
@@ -758,7 +758,7 @@
   {
     "opening_id": "russian_game",
     "line_id": "russian_three_knights_stafford_02",
-    "line_name": "Petrov Defense: Stafford Gambit — Long Castling Attack",
+    "line_name": "Stafford Gambit — Long Castling Attack",
     "line_group": "Petrov / Three Knights",
     "drill_side": "black",
     "start_fen": "",
@@ -772,7 +772,7 @@
   {
     "opening_id": "russian_game",
     "line_id": "russian_game_petrov_queen_trap_qxd1_01",
-    "line_name": "Petrov Defense: Stafford Gambit Trap (...Qxd1)",
+    "line_name": "Stafford Gambit Trap (...Qxd1)",
     "line_group": "Petrov Defense",
     "drill_side": "black",
     "start_fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
@@ -786,7 +786,7 @@
   {
     "opening_id": "russian_game",
     "line_id": "petrov_defense_petrov_defense_stafford_gambit_trap_6_bg5_nxe4_01",
-    "line_name": "Petrov Defense: Stafford Gambit Trap (6.Bg5? Nxe4!)",
+    "line_name": "Stafford Gambit Trap (6.Bg5? Nxe4!)",
     "line_group": "Petrov Defense",
     "drill_side": "black",
     "start_fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
@@ -814,7 +814,7 @@
   {
     "opening_id": "ruy_lopez",
     "line_id": "ruy_bishop_trap_01",
-    "line_name": "Ruy Lopez: Classical Structure",
+    "line_name": "Classical Structure",
     "line_group": "Ruy Lopez",
     "drill_side": "white",
     "start_fen": "",
@@ -842,7 +842,7 @@
   {
     "opening_id": "ruy_lopez",
     "line_id": "ruy_pawn_snatch_01",
-    "line_name": "Ruy Lopez: Exchange Variation",
+    "line_name": "Exchange Variation",
     "line_group": "Ruy Lopez",
     "drill_side": "white",
     "start_fen": "",
@@ -856,7 +856,7 @@
   {
     "opening_id": "ruy_lopez",
     "line_id": "ruy_pawn_storm_01",
-    "line_name": "Ruy Lopez: d4 Structure",
+    "line_name": "d4 Structure",
     "line_group": "Ruy Lopez",
     "drill_side": "white",
     "start_fen": "",
@@ -884,7 +884,7 @@
   {
     "opening_id": "ruy_lopez",
     "line_id": "ruy_lopez_morphy_exchange_4_dxc6_5_d3_bd6",
-    "line_name": "Ruy Lopez: Morphy Defense",
+    "line_name": "Morphy Defense",
     "line_group": "Ruy Lopez",
     "drill_side": "black",
     "start_fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
@@ -898,7 +898,7 @@
   {
     "opening_id": "ruy_lopez",
     "line_id": "ruy_lopez_ruy_lopez_open_center_counterstrike_01",
-    "line_name": "Ruy Lopez: Open Defense",
+    "line_name": "Open Defense",
     "line_group": "Ruy Lopez",
     "drill_side": "white",
     "start_fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
@@ -1052,7 +1052,7 @@
   {
     "opening_id": "vienna_game",
     "line_id": "vienna_game_vienna_gambit_qxb2_bxf3_01",
-    "line_name": "Vienna Gambit: ...Qxb2 and ...Bxf3 Counterplay",
+    "line_name": "...Qxb2 and ...Bxf3 Counterplay",
     "line_group": "Vienna Game",
     "drill_side": "black",
     "start_fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
@@ -1080,7 +1080,7 @@
   {
     "opening_id": "budapest_gambit",
     "line_id": "budapest_gambit_budapest_gambit_trap_bb4_ncxe5_nd3_01",
-    "line_name": "Budapest Gambit Trap (...Bb4+ ...Ncxe5 ...Nd3#)",
+    "line_name": "Trap (...Bb4+ ...Ncxe5 ...Nd3#)",
     "line_group": "Budapest Gambit",
     "drill_side": "black",
     "start_fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
@@ -1122,7 +1122,7 @@
   {
     "opening_id": "italian_game",
     "line_id": "italian_game_blackburne_shilling_gambit_italian_game_blackburne_shilling_gambit_qe4_nf3_trap_01",
-    "line_name": "Italian Game: Blackburne Shilling Gambit (Qe4+ Nf3# Trap)",
+    "line_name": "Blackburne Shilling Gambit (Qe4+ Nf3# Trap)",
     "line_group": "Italian Game",
     "drill_side": "black",
     "start_fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
