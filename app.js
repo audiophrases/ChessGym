@@ -119,6 +119,7 @@ const App = {
     outOfLine: false,
     pinnedLines: loadPinnedLines(),
     lineSearchQuery: "",
+    linePinnedOnly: false,
   },
   chess: null,
   board: null,
@@ -142,6 +143,7 @@ const App = {
     this.$lineList = $("#lineSelectList");
     this.$dueBtn = $("#dueBtn");
     this.$lineSearchInput = $("#lineSearchInput");
+    this.$pinnedLinesBtn = $("#pinnedLinesBtn");
     this.$lineSelectOptions = $("#lineSelectOptions");
     this.$mode = $("#modeSelect");
     this.$strength = $("#strengthSelect");
@@ -217,6 +219,11 @@ const App = {
     this.$dueBtn.on("click", () => this.onStudyDueToggle());
     this.$lineSearchInput.on("input", () => this.onLineSearchChange());
     this.$lineSearchInput.on("click", (event) => event.stopPropagation());
+    this.$pinnedLinesBtn.on("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      this.togglePinnedLinesFilter();
+    });
     this.$mode.on("change", () => this.onModeChange());
     this.$strength.on("change", () => this.onStrengthChange());
     this.$prev.on("click", () => this.stepMove(-1));
@@ -1911,11 +1918,23 @@ const App = {
       nextLine = this.pickWeightedDisplayLine(displayLines);
     }
     this.state.lineId = nextLine ? nextLine.line_id : "";
-    this.renderLineOptions(displayLines);
+    this.renderLineOptionsForCurrentState(displayLines);
     this.updateLineSelectionDisplay();
     this.updateProgress();
     this.updateSideSelector();
     this.updateSelectorThumbnails();
+  },
+  renderLineOptionsForCurrentState(defaultLines) {
+    this.updatePinnedLinesFilterButton();
+    if (this.state.linePinnedOnly) {
+      this.renderPinnedLineResults(this.state.lineSearchQuery);
+      return;
+    }
+    if (this.state.lineSearchQuery && this.state.lineSearchQuery.trim()) {
+      this.renderLineSearchResults(this.state.lineSearchQuery);
+      return;
+    }
+    this.renderLineOptions(defaultLines);
   },
   sortLinesForSelector(lines) {
     return (lines || []).slice().sort((a, b) => {
@@ -1947,11 +1966,14 @@ const App = {
       this.state.pinnedLines[lineId] = true;
     }
     savePinnedLines(this.state.pinnedLines);
-    if (this.state.lineSearchQuery && this.state.lineSearchQuery.trim()) {
+    if (this.state.linePinnedOnly) {
+      this.renderPinnedLineResults(this.state.lineSearchQuery);
+    } else if (this.state.lineSearchQuery && this.state.lineSearchQuery.trim()) {
       this.renderLineSearchResults(this.state.lineSearchQuery);
     } else {
       this.populateLines(this.state.lineId);
     }
+    this.updatePinnedLinesFilterButton();
     this.adminPopulatePicker();
   },
   onOpeningChange(nextOpeningId) {
@@ -2002,15 +2024,48 @@ const App = {
   onLineSearchChange() {
     const query = (this.$lineSearchInput && this.$lineSearchInput.val()) || "";
     this.state.lineSearchQuery = query;
+    if (this.state.linePinnedOnly) {
+      this.ensureLineSelectOpen();
+      this.renderPinnedLineResults(query);
+      return;
+    }
     if (!query.trim()) {
       this.populateLines(this.state.lineId);
       return;
     }
+    this.ensureLineSelectOpen();
+    this.renderLineSearchResults(query);
+  },
+  togglePinnedLinesFilter() {
+    this.state.linePinnedOnly = !this.state.linePinnedOnly;
+    this.updatePinnedLinesFilterButton();
+    this.ensureLineSelectOpen();
+    if (this.state.linePinnedOnly) {
+      this.renderPinnedLineResults(this.state.lineSearchQuery);
+      return;
+    }
+    if (this.state.lineSearchQuery && this.state.lineSearchQuery.trim()) {
+      this.renderLineSearchResults(this.state.lineSearchQuery);
+      return;
+    }
+    this.populateLines(this.state.lineId);
+  },
+  updatePinnedLinesFilterButton() {
+    if (!this.$pinnedLinesBtn || !this.$pinnedLinesBtn.length) {
+      return;
+    }
+    const active = !!this.state.linePinnedOnly;
+    this.$pinnedLinesBtn
+      .toggleClass("is-active", active)
+      .attr("aria-pressed", String(active))
+      .attr("aria-label", active ? "Show current opening lines" : "Show pinned lines")
+      .attr("title", active ? "Show current opening lines" : "Show pinned lines");
+  },
+  ensureLineSelectOpen() {
     if (this.$lineList && !this.$lineList.hasClass("is-open")) {
       this.$lineList.addClass("is-open");
       this.$lineButton.attr("aria-expanded", "true");
     }
-    this.renderLineSearchResults(query);
   },
   renderLineSearchResults(query) {
     const needle = (query || "").trim().toLowerCase();
@@ -2023,17 +2078,37 @@ const App = {
       const haystack = `${line.line_name || ""} ${line.line_id || ""} ${line.tags || ""} ${this.lookupOpeningName(line.opening_id) || ""}`.toLowerCase();
       return haystack.includes(needle);
     });
-    matches.sort((a, b) => {
-      const aPinned = this.isLinePinned(a.line_id) ? 0 : 1;
-      const bPinned = this.isLinePinned(b.line_id) ? 0 : 1;
-      if (aPinned !== bPinned) return aPinned - bPinned;
-      return (a.line_name || a.line_id || "").localeCompare(b.line_name || b.line_id || "", undefined, { sensitivity: "base" });
-    });
+    matches.sort((a, b) => this.compareCrossOpeningLines(a, b, { pinnedFirst: true }));
     if (!matches.length) {
       $target.append('<div class="select-empty">No lines match.</div>');
       return;
     }
-    matches.slice(0, 80).forEach((line) => {
+    this.renderCrossOpeningLineOptions(matches.slice(0, 80));
+  },
+  renderPinnedLineResults(query) {
+    const needle = (query || "").trim().toLowerCase();
+    const $target = this.$lineSelectOptions && this.$lineSelectOptions.length ? this.$lineSelectOptions : this.$lineList;
+    $target.empty();
+    const matches = (this.data.lines || []).filter((line) => {
+      if (!this.isLinePinned(line.line_id)) {
+        return false;
+      }
+      if (!needle) {
+        return true;
+      }
+      const haystack = `${line.line_name || ""} ${line.line_id || ""} ${line.tags || ""} ${this.lookupOpeningName(line.opening_id) || ""}`.toLowerCase();
+      return haystack.includes(needle);
+    });
+    matches.sort((a, b) => this.compareCrossOpeningLines(a, b));
+    if (!matches.length) {
+      $target.append(`<div class="select-empty">${needle ? "No pinned lines match." : "No pinned lines yet."}</div>`);
+      return;
+    }
+    this.renderCrossOpeningLineOptions(matches);
+  },
+  renderCrossOpeningLineOptions(lines) {
+    const $target = this.$lineSelectOptions && this.$lineSelectOptions.length ? this.$lineSelectOptions : this.$lineList;
+    (lines || []).forEach((line) => {
       const openingName = this.lookupOpeningName(line.opening_id) || line.opening_id;
       const label = line.line_name || line.line_id;
       $target.append(
@@ -2046,6 +2121,22 @@ const App = {
         })
       );
     });
+  },
+  compareCrossOpeningLines(a, b, options = {}) {
+    if (options.pinnedFirst) {
+      const aPinned = this.isLinePinned(a.line_id) ? 0 : 1;
+      const bPinned = this.isLinePinned(b.line_id) ? 0 : 1;
+      if (aPinned !== bPinned) return aPinned - bPinned;
+    }
+    const aOpening = (this.lookupOpeningName(a.opening_id) || a.opening_id || "").toString();
+    const bOpening = (this.lookupOpeningName(b.opening_id) || b.opening_id || "").toString();
+    const byOpening = aOpening.localeCompare(bOpening, undefined, { sensitivity: "base" });
+    if (byOpening !== 0) return byOpening;
+    const aName = (a.line_name || a.line_id || "").toString();
+    const bName = (b.line_name || b.line_id || "").toString();
+    const byName = aName.localeCompare(bName, undefined, { sensitivity: "base" });
+    if (byName !== 0) return byName;
+    return (a.line_id || "").toString().localeCompare((b.line_id || "").toString(), undefined, { sensitivity: "base" });
   },
   lookupOpeningName(openingId) {
     const opening = this.data.openingsById[openingId];

@@ -73,7 +73,10 @@
               </button>
               <div id="lineSelectList" class="select-list" role="listbox" aria-label="Line options">
                 <div class="select-search">
-                  <input id="lineSearchInput" type="search" placeholder="Search any line by name…" aria-label="Search lines across openings" autocomplete="off" />
+                  <div class="select-filter-row">
+                    <input id="lineSearchInput" type="search" placeholder="Search any line by name…" aria-label="Search lines across openings" autocomplete="off" />
+                    <button id="pinnedLinesBtn" class="select-filter-toggle" type="button" aria-pressed="false" aria-label="Show pinned lines" title="Show pinned lines">★</button>
+                  </div>
                 </div>
                 <div id="lineSelectOptions" class="select-options"></div>
               </div>
