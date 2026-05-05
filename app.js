@@ -176,6 +176,7 @@ const App = {
     this.$suggestionMoves = $("#suggestionMoves");
     this.$suggestionComment = $("#suggestionComment");
     this.$suggestionContact = $("#suggestionContact");
+    this.$suggestionClear = $("#suggestionClear");
     this.$suggestionSaveDraft = $("#suggestionSaveDraft");
     this.$suggestionSubmit = $("#suggestionSubmit");
     this.$suggestionStatus = $("#suggestionStatus");
@@ -259,6 +260,7 @@ const App = {
         this.closeSuggestionModal();
       }
     });
+    this.$suggestionClear.on("click", () => this.clearSuggestionForm());
     this.$suggestionSaveDraft.on("click", () => this.saveSuggestionDraftFromForm());
     this.$suggestionSubmit.on("click", () => this.submitSuggestion());
     this.$boardZoomIn.on("click", () => this.adjustBoardSize(1));
@@ -385,6 +387,18 @@ const App = {
     if (this.$suggestionModal && this.$suggestionModal.length) {
       this.$suggestionModal.addClass("hidden");
     }
+  },
+  clearSuggestionForm() {
+    this.$suggestionOpeningName.val("");
+    this.$suggestionOpeningId.val("");
+    this.$suggestionLineName.val("");
+    this.$suggestionDrillSide.val(this.state.userSide || "white");
+    this.$suggestionStartFen.val("");
+    this.$suggestionMoves.val("");
+    this.$suggestionComment.val("");
+    this.$suggestionContact.val("");
+    this.$suggestionStatus.text("");
+    this.$suggestionLineName.trigger("focus");
   },
   configureSuggestionInboxFromUrl() {
     let params;

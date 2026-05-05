@@ -1,0 +1,23 @@
+[
+  {
+    "id": "a57f3468416f492da347184eec1249c8",
+    "status": "archived",
+    "created_at": "2026-05-05T16:55:08Z",
+    "updated_at": "2026-05-05T16:56:21Z",
+    "opening_id": "kings_gambit",
+    "opening_name": "King's Gambit",
+    "source_line_id": "kings_crossfire_01",
+    "source_line_name": "...h5 Kingside Clamp",
+    "line_name": "test",
+    "line_id": "",
+    "drill_side": "white",
+    "start_fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+    "current_fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+    "moves_text": "asdsdfa",
+    "notation": "auto",
+    "comment": "dsfasdaf",
+    "contact": "",
+    "source_url": "http://localhost:8787/?admin=1",
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36"
+  }
+]
