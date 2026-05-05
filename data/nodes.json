@@ -15626,7 +15626,7 @@
     "fen_after_key": ""
   },
   {
-    "opening_id": "pterodactyl_defense_eastern_anhanguera",
+    "opening_id": "pterodactyl_defense",
     "line_id": "pterodactyl_defense_eastern_anhanguera_pterodactyl_defense_eastern_anhanguera_01",
     "node_id": "pterodactyl_defens_01",
     "parent_node_id": "",
@@ -15639,7 +15639,7 @@
     "fen_after_key": "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq -"
   },
   {
-    "opening_id": "pterodactyl_defense_eastern_anhanguera",
+    "opening_id": "pterodactyl_defense",
     "line_id": "pterodactyl_defense_eastern_anhanguera_pterodactyl_defense_eastern_anhanguera_01",
     "node_id": "pterodactyl_defens_02",
     "parent_node_id": "pterodactyl_defens_01",
@@ -15652,7 +15652,7 @@
     "fen_after_key": "rnbqkbnr/pppppp1p/6p1/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq -"
   },
   {
-    "opening_id": "pterodactyl_defense_eastern_anhanguera",
+    "opening_id": "pterodactyl_defense",
     "line_id": "pterodactyl_defense_eastern_anhanguera_pterodactyl_defense_eastern_anhanguera_01",
     "node_id": "pterodactyl_defens_03",
     "parent_node_id": "pterodactyl_defens_02",
@@ -15665,7 +15665,7 @@
     "fen_after_key": "rnbqkbnr/pppppp1p/6p1/8/3PP3/8/PPP2PPP/RNBQKBNR b KQkq -"
   },
   {
-    "opening_id": "pterodactyl_defense_eastern_anhanguera",
+    "opening_id": "pterodactyl_defense",
     "line_id": "pterodactyl_defense_eastern_anhanguera_pterodactyl_defense_eastern_anhanguera_01",
     "node_id": "pterodactyl_defens_04",
     "parent_node_id": "pterodactyl_defens_03",
@@ -15678,7 +15678,7 @@
     "fen_after_key": "rnbqk1nr/ppppppbp/6p1/8/3PP3/8/PPP2PPP/RNBQKBNR w KQkq -"
   },
   {
-    "opening_id": "pterodactyl_defense_eastern_anhanguera",
+    "opening_id": "pterodactyl_defense",
     "line_id": "pterodactyl_defense_eastern_anhanguera_pterodactyl_defense_eastern_anhanguera_01",
     "node_id": "pterodactyl_defens_05",
     "parent_node_id": "pterodactyl_defens_04",
@@ -15691,7 +15691,7 @@
     "fen_after_key": "rnbqk1nr/ppppppbp/6p1/8/3PP3/2N5/PPP2PPP/R1BQKBNR b KQkq -"
   },
   {
-    "opening_id": "pterodactyl_defense_eastern_anhanguera",
+    "opening_id": "pterodactyl_defense",
     "line_id": "pterodactyl_defense_eastern_anhanguera_pterodactyl_defense_eastern_anhanguera_01",
     "node_id": "pterodactyl_defens_06",
     "parent_node_id": "pterodactyl_defens_05",
@@ -15704,7 +15704,7 @@
     "fen_after_key": "rnbqk1nr/pp1pppbp/6p1/2p5/3PP3/2N5/PPP2PPP/R1BQKBNR w KQkq -"
   },
   {
-    "opening_id": "pterodactyl_defense_eastern_anhanguera",
+    "opening_id": "pterodactyl_defense",
     "line_id": "pterodactyl_defense_eastern_anhanguera_pterodactyl_defense_eastern_anhanguera_01",
     "node_id": "pterodactyl_defens_07",
     "parent_node_id": "pterodactyl_defens_06",
@@ -15717,7 +15717,7 @@
     "fen_after_key": "rnbqk1nr/pp1pppbp/6p1/2p5/3PP3/2N1B3/PPP2PPP/R2QKBNR b KQkq -"
   },
   {
-    "opening_id": "pterodactyl_defense_eastern_anhanguera",
+    "opening_id": "pterodactyl_defense",
     "line_id": "pterodactyl_defense_eastern_anhanguera_pterodactyl_defense_eastern_anhanguera_01",
     "node_id": "pterodactyl_defens_08",
     "parent_node_id": "pterodactyl_defens_07",
@@ -15730,7 +15730,7 @@
     "fen_after_key": "rnb1k1nr/pp1pppbp/1q4p1/2p5/3PP3/2N1B3/PPP2PPP/R2QKBNR w KQkq -"
   },
   {
-    "opening_id": "pterodactyl_defense_eastern_anhanguera",
+    "opening_id": "pterodactyl_defense",
     "line_id": "pterodactyl_defense_eastern_anhanguera_pterodactyl_defense_eastern_anhanguera_01",
     "node_id": "pterodactyl_defens_09",
     "parent_node_id": "pterodactyl_defens_08",
@@ -15743,7 +15743,7 @@
     "fen_after_key": "rnb1k1nr/pp1pppbp/1q4p1/2p5/3PP3/2N1BN2/PPP2PPP/R2QKB1R b KQkq -"
   },
   {
-    "opening_id": "pterodactyl_defense_eastern_anhanguera",
+    "opening_id": "pterodactyl_defense",
     "line_id": "pterodactyl_defense_eastern_anhanguera_pterodactyl_defense_eastern_anhanguera_01",
     "node_id": "pterodactyl_defens_10",
     "parent_node_id": "pterodactyl_defens_09",
@@ -15756,7 +15756,7 @@
     "fen_after_key": "rnb1k1nr/pp1pppbp/6p1/2p5/3PP3/2N1BN2/PqP2PPP/R2QKB1R w KQkq -"
   },
   {
-    "opening_id": "pterodactyl_defense_eastern_anhanguera",
+    "opening_id": "pterodactyl_defense",
     "line_id": "pterodactyl_defense_eastern_anhanguera_pterodactyl_defense_eastern_anhanguera_01",
     "node_id": "pterodactyl_defens_11",
     "parent_node_id": "pterodactyl_defens_10",
@@ -15769,7 +15769,7 @@
     "fen_after_key": "rnb1k1nr/pp1pppbp/6p1/2pN4/3PP3/4BN2/PqP2PPP/R2QKB1R b KQkq -"
   },
   {
-    "opening_id": "pterodactyl_defense_eastern_anhanguera",
+    "opening_id": "pterodactyl_defense",
     "line_id": "pterodactyl_defense_eastern_anhanguera_pterodactyl_defense_eastern_anhanguera_01",
     "node_id": "pterodactyl_defens_12",
     "parent_node_id": "pterodactyl_defens_11",
@@ -15782,7 +15782,7 @@
     "fen_after_key": "rnbk2nr/pp1pppbp/6p1/2pN4/3PP3/4BN2/PqP2PPP/R2QKB1R w KQ -"
   },
   {
-    "opening_id": "pterodactyl_defense_eastern_anhanguera",
+    "opening_id": "pterodactyl_defense",
     "line_id": "pterodactyl_defense_eastern_anhanguera_pterodactyl_defense_eastern_anhanguera_01",
     "node_id": "pterodactyl_defens_13",
     "parent_node_id": "pterodactyl_defens_12",
@@ -15795,7 +15795,7 @@
     "fen_after_key": "rnbk2nr/pp1pppbp/6p1/2pN4/3PP3/4BN2/PqP2PPP/1R1QKB1R b K -"
   },
   {
-    "opening_id": "pterodactyl_defense_eastern_anhanguera",
+    "opening_id": "pterodactyl_defense",
     "line_id": "pterodactyl_defense_eastern_anhanguera_pterodactyl_defense_eastern_anhanguera_01",
     "node_id": "pterodactyl_defens_14",
     "parent_node_id": "pterodactyl_defens_13",
@@ -15808,7 +15808,7 @@
     "fen_after_key": "rnbk2nr/pp1pppbp/6p1/2pN4/3PP3/4BN2/q1P2PPP/1R1QKB1R w K -"
   },
   {
-    "opening_id": "pterodactyl_defense_eastern_anhanguera",
+    "opening_id": "pterodactyl_defense",
     "line_id": "pterodactyl_defense_eastern_anhanguera_pterodactyl_defense_eastern_anhanguera_01",
     "node_id": "pterodactyl_defens_15",
     "parent_node_id": "pterodactyl_defens_14",
@@ -15821,7 +15821,7 @@
     "fen_after_key": "rnbk2nr/pp1pppbp/6p1/2pN4/3PP3/5N2/q1PB1PPP/1R1QKB1R b K -"
   },
   {
-    "opening_id": "pterodactyl_defense_eastern_anhanguera",
+    "opening_id": "pterodactyl_defense",
     "line_id": "pterodactyl_defense_eastern_anhanguera_pterodactyl_defense_eastern_anhanguera_01",
     "node_id": "pterodactyl_defens_16",
     "parent_node_id": "pterodactyl_defens_15",
@@ -15834,7 +15834,7 @@
     "fen_after_key": "rnbk2nr/pp1pppbp/6p1/3N4/3pP3/5N2/q1PB1PPP/1R1QKB1R w K -"
   },
   {
-    "opening_id": "pterodactyl_defense_eastern_anhanguera",
+    "opening_id": "pterodactyl_defense",
     "line_id": "pterodactyl_defense_eastern_anhanguera_pterodactyl_defense_eastern_anhanguera_01",
     "node_id": "pterodactyl_defens_17",
     "parent_node_id": "pterodactyl_defens_16",

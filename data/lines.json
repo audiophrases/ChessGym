@@ -700,7 +700,7 @@
     "": ""
   },
   {
-    "opening_id": "pterodactyl_defense_eastern_anhanguera",
+    "opening_id": "pterodactyl_defense",
     "line_id": "pterodactyl_defense_eastern_anhanguera_pterodactyl_defense_eastern_anhanguera_01",
     "line_name": "Eastern Anhanguera Queen Raid",
     "line_group": "Eastern Anhanguera Queen Raid",
@@ -954,7 +954,7 @@
   {
     "opening_id": "scotch_game",
     "line_id": "scotch_game_qd5_nh5_nf4_bxf4_01",
-    "line_name": "Scotch Game: Qd5 Line (...Nh5 ...Nf4)",
+    "line_name": "Qd5 Line (...Nh5 ...Nf4)",
     "line_group": "Scotch Game",
     "drill_side": "white",
     "start_fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",

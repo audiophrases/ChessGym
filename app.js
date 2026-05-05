@@ -826,7 +826,9 @@ const App = {
         $currentGroup = $el;
         visibleSinceGroup = false;
       } else {
-        const text = ($el.text() + " " + $el.attr("data-line-id") + " " + $el.attr("data-opening-id") + " " + ($el.attr("data-tags") || "")).toLowerCase();
+        const openingId = $el.attr("data-opening-id") || "";
+        const openingName = this.lookupOpeningName(openingId) || "";
+        const text = ($el.text() + " " + $el.attr("data-line-id") + " " + openingId + " " + openingName + " " + ($el.attr("data-tags") || "")).toLowerCase();
         const match = !q || text.includes(q);
         $el.toggle(match);
         if (match) visibleSinceGroup = true;

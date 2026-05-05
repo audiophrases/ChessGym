@@ -110,8 +110,8 @@
     "allow_transpositions": "TRUE"
   },
   {
-    "opening_id": "pterodactyl_defense_eastern_anhanguera",
-    "opening_name": "Pterodactyl Defense: Eastern",
+    "opening_id": "pterodactyl_defense",
+    "opening_name": "Pterodactyl Defense",
     "side": "both",
     "starting_fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
     "description": "Training opening family for Pterodactyl Defense: Eastern; Anhanguera.",
@@ -122,7 +122,7 @@
   },
   {
     "opening_id": "scotch_game",
-    "opening_name": "Anhanguera",
+    "opening_name": "Scotch Game",
     "side": "both",
     "starting_fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
     "description": "Classical 1.e4 e5 opening with 3.d4: direct central challenge and open tactical play.",
