@@ -287,6 +287,8 @@ const App = {
     sessionLineId: null,
     selectedSquare: null,
     selectedPiece: null,
+    dragSource: null,
+    clickHandledInDragCycle: false,
     sessionActive: false,
     pendingAutoPlayTimer: null,
     pendingOpponentTimer: null,
@@ -3436,13 +3438,39 @@ const App = {
   },
   handleDragStart(source, piece) {
     if (!this.canMovePiece(source, piece)) return false;
-    this.clearSelection();
+    // Preserve selectedSquare state for click-to-move (handleDrop reads it);
+    // only remove the visual highlight so the board looks clean during drag.
+    this.state.dragSource = source;
+    this.state.clickHandledInDragCycle = false;
+    $("#board .square-55d63").removeClass("square-selected");
     return true;
   },
   handleDrop(source, target) {
-    if (!source || !target || source === target || target === "offboard") {
+    if (!source || !target || target === "offboard") {
+      this.state.dragSource = null;
+      this.state.clickHandledInDragCycle = false;
+      this.clearSelection();
       return "snapback";
     }
+    if (source === target) {
+      // Same-square drop = mouse click without drag.
+      // Touch taps are handled earlier via touchend -> handleSquareClick;
+      // clickHandledInDragCycle prevents double-processing here.
+      const alreadyHandled = this.state.clickHandledInDragCycle;
+      this.state.dragSource = null;
+      this.state.clickHandledInDragCycle = false;
+      if (!alreadyHandled) {
+        const squareEl = $(`#board .square-55d63[data-square='${source}']`);
+        if (squareEl.length) {
+          this.handleSquareClick(squareEl);
+        }
+      }
+      return "snapback";
+    }
+    // Actual drag move - clear any lingering selection.
+    this.clearSelection();
+    this.state.dragSource = null;
+    this.state.clickHandledInDragCycle = false;
     const promotion = needsPromotion(source, target, this.chess) ? "q" : undefined;
     const uci = `${source}${target}${promotion || ""}`;
     let result;
@@ -3463,6 +3491,11 @@ const App = {
     const square = squareElement.data("square");
     if (!square) {
       return;
+    }
+    // If called during a touch-drag cycle (touchend fires before window touchend/handleDrop),
+    // mark it so handleDrop knows not to double-process the same square.
+    if (this.state.dragSource === square) {
+      this.state.clickHandledInDragCycle = true;
     }
     if (this.chess.game_over()) {
       return;
