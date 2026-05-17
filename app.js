@@ -47,6 +47,178 @@ const OPENING_HEADERS = ["opening_id", "opening_name", "side", "starting_fen", "
 const LINE_HEADERS = ["opening_id", "line_id", "line_name", "line_group", "drill_side", "start_fen", "tags", "moves_pgn"];
 const NODE_HEADERS = ["opening_id", "line_id", "node_id", "parent_node_id", "move_uci", "learn_prompt", "mistake_map", "fen_before", "fen_key", "fen_after", "fen_after_key"];
 
+const TTS_EDGE_NUDGE_DISMISSED_KEY = "chessgym.ttsEdgeNudgeDismissed";
+
+const TTS = {
+  enabled: typeof window !== "undefined" && typeof window.speechSynthesis !== "undefined" && typeof window.SpeechSynthesisUtterance !== "undefined",
+  voice: null,
+  voicesReady: false,
+  lastSpoken: "",
+  nudgeShown: false,
+  qualityTags: ["Natural", "Neural", "Premium", "Online", "Enhanced"],
+  pieceMap: { K: "king", Q: "queen", R: "rook", B: "bishop", N: "knight" },
+
+  init() {
+    if (!this.enabled) {
+      return;
+    }
+    this.loadVoices();
+    const onVoicesChanged = () => {
+      this.loadVoices();
+      this.maybeShowEdgeNudge();
+    };
+    if (typeof window.speechSynthesis.addEventListener === "function") {
+      window.speechSynthesis.addEventListener("voiceschanged", onVoicesChanged);
+    } else {
+      window.speechSynthesis.onvoiceschanged = onVoicesChanged;
+    }
+    setTimeout(() => this.maybeShowEdgeNudge(), 1500);
+  },
+
+  loadVoices() {
+    let voices = [];
+    try {
+      voices = window.speechSynthesis.getVoices() || [];
+    } catch (e) {
+      voices = [];
+    }
+    if (!voices.length) {
+      return;
+    }
+    this.voicesReady = true;
+    const english = voices.filter((v) => /^en([-_]|$)/i.test(v.lang || ""));
+    const pool = english.length ? english : voices;
+    let best = null;
+    let bestScore = -1;
+    pool.forEach((v) => {
+      const name = v.name || "";
+      let score = 0;
+      this.qualityTags.forEach((tag, i) => {
+        if (name.indexOf(tag) !== -1) {
+          score = Math.max(score, this.qualityTags.length - i);
+        }
+      });
+      if (/^en-US/i.test(v.lang || "")) {
+        score += 0.5;
+      }
+      if (v.localService === false) {
+        score += 0.25;
+      }
+      if (score > bestScore) {
+        bestScore = score;
+        best = v;
+      }
+    });
+    this.voice = best || pool[0];
+    this.hasQualityVoice = bestScore >= 1;
+  },
+
+  isEdge() {
+    return /\bEdg\//.test((typeof navigator !== "undefined" && navigator.userAgent) || "");
+  },
+
+  maybeShowEdgeNudge() {
+    if (!this.enabled || this.nudgeShown || !this.voicesReady) {
+      return;
+    }
+    if (this.hasQualityVoice || this.isEdge()) {
+      this.nudgeShown = true;
+      return;
+    }
+    try {
+      if (window.localStorage && window.localStorage.getItem(TTS_EDGE_NUDGE_DISMISSED_KEY) === "1") {
+        this.nudgeShown = true;
+        return;
+      }
+    } catch (e) { /* ignore */ }
+    this.nudgeShown = true;
+    this.renderEdgeNudge();
+  },
+
+  renderEdgeNudge() {
+    if (typeof document === "undefined" || !document.body) {
+      return;
+    }
+    const banner = document.createElement("div");
+    banner.className = "tts-edge-nudge";
+    banner.setAttribute("role", "note");
+    banner.innerHTML = '<span class="tts-edge-nudge-text">🔊 For the most natural coach voice, open ChessGym in <strong>Microsoft Edge</strong>.</span><button type="button" class="tts-edge-nudge-dismiss" aria-label="Dismiss">×</button>';
+    const dismiss = () => {
+      banner.remove();
+      try { window.localStorage.setItem(TTS_EDGE_NUDGE_DISMISSED_KEY, "1"); } catch (e) { /* ignore */ }
+    };
+    banner.querySelector(".tts-edge-nudge-dismiss").addEventListener("click", dismiss);
+    document.body.appendChild(banner);
+  },
+
+  normalize(text) {
+    if (!text) {
+      return "";
+    }
+    let s = String(text).replace(/<[^>]*>/g, " ");
+    s = s.replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+    s = s.replace(/\bO-O-O\b|\b0-0-0\b/g, "castle queenside");
+    s = s.replace(/\bO-O\b|\b0-0\b/g, "castle kingside");
+    s = s.replace(/\b([KQRBN])([a-h]?[1-8]?)(x?)([a-h])([1-8])(?:=([QRBN]))?([+#])?/g, (_m, piece, _disamb, capt, file, rank, promo, check) => {
+      const parts = [this.pieceMap[piece]];
+      if (capt) parts.push("takes");
+      parts.push(file.toUpperCase(), rank);
+      if (promo) parts.push("promotes to", this.pieceMap[promo].toLowerCase());
+      if (check === "+") parts.push("check");
+      if (check === "#") parts.push("checkmate");
+      return parts.join(" ");
+    });
+    s = s.replace(/\b([a-h])x([a-h])([1-8])(\s*e\.p\.)?([+#])?/g, (_m, fileFrom, fileTo, rank, ep, check) => {
+      const parts = ["pawn", fileFrom.toUpperCase(), "takes", fileTo.toUpperCase(), rank];
+      if (ep) parts.push("en passant");
+      if (check === "+") parts.push("check");
+      if (check === "#") parts.push("checkmate");
+      return parts.join(" ");
+    });
+    s = s.replace(/(^|[\s(,;:.!?"'—–-])([a-h])([1-8])([+#])?(?=$|[\s.,;:!?")'—–-])/g, (_m, pre, file, rank, check) => {
+      const parts = [file.toUpperCase(), rank];
+      if (check === "+") parts.push("check");
+      if (check === "#") parts.push("checkmate");
+      return pre + parts.join(" ");
+    });
+    s = s.replace(/\s+/g, " ").trim();
+    return s;
+  },
+
+  speak(text) {
+    if (!this.enabled) {
+      return;
+    }
+    const plain = this.normalize(text);
+    if (!plain || plain === this.lastSpoken) {
+      return;
+    }
+    this.lastSpoken = plain;
+    try {
+      window.speechSynthesis.cancel();
+      const utter = new window.SpeechSynthesisUtterance(plain);
+      if (this.voice) {
+        utter.voice = this.voice;
+        utter.lang = this.voice.lang || "en-US";
+      } else {
+        utter.lang = "en-US";
+      }
+      utter.rate = 1.0;
+      utter.pitch = 1.0;
+      utter.volume = 1.0;
+      window.speechSynthesis.speak(utter);
+    } catch (e) { /* ignore */ }
+  },
+
+  stop() {
+    if (!this.enabled) {
+      return;
+    }
+    try { window.speechSynthesis.cancel(); } catch (e) { /* ignore */ }
+    this.lastSpoken = "";
+  }
+};
+
 const App = {
   data: {
     openings: [],
@@ -141,6 +313,7 @@ const App = {
     this.setupAdminMode();
     this.showLoading(true);
     this.loadData();
+    TTS.init();
   },
   cacheElements() {
     this.$openingButton = $("#openingSelectBtn");
@@ -2354,6 +2527,7 @@ const App = {
       return;
     }
     this.state.openingId = nextOpeningId;
+    TTS.stop();
     this.updateOpeningSelectionDisplay();
     this.populateLines();
     this.prepareSession();
@@ -2363,6 +2537,7 @@ const App = {
       return;
     }
     this.state.lineId = nextLineId;
+    TTS.stop();
     this.updateLineSelectionDisplay();
     this.updateProgress();
     this.updateSideSelector();
@@ -2842,6 +3017,7 @@ const App = {
   },
   onModeChange() {
     this.state.mode = this.$mode.val();
+    TTS.stop();
     this.populateLines(this.state.lineId);
     this.updateSideSelector();
     this.$strengthField.toggle(this.state.mode === "game");
@@ -4151,7 +4327,8 @@ const App = {
     const side = resolvedSide || inferredSide;
     const history = this.getPromptHistoryForFen(fenKey, side);
     const previousPrompt = (this.state.promptChainBySide[side] || {}).current || "";
-    if (history.current !== prompt) {
+    const promptChanged = history.current !== prompt;
+    if (promptChanged) {
       history.previous = history.current || previousPrompt;
       history.current = prompt;
     } else if (previousPrompt && history.previous !== previousPrompt && history.current !== previousPrompt) {
@@ -4163,6 +4340,14 @@ const App = {
     this.state.promptHistoryByFenBySide[fenKey][side] = history;
     this.state.promptChainBySide[side] = { current: history.current, previous: history.previous };
     this.renderCoachComment();
+    if (
+      this.state.mode === "learning"
+      && side === this.state.userSide
+      && prompt
+      && promptChanged
+    ) {
+      TTS.speak(prompt);
+    }
   },
   syncPromptChainForCurrentFen() {
     const fenKey = normalizeFen(this.chess.fen());

@@ -1578,3 +1578,42 @@ body.admin-mode {
 }
 
 .admin-status.error { color: #fca5a5; }
+
+.tts-edge-nudge {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 340px;
+  padding: 10px 12px 10px 14px;
+  border-radius: 10px;
+  background: rgba(17, 24, 39, 0.94);
+  color: #f3f4f6;
+  font-size: 13px;
+  line-height: 1.4;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  animation: tts-nudge-in 220ms ease-out;
+}
+
+.tts-edge-nudge strong { color: #fff; }
+
+.tts-edge-nudge-dismiss {
+  background: transparent;
+  border: 0;
+  color: #d1d5db;
+  font-size: 18px;
+  line-height: 1;
+  padding: 2px 6px;
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+.tts-edge-nudge-dismiss:hover { background: rgba(255, 255, 255, 0.08); color: #fff; }
+
+@keyframes tts-nudge-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
