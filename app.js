@@ -210,6 +210,29 @@ const TTS = {
     } catch (e) { /* ignore */ }
   },
 
+  queue(text) {
+    if (!this.enabled) {
+      return;
+    }
+    const plain = this.normalize(text);
+    if (!plain) {
+      return;
+    }
+    try {
+      const utter = new window.SpeechSynthesisUtterance(plain);
+      if (this.voice) {
+        utter.voice = this.voice;
+        utter.lang = this.voice.lang || "en-US";
+      } else {
+        utter.lang = "en-US";
+      }
+      utter.rate = 1.0;
+      utter.pitch = 1.0;
+      utter.volume = 1.0;
+      window.speechSynthesis.speak(utter);
+    } catch (e) { /* ignore */ }
+  },
+
   replay(text) {
     this.lastSpoken = "";
     this.speak(text);
@@ -4051,7 +4074,7 @@ const App = {
           const nextNodeKey = plan && plan.order ? plan.order[currentDepth + 1] : null;
           const nextNode = nextNodeKey ? this.data.nodesById[nextNodeKey] : null;
           const nextPrompt = nextNode && nextNode.learn_prompt ? nextNode.learn_prompt : "";
-          this.setPromptForCurrentFen(nextPrompt, { side: opponentSide });
+          this.setPromptForCurrentFen(nextPrompt, { side: opponentSide, suppressTTS: true });
         }
       }
       this.setPromptForCurrentFen(prompt, { side: expectedSide });
@@ -4404,12 +4427,12 @@ const App = {
     this.renderCoachComment();
     if (
       this.state.mode === "learning"
-      && side === this.state.userSide
       && prompt
       && promptChanged
       && !this.state.suppressInlineLearnPromptSpeak
+      && !options.suppressTTS
     ) {
-      TTS.speak(prompt);
+      TTS.queue(prompt);
     }
   },
   syncPromptChainForCurrentFen() {
