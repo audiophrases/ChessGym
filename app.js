@@ -210,6 +210,11 @@ const TTS = {
     } catch (e) { /* ignore */ }
   },
 
+  replay(text) {
+    this.lastSpoken = "";
+    this.speak(text);
+  },
+
   stop() {
     if (!this.enabled) {
       return;
@@ -3969,6 +3974,7 @@ const App = {
       this.setLineStatus(this.getActiveLine());
     }
     if (this.state.mode === "learning") {
+      this.state.suppressInlineLearnPromptSpeak = true;
       this.syncPromptChainForCurrentFen();
       if (direction > 0) {
         this.showLearningPromptForReviewedMove();
@@ -3976,6 +3982,16 @@ const App = {
         this.showLearningPrompt();
       }
       this.clearCoachOverride();
+      this.state.suppressInlineLearnPromptSpeak = false;
+      const turnSide = this.chess && this.chess.turn() === "w" ? "white" : "black";
+      const sideForPrompt = direction > 0
+        ? (turnSide === "white" ? "black" : "white")
+        : turnSide;
+      const chain = this.state.promptChainBySide[sideForPrompt];
+      const promptToSpeak = (chain && chain.current) || "";
+      if (promptToSpeak) {
+        TTS.replay(promptToSpeak);
+      }
     }
     this.setStatus("Reviewing moves.");
     this.adminHighlightActiveNode && this.adminHighlightActiveNode();
@@ -4391,6 +4407,7 @@ const App = {
       && side === this.state.userSide
       && prompt
       && promptChanged
+      && !this.state.suppressInlineLearnPromptSpeak
     ) {
       TTS.speak(prompt);
     }
