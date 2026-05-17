@@ -2367,7 +2367,10 @@ const App = {
     const pieceTheme = (piece) => `pieces/${pieceNameByCode[piece]}.png`;
     this.board = Chessboard("board", {
       position: "start",
-      draggable: false,
+      draggable: true,
+      onDragStart: (source, piece) => this.handleDragStart(source, piece),
+      onDrop: (source, target) => this.handleDrop(source, target),
+      onSnapEnd: () => this.board.position(this.chess.fen()),
       pieceTheme
     });
 
@@ -3384,6 +3387,49 @@ const App = {
     this.updateLastMoveHighlight();
     this.setStatus("Free play: move played.");
     return null;
+  },
+  canMovePiece(square, piece) {
+    if (this.chess.game_over()) return false;
+    if (!this.state.sessionActive) {
+      this.setStatus("Session ready.");
+      return false;
+    }
+    const turn = this.chess.turn() === "w" ? "white" : "black";
+    const pieceColor = piece.charAt(0) === "w" ? "white" : "black";
+    if (pieceColor !== turn) return false;
+    if (!this.state.freeModeActive && turn !== this.state.userSide) return false;
+    if (!this.state.freeModeActive && this.state.mode !== "game" && this.state.mode !== "learning" && this.state.mode !== "practice") {
+      return false;
+    }
+    if (!this.state.freeModeActive && (this.state.mode === "learning" || this.state.mode === "practice")) {
+      if (!this.getExpectedNode()) return false;
+    }
+    return true;
+  },
+  handleDragStart(source, piece) {
+    if (!this.canMovePiece(source, piece)) return false;
+    this.clearSelection();
+    return true;
+  },
+  handleDrop(source, target) {
+    if (!source || !target || source === target || target === "offboard") {
+      return "snapback";
+    }
+    const promotion = needsPromotion(source, target, this.chess) ? "q" : undefined;
+    const uci = `${source}${target}${promotion || ""}`;
+    let result;
+    if (this.state.freeModeActive) {
+      result = this.handleFreeMove(uci, promotion);
+    } else if (this.state.mode === "learning" || this.state.mode === "practice") {
+      result = this.handleTrainingMove(uci, promotion);
+    } else if (this.state.mode === "game") {
+      result = this.handleGameMove(uci, promotion);
+    } else {
+      return "snapback";
+    }
+    if (result === "snapback") return "snapback";
+    this.startLiveAnalysis();
+    return undefined;
   },
   handleSquareClick(squareElement) {
     const square = squareElement.data("square");
