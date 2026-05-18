@@ -1276,7 +1276,7 @@
   {
     "opening_id": "albin_countergambit",
     "line_id": "albin_bishop_snatch_cr_01",
-    "line_name": "Albin: Bishop Snatch",
+    "line_name": "Bishop Snatch",
     "line_group": "Albin Countergambit",
     "drill_side": "black",
     "start_fen": "",
@@ -1528,7 +1528,7 @@
   {
     "opening_id": "bishops_opening",
     "line_id": "bishops_copycat_crusher_crm_01",
-    "line_name": "Bishop's Opening: Copycat Crusher",
+    "line_name": "Copycat Crusher",
     "line_group": "Bishop's Opening",
     "drill_side": "white",
     "start_fen": "",
@@ -1626,7 +1626,7 @@
   {
     "opening_id": "caro_kann",
     "line_id": "caro_center_heist_crm_01",
-    "line_name": "Caro Kann: Center Heist",
+    "line_name": "Center Heist",
     "line_group": "Caro-Kann",
     "drill_side": "black",
     "start_fen": "",
@@ -1640,7 +1640,7 @@
   {
     "opening_id": "caro_kann",
     "line_id": "caro_center_heist_crm_02",
-    "line_name": "Caro Kann: Center Heist (2)",
+    "line_name": "Center Heist",
     "line_group": "Caro-Kann",
     "drill_side": "black",
     "start_fen": "",
@@ -2410,7 +2410,7 @@
   {
     "opening_id": "danish_gambit",
     "line_id": "danish_knight_ambush_crm_01",
-    "line_name": "Danish: Knight Ambush",
+    "line_name": "Knight Ambush",
     "line_group": "Danish Gambit",
     "drill_side": "white",
     "start_fen": "",
@@ -2438,7 +2438,7 @@
   {
     "opening_id": "danish_gambit",
     "line_id": "danish_rook_robbery_crm_01",
-    "line_name": "Danish: Rook Robbery",
+    "line_name": "Rook Robbery",
     "line_group": "Danish Gambit",
     "drill_side": "white",
     "start_fen": "",
@@ -2550,7 +2550,7 @@
   {
     "opening_id": "englund_gambit",
     "line_id": "englund_bishop_snatch_cr_01",
-    "line_name": "Englund: Bishop Snatch",
+    "line_name": "Bishop Snatch",
     "line_group": "Englund Gambit",
     "drill_side": "black",
     "start_fen": "",
@@ -2844,7 +2844,7 @@
   {
     "opening_id": "italian_game",
     "line_id": "italian_rook_rampage_cr_01",
-    "line_name": "Italian: Rook Rampage",
+    "line_name": "Rook Rampage",
     "line_group": "Fried Liver Attack",
     "drill_side": "white",
     "start_fen": "",
@@ -2872,7 +2872,7 @@
   {
     "opening_id": "italian_game",
     "line_id": "italian_queen_skewer_cr_01",
-    "line_name": "Italian: Queen Skewer",
+    "line_name": "Queen Skewer",
     "line_group": "Fried Liver Attack",
     "drill_side": "white",
     "start_fen": "",
@@ -2942,7 +2942,7 @@
   {
     "opening_id": "italian_game",
     "line_id": "italian_knight_harvest_crm_01",
-    "line_name": "Italian: Knight Harvest",
+    "line_name": "Knight Harvest",
     "line_group": "Fried Liver Attack",
     "drill_side": "white",
     "start_fen": "",
@@ -3012,7 +3012,7 @@
   {
     "opening_id": "italian_game",
     "line_id": "italian_queen_skewer_cr_02",
-    "line_name": "Italian: Queen Skewer (2)",
+    "line_name": "Queen Skewer",
     "line_group": "Italian Game",
     "drill_side": "white",
     "start_fen": "",
@@ -3110,7 +3110,7 @@
   {
     "opening_id": "london_system",
     "line_id": "london_rook_heist_cr_01",
-    "line_name": "London: Rook Heist",
+    "line_name": "Rook Heist",
     "line_group": "Jobava London",
     "drill_side": "white",
     "start_fen": "",
@@ -3208,7 +3208,7 @@
   {
     "opening_id": "london_system",
     "line_id": "london_c7_fork_crm_01",
-    "line_name": "London: C7 Fork",
+    "line_name": "C7 Fork",
     "line_group": "Jobava London",
     "drill_side": "white",
     "start_fen": "",
@@ -3222,7 +3222,7 @@
   {
     "opening_id": "london_system",
     "line_id": "london_c7_fork_crm_02",
-    "line_name": "London: C7 Fork (2)",
+    "line_name": "C7 Fork",
     "line_group": "Jobava London",
     "drill_side": "white",
     "start_fen": "",
@@ -3292,7 +3292,7 @@
   {
     "opening_id": "kings_gambit",
     "line_id": "kings_queen_snare_cr_01",
-    "line_name": "King's Gambit: Queen Snare",
+    "line_name": "Queen Snare",
     "line_group": "King's Gambit",
     "drill_side": "white",
     "start_fen": "",
@@ -3614,7 +3614,7 @@
   {
     "opening_id": "russian_game",
     "line_id": "russian_bishop_snare_cr_01",
-    "line_name": "Russian: Bishop Snare",
+    "line_name": "Bishop Snare",
     "line_group": "Petrov Defense",
     "drill_side": "black",
     "start_fen": "",
@@ -3810,7 +3810,7 @@
   {
     "opening_id": "queen_s_gambit_accepted",
     "line_id": "queen_rook_heist_cr_01",
-    "line_name": "QGA: Rook Heist",
+    "line_name": "Rook Heist",
     "line_group": "Queen's Gambit Accepted",
     "drill_side": "white",
     "start_fen": "",
@@ -3852,7 +3852,7 @@
   {
     "opening_id": "queen_s_gambit_accepted",
     "line_id": "queen_royal_fork_cr_01",
-    "line_name": "QGA: Royal Fork",
+    "line_name": "Royal Fork",
     "line_group": "Queen's Gambit Accepted",
     "drill_side": "white",
     "start_fen": "",
@@ -3866,7 +3866,7 @@
   {
     "opening_id": "queen_s_gambit_accepted",
     "line_id": "queen_center_heist_crm_01",
-    "line_name": "QGA: Center Heist",
+    "line_name": "Center Heist",
     "line_group": "Queen's Gambit Accepted",
     "drill_side": "white",
     "start_fen": "",
@@ -4090,7 +4090,7 @@
   {
     "opening_id": "italian_game",
     "line_id": "italian_queen_sweep_cr_01",
-    "line_name": "Italian: Queen Sweep",
+    "line_name": "Queen Sweep",
     "line_group": "Rousseau Gambit",
     "drill_side": "black",
     "start_fen": "",
@@ -4132,7 +4132,7 @@
   {
     "opening_id": "italian_game",
     "line_id": "italian_queen_sweep_cr_02",
-    "line_name": "Italian: Queen Sweep (2)",
+    "line_name": "Queen Sweep",
     "line_group": "Rousseau Gambit",
     "drill_side": "black",
     "start_fen": "",
@@ -4146,7 +4146,7 @@
   {
     "opening_id": "italian_game",
     "line_id": "italian_rousseau_rampage_crm_01",
-    "line_name": "Italian: Rousseau Rampage",
+    "line_name": "Rousseau Rampage",
     "line_group": "Rousseau Gambit",
     "drill_side": "black",
     "start_fen": "",
@@ -4174,7 +4174,7 @@
   {
     "opening_id": "italian_game",
     "line_id": "italian_rook_robbery_crm_01",
-    "line_name": "Italian: Rook Robbery",
+    "line_name": "Rook Robbery",
     "line_group": "Rousseau Gambit",
     "drill_side": "black",
     "start_fen": "",
@@ -4188,7 +4188,7 @@
   {
     "opening_id": "italian_game",
     "line_id": "italian_rousseau_rampage_crm_02",
-    "line_name": "Italian: Rousseau Rampage (2)",
+    "line_name": "Rousseau Rampage",
     "line_group": "Rousseau Gambit",
     "drill_side": "black",
     "start_fen": "",
@@ -4272,7 +4272,7 @@
   {
     "opening_id": "ruy_lopez",
     "line_id": "ruy_bishop_snare_cr_01",
-    "line_name": "Ruy L\u00f3pez: Bishop Snare",
+    "line_name": "Bishop Snare",
     "line_group": "Ruy Lopez",
     "drill_side": "white",
     "start_fen": "",
@@ -4566,7 +4566,7 @@
   {
     "opening_id": "scotch_game",
     "line_id": "scotch_bishop_snare_cr_01",
-    "line_name": "Scotch: Bishop Snare",
+    "line_name": "Bishop Snare",
     "line_group": "Scotch Game",
     "drill_side": "white",
     "start_fen": "",
@@ -4636,7 +4636,7 @@
   {
     "opening_id": "scotch_game",
     "line_id": "scotch_knight_hunt_crm_01",
-    "line_name": "Scotch: Knight Hunt",
+    "line_name": "Knight Hunt",
     "line_group": "Scotch Game",
     "drill_side": "white",
     "start_fen": "",
@@ -4650,7 +4650,7 @@
   {
     "opening_id": "scotch_game",
     "line_id": "scotch_knight_hunt_crm_02",
-    "line_name": "Scotch: Knight Hunt (2)",
+    "line_name": "Knight Hunt",
     "line_group": "Scotch Game",
     "drill_side": "white",
     "start_fen": "",
@@ -5000,7 +5000,7 @@
   {
     "opening_id": "italian_game",
     "line_id": "italian_queen_snare_cr_01",
-    "line_name": "Italian: Queen Snare",
+    "line_name": "Queen Snare",
     "line_group": "Traxler Counterattack",
     "drill_side": "black",
     "start_fen": "",
@@ -5084,7 +5084,7 @@
   {
     "opening_id": "italian_game",
     "line_id": "italian_traxler_venom_crm_01",
-    "line_name": "Italian: Traxler Venom",
+    "line_name": "Traxler Venom",
     "line_group": "Traxler Counterattack",
     "drill_side": "black",
     "start_fen": "",
@@ -5112,7 +5112,7 @@
   {
     "opening_id": "italian_game",
     "line_id": "italian_traxler_venom_crm_02",
-    "line_name": "Italian: Traxler Venom (2)",
+    "line_name": "Traxler Venom",
     "line_group": "Traxler Counterattack",
     "drill_side": "black",
     "start_fen": "",
@@ -5140,7 +5140,7 @@
   {
     "opening_id": "vienna_game",
     "line_id": "vienna_royal_fork_cr_01",
-    "line_name": "Vienna: Royal Fork",
+    "line_name": "Royal Fork",
     "line_group": "Vienna Gambit",
     "drill_side": "white",
     "start_fen": "",
@@ -5350,7 +5350,7 @@
   {
     "opening_id": "vienna_game",
     "line_id": "vienna_knight_ambush_crm_01",
-    "line_name": "Vienna: Knight Ambush",
+    "line_name": "Knight Ambush",
     "line_group": "Vienna Gambit",
     "drill_side": "white",
     "start_fen": "",
@@ -5378,7 +5378,7 @@
   {
     "opening_id": "vienna_game",
     "line_id": "vienna_knight_harvest_crm_01",
-    "line_name": "Vienna: Knight Harvest",
+    "line_name": "Knight Harvest",
     "line_group": "Vienna Gambit",
     "drill_side": "white",
     "start_fen": "",
@@ -5462,7 +5462,7 @@
   {
     "opening_id": "vienna_game",
     "line_id": "vienna_rook_rampage_cr_01",
-    "line_name": "Vienna: Rook Rampage",
+    "line_name": "Rook Rampage",
     "line_group": "Vienna Game",
     "drill_side": "white",
     "start_fen": "",
@@ -5504,7 +5504,7 @@
   {
     "opening_id": "vienna_game",
     "line_id": "vienna_copycat_crusher_crm_01",
-    "line_name": "Vienna: Copycat Crusher",
+    "line_name": "Copycat Crusher",
     "line_group": "Vienna Game",
     "drill_side": "white",
     "start_fen": "",
