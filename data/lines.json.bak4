@@ -1696,7 +1696,7 @@
   {
     "opening_id": "croissant_road_2000",
     "line_id": "croissant_line_1_cr_01",
-    "line_name": "01 Croissant ...d5 e6: Ne8",
+    "line_name": "Croissant vs ...d5 e6: Ne8",
     "line_group": "Croissant Road to 2000 Ch.1",
     "drill_side": "white",
     "start_fen": "",
@@ -1710,7 +1710,7 @@
   {
     "opening_id": "croissant_road_2000",
     "line_id": "croissant_line_2_cr_01",
-    "line_name": "01 Croissant ...d5 e6: d4",
+    "line_name": "Croissant vs ...d5 e6: d4",
     "line_group": "Croissant Road to 2000 Ch.1",
     "drill_side": "white",
     "start_fen": "",
@@ -1724,7 +1724,7 @@
   {
     "opening_id": "croissant_road_2000",
     "line_id": "croissant_line_3_cr_01",
-    "line_name": "01 Croissant ...d5 e6: Nbd7",
+    "line_name": "Croissant vs ...d5 e6: Nbd7",
     "line_group": "Croissant Road to 2000 Ch.1",
     "drill_side": "white",
     "start_fen": "",
@@ -1738,7 +1738,7 @@
   {
     "opening_id": "croissant_road_2000",
     "line_id": "croissant_line_4_cr_01",
-    "line_name": "01 Croissant ...d5 e6: Ne8 (2)",
+    "line_name": "Croissant vs ...d5 e6: Ne8 (2)",
     "line_group": "Croissant Road to 2000 Ch.1",
     "drill_side": "white",
     "start_fen": "",
@@ -1752,7 +1752,7 @@
   {
     "opening_id": "croissant_road_2000",
     "line_id": "croissant_line_5_cr_01",
-    "line_name": "01 Croissant ...d5 e6: exf4",
+    "line_name": "Croissant vs ...d5 e6: exf4",
     "line_group": "Croissant Road to 2000 Ch.1",
     "drill_side": "white",
     "start_fen": "",
@@ -1766,7 +1766,7 @@
   {
     "opening_id": "croissant_road_2000",
     "line_id": "croissant_line_1_cr_02",
-    "line_name": "10 Croissant ...g6 Modern: d5",
+    "line_name": "Croissant vs ...g6 Modern: d5",
     "line_group": "Croissant Road to 2000 Ch.10",
     "drill_side": "black",
     "start_fen": "",
@@ -1780,7 +1780,7 @@
   {
     "opening_id": "croissant_road_2000",
     "line_id": "croissant_line_2_cr_02",
-    "line_name": "10 Croissant ...g6 Modern: Bd3",
+    "line_name": "Croissant vs ...g6 Modern: Bd3",
     "line_group": "Croissant Road to 2000 Ch.10",
     "drill_side": "black",
     "start_fen": "",
@@ -1794,7 +1794,7 @@
   {
     "opening_id": "croissant_road_2000",
     "line_id": "croissant_line_3_cr_02",
-    "line_name": "10 Croissant ...g6 Modern: Ng5",
+    "line_name": "Croissant vs ...g6 Modern: Ng5",
     "line_group": "Croissant Road to 2000 Ch.10",
     "drill_side": "black",
     "start_fen": "",
@@ -1808,7 +1808,7 @@
   {
     "opening_id": "croissant_road_2000",
     "line_id": "croissant_line_4_cr_02",
-    "line_name": "10 Croissant ...g6 Modern: Bg2",
+    "line_name": "Croissant vs ...g6 Modern: Bg2",
     "line_group": "Croissant Road to 2000 Ch.10",
     "drill_side": "black",
     "start_fen": "",
@@ -1822,7 +1822,7 @@
   {
     "opening_id": "croissant_road_2000",
     "line_id": "croissant_line_5_cr_02",
-    "line_name": "10 Croissant ...g6 Modern: Be3",
+    "line_name": "Croissant vs ...g6 Modern: Be3",
     "line_group": "Croissant Road to 2000 Ch.10",
     "drill_side": "black",
     "start_fen": "",
@@ -1836,7 +1836,7 @@
   {
     "opening_id": "croissant_road_2000",
     "line_id": "croissant_line_1_cr_03",
-    "line_name": "02 Croissant ...Nf6 g6 KID: d6",
+    "line_name": "Croissant vs ...Nf6 g6 KID: d6",
     "line_group": "Croissant Road to 2000 Ch.2",
     "drill_side": "white",
     "start_fen": "",
@@ -1850,7 +1850,7 @@
   {
     "opening_id": "croissant_road_2000",
     "line_id": "croissant_line_2_cr_03",
-    "line_name": "02 Croissant ...Nf6 g6 KID: Ng4",
+    "line_name": "Croissant vs ...Nf6 g6 KID: Ng4",
     "line_group": "Croissant Road to 2000 Ch.2",
     "drill_side": "white",
     "start_fen": "",
@@ -1864,7 +1864,7 @@
   {
     "opening_id": "croissant_road_2000",
     "line_id": "croissant_line_3_cr_03",
-    "line_name": "02 Croissant ...Nf6 g6 KID: c6",
+    "line_name": "Croissant vs ...Nf6 g6 KID: c6",
     "line_group": "Croissant Road to 2000 Ch.2",
     "drill_side": "white",
     "start_fen": "",
@@ -1878,7 +1878,7 @@
   {
     "opening_id": "croissant_road_2000",
     "line_id": "croissant_line_4_cr_03",
-    "line_name": "02 Croissant ...Nf6 g6 KID: Bg4",
+    "line_name": "Croissant vs ...Nf6 g6 KID: Bg4",
     "line_group": "Croissant Road to 2000 Ch.2",
     "drill_side": "white",
     "start_fen": "",
@@ -1892,7 +1892,7 @@
   {
     "opening_id": "croissant_road_2000",
     "line_id": "croissant_line_5_cr_03",
-    "line_name": "02 Croissant ...Nf6 g6 KID: Nc6",
+    "line_name": "Croissant vs ...Nf6 g6 KID: Nc6",
     "line_group": "Croissant Road to 2000 Ch.2",
     "drill_side": "white",
     "start_fen": "",
@@ -1906,7 +1906,7 @@
   {
     "opening_id": "croissant_road_2000",
     "line_id": "croissant_line_1_cr_04",
-    "line_name": "03 Croissant ...c5 Sicilian: Nh5",
+    "line_name": "Croissant vs ...c5 Sicilian: Nh5",
     "line_group": "Croissant Road to 2000 Ch.3",
     "drill_side": "white",
     "start_fen": "",
@@ -1920,7 +1920,7 @@
   {
     "opening_id": "croissant_road_2000",
     "line_id": "croissant_line_2_cr_04",
-    "line_name": "03 Croissant ...c5 Sicilian: gxh5",
+    "line_name": "Croissant vs ...c5 Sicilian: gxh5",
     "line_group": "Croissant Road to 2000 Ch.3",
     "drill_side": "white",
     "start_fen": "",
@@ -1934,7 +1934,7 @@
   {
     "opening_id": "croissant_road_2000",
     "line_id": "croissant_line_3_cr_04",
-    "line_name": "03 Croissant ...c5 Sicilian: d5",
+    "line_name": "Croissant vs ...c5 Sicilian: d5",
     "line_group": "Croissant Road to 2000 Ch.3",
     "drill_side": "white",
     "start_fen": "",
@@ -1948,7 +1948,7 @@
   {
     "opening_id": "croissant_road_2000",
     "line_id": "croissant_line_4_cr_04",
-    "line_name": "03 Croissant ...c5 Sicilian: Bxf6",
+    "line_name": "Croissant vs ...c5 Sicilian: Bxf6",
     "line_group": "Croissant Road to 2000 Ch.3",
     "drill_side": "white",
     "start_fen": "",
@@ -1962,7 +1962,7 @@
   {
     "opening_id": "croissant_road_2000",
     "line_id": "croissant_line_5_cr_04",
-    "line_name": "03 Croissant ...c5 Sicilian: Rb8",
+    "line_name": "Croissant vs ...c5 Sicilian: Rb8",
     "line_group": "Croissant Road to 2000 Ch.3",
     "drill_side": "white",
     "start_fen": "",
@@ -1976,7 +1976,7 @@
   {
     "opening_id": "croissant_road_2000",
     "line_id": "croissant_line_1_cr_05",
-    "line_name": "04 Croissant ...e6 d5: b5",
+    "line_name": "Croissant vs ...e6 d5: b5",
     "line_group": "Croissant Road to 2000 Ch.4",
     "drill_side": "white",
     "start_fen": "",
@@ -1990,7 +1990,7 @@
   {
     "opening_id": "croissant_road_2000",
     "line_id": "croissant_line_2_cr_05",
-    "line_name": "04 Croissant ...e6 d5: Bd6",
+    "line_name": "Croissant vs ...e6 d5: Bd6",
     "line_group": "Croissant Road to 2000 Ch.4",
     "drill_side": "white",
     "start_fen": "",
@@ -2004,7 +2004,7 @@
   {
     "opening_id": "croissant_road_2000",
     "line_id": "croissant_line_3_cr_05",
-    "line_name": "04 Croissant ...e6 d5: Nd4",
+    "line_name": "Croissant vs ...e6 d5: Nd4",
     "line_group": "Croissant Road to 2000 Ch.4",
     "drill_side": "white",
     "start_fen": "",
@@ -2018,7 +2018,7 @@
   {
     "opening_id": "croissant_road_2000",
     "line_id": "croissant_line_4_cr_05",
-    "line_name": "04 Croissant ...e6 d5: exf4",
+    "line_name": "Croissant vs ...e6 d5: exf4",
     "line_group": "Croissant Road to 2000 Ch.4",
     "drill_side": "white",
     "start_fen": "",
@@ -2032,7 +2032,7 @@
   {
     "opening_id": "croissant_road_2000",
     "line_id": "croissant_line_5_cr_05",
-    "line_name": "04 Croissant ...e6 d5: dxe4",
+    "line_name": "Croissant vs ...e6 d5: dxe4",
     "line_group": "Croissant Road to 2000 Ch.4",
     "drill_side": "white",
     "start_fen": "",
@@ -2046,7 +2046,7 @@
   {
     "opening_id": "croissant_road_2000",
     "line_id": "croissant_line_1_cr_06",
-    "line_name": "05 Croissant ...Nc6 e5: Bf5",
+    "line_name": "Croissant vs ...Nc6 e5: Bf5",
     "line_group": "Croissant Road to 2000 Ch.5",
     "drill_side": "white",
     "start_fen": "",
@@ -2060,7 +2060,7 @@
   {
     "opening_id": "croissant_road_2000",
     "line_id": "croissant_line_2_cr_06",
-    "line_name": "05 Croissant ...Nc6 e5: Bg4",
+    "line_name": "Croissant vs ...Nc6 e5: Bg4",
     "line_group": "Croissant Road to 2000 Ch.5",
     "drill_side": "white",
     "start_fen": "",
@@ -2074,7 +2074,7 @@
   {
     "opening_id": "croissant_road_2000",
     "line_id": "croissant_line_3_cr_06",
-    "line_name": "05 Croissant ...Nc6 e5: O-O",
+    "line_name": "Croissant vs ...Nc6 e5: O-O",
     "line_group": "Croissant Road to 2000 Ch.5",
     "drill_side": "white",
     "start_fen": "",
@@ -2088,7 +2088,7 @@
   {
     "opening_id": "croissant_road_2000",
     "line_id": "croissant_line_4_cr_06",
-    "line_name": "05 Croissant ...Nc6 e5: f5",
+    "line_name": "Croissant vs ...Nc6 e5: f5",
     "line_group": "Croissant Road to 2000 Ch.5",
     "drill_side": "white",
     "start_fen": "",
@@ -2102,7 +2102,7 @@
   {
     "opening_id": "croissant_road_2000",
     "line_id": "croissant_line_5_cr_06",
-    "line_name": "05 Croissant ...Nc6 e5: f6",
+    "line_name": "Croissant vs ...Nc6 e5: f6",
     "line_group": "Croissant Road to 2000 Ch.5",
     "drill_side": "white",
     "start_fen": "",
@@ -2116,7 +2116,7 @@
   {
     "opening_id": "croissant_road_2000",
     "line_id": "croissant_line_1_cr_07",
-    "line_name": "06 Croissant ...d6 e5: f5",
+    "line_name": "Croissant vs ...d6 e5: f5",
     "line_group": "Croissant Road to 2000 Ch.6",
     "drill_side": "white",
     "start_fen": "",
@@ -2130,7 +2130,7 @@
   {
     "opening_id": "croissant_road_2000",
     "line_id": "croissant_line_2_cr_07",
-    "line_name": "06 Croissant ...d6 e5: Be6",
+    "line_name": "Croissant vs ...d6 e5: Be6",
     "line_group": "Croissant Road to 2000 Ch.6",
     "drill_side": "white",
     "start_fen": "",
@@ -2144,7 +2144,7 @@
   {
     "opening_id": "croissant_road_2000",
     "line_id": "croissant_line_3_cr_07",
-    "line_name": "06 Croissant ...d6 e5: Bg4",
+    "line_name": "Croissant vs ...d6 e5: Bg4",
     "line_group": "Croissant Road to 2000 Ch.6",
     "drill_side": "white",
     "start_fen": "",
@@ -2158,7 +2158,7 @@
   {
     "opening_id": "croissant_road_2000",
     "line_id": "croissant_line_1_cr_08",
-    "line_name": "07 Croissant ...c6 d5: O-O",
+    "line_name": "Croissant vs ...c6 d5: O-O",
     "line_group": "Croissant Road to 2000 Ch.7",
     "drill_side": "white",
     "start_fen": "",
@@ -2172,7 +2172,7 @@
   {
     "opening_id": "croissant_road_2000",
     "line_id": "croissant_line_2_cr_08",
-    "line_name": "07 Croissant ...c6 d5: Nbd7",
+    "line_name": "Croissant vs ...c6 d5: Nbd7",
     "line_group": "Croissant Road to 2000 Ch.7",
     "drill_side": "white",
     "start_fen": "",
@@ -2186,7 +2186,7 @@
   {
     "opening_id": "croissant_road_2000",
     "line_id": "croissant_line_1_cr_09",
-    "line_name": "08 Croissant ...g6 e5: Nc6",
+    "line_name": "Croissant vs ...g6 e5: Nc6",
     "line_group": "Croissant Road to 2000 Ch.8",
     "drill_side": "white",
     "start_fen": "",
@@ -2200,7 +2200,7 @@
   {
     "opening_id": "croissant_road_2000",
     "line_id": "croissant_line_2_cr_09",
-    "line_name": "08 Croissant ...g6 e5: Ne7",
+    "line_name": "Croissant vs ...g6 e5: Ne7",
     "line_group": "Croissant Road to 2000 Ch.8",
     "drill_side": "white",
     "start_fen": "",
@@ -2214,7 +2214,7 @@
   {
     "opening_id": "croissant_road_2000",
     "line_id": "croissant_line_3_cr_08",
-    "line_name": "08 Croissant ...c6 d5: g6",
+    "line_name": "Croissant vs ...c6 d5: g6",
     "line_group": "Croissant Road to 2000 Ch.8",
     "drill_side": "white",
     "start_fen": "",
@@ -2228,7 +2228,7 @@
   {
     "opening_id": "croissant_road_2000",
     "line_id": "croissant_line_4_cr_07",
-    "line_name": "08 Croissant ...d6 e5: Ne7",
+    "line_name": "Croissant vs ...d6 e5: Ne7",
     "line_group": "Croissant Road to 2000 Ch.8",
     "drill_side": "white",
     "start_fen": "",
@@ -2242,7 +2242,7 @@
   {
     "opening_id": "croissant_road_2000",
     "line_id": "croissant_line_5_cr_07",
-    "line_name": "08 Croissant ...d6 e5: Nc6",
+    "line_name": "Croissant vs ...d6 e5: Nc6",
     "line_group": "Croissant Road to 2000 Ch.8",
     "drill_side": "white",
     "start_fen": "",
@@ -2256,7 +2256,7 @@
   {
     "opening_id": "croissant_road_2000",
     "line_id": "croissant_line_1_cr_10",
-    "line_name": "09 Croissant d4 g6: Bf4",
+    "line_name": "Croissant vs d4 g6: Bf4",
     "line_group": "Croissant Road to 2000 Ch.9",
     "drill_side": "black",
     "start_fen": "",
@@ -2270,7 +2270,7 @@
   {
     "opening_id": "croissant_road_2000",
     "line_id": "croissant_line_2_cr_10",
-    "line_name": "09 Croissant d4 g6: c4",
+    "line_name": "Croissant vs d4 g6: c4",
     "line_group": "Croissant Road to 2000 Ch.9",
     "drill_side": "black",
     "start_fen": "",
@@ -2284,7 +2284,7 @@
   {
     "opening_id": "croissant_road_2000",
     "line_id": "croissant_line_3_cr_09",
-    "line_name": "09 Croissant ...g6 e5: d4",
+    "line_name": "Croissant vs ...g6 e5: d4",
     "line_group": "Croissant Road to 2000 Ch.9",
     "drill_side": "black",
     "start_fen": "",
@@ -2298,7 +2298,7 @@
   {
     "opening_id": "croissant_road_2000",
     "line_id": "croissant_line_4_cr_08",
-    "line_name": "09 Croissant ...c6 d5: Bf4",
+    "line_name": "Croissant vs ...c6 d5: Bf4",
     "line_group": "Croissant Road to 2000 Ch.9",
     "drill_side": "black",
     "start_fen": "",
@@ -2312,7 +2312,7 @@
   {
     "opening_id": "croissant_road_2000",
     "line_id": "croissant_line_5_cr_08",
-    "line_name": "09 Croissant ...c6 d5: c4",
+    "line_name": "Croissant vs ...c6 d5: c4",
     "line_group": "Croissant Road to 2000 Ch.9",
     "drill_side": "black",
     "start_fen": "",
