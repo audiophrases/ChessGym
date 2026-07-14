@@ -392,6 +392,11 @@ const App = {
     this.$lookupSubmit = $("#lookupSubmit");
     this.$lookupStatus = $("#lookupStatus");
     this.$lookupResults = $("#lookupResults");
+    this.$lookupSite = $("#lookupSite");
+    this.$lookupUsername = $("#lookupUsername");
+    this.$lookupFetchGames = $("#lookupFetchGames");
+    this.$lookupGamesStatus = $("#lookupGamesStatus");
+    this.$lookupGamesList = $("#lookupGamesList");
     this.$engineEval = $("#engineEval");
     this.$overlay = $("#loadingOverlay");
     this.$strengthField = $("#strengthField");
@@ -487,6 +492,17 @@ const App = {
     this.$lookupResults.on("click", "button[data-lookup-action='load']", (event) => {
       const $button = $(event.currentTarget);
       this.loadLineFromLookup($button.attr("data-opening-id"), $button.attr("data-line-id"));
+    });
+    this.$lookupFetchGames.on("click", () => this.fetchLookupGames());
+    this.$lookupUsername.on("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        this.fetchLookupGames();
+      }
+    });
+    this.$lookupGamesList.on("click", "button[data-lookup-game-index]", (event) => {
+      const index = Number($(event.currentTarget).attr("data-lookup-game-index"));
+      this.loadLookupGameByIndex(index);
     });
     this.$boardZoomIn.on("click", () => this.adjustBoardSize(1));
     this.$boardZoomOut.on("click", () => this.adjustBoardSize(-1));
@@ -840,6 +856,67 @@ const App = {
       this.onOpeningChange(openingId);
     }
     this.onLineChange(lineId);
+  },
+  fetchLookupGames() {
+    const site = (this.$lookupSite.val() || "chesscom").trim();
+    const username = (this.$lookupUsername.val() || "").trim();
+    if (!username) {
+      this.$lookupGamesStatus.text("Enter a username first.");
+      return;
+    }
+    this.lookupFetchedGames = [];
+    this.$lookupGamesList.empty();
+    this.$lookupGamesStatus.text("Loading recent games…");
+    this.state.lookupRequestId = (this.state.lookupRequestId || 0) + 1;
+    const requestId = this.state.lookupRequestId;
+    const request = site === "lichess" ? fetchLichessGames(username) : fetchChessComGames(username);
+    request
+      .then((games) => {
+        if (requestId !== this.state.lookupRequestId) {
+          return;
+        }
+        this.lookupFetchedGames = games;
+        this.renderLookupGamesList(site, username, games);
+      })
+      .catch((error) => {
+        if (requestId !== this.state.lookupRequestId) {
+          return;
+        }
+        this.$lookupGamesStatus.text(error.message || "Could not load games.");
+      });
+  },
+  renderLookupGamesList(site, username, games) {
+    this.$lookupGamesList.empty();
+    if (!games.length) {
+      this.$lookupGamesStatus.text(`No recent games found for "${username}" on ${site === "lichess" ? "Lichess" : "Chess.com"}.`);
+      return;
+    }
+    this.$lookupGamesStatus.text(`${games.length} recent game${games.length === 1 ? "" : "s"} — click one to find matching lines.`);
+    games.forEach((game, index) => {
+      const $row = $("<button>").attr({ type: "button", "data-lookup-game-index": index }).addClass("lookup-game-row");
+      const dateLabel = game.date ? game.date.toLocaleDateString() : "";
+      const sideLabel = game.userSide ? `You: ${game.userSide === "white" ? "White" : "Black"}` : "";
+      $row.append($("<span>").addClass("lookup-game-main").text(`${game.white} vs ${game.black}`));
+      $row.append($("<span>").addClass("lookup-game-meta").text(
+        [dateLabel, game.timeClass, sideLabel, game.resultLabel].filter(Boolean).join(" · ")
+      ));
+      this.$lookupGamesList.append($row);
+    });
+  },
+  loadLookupGameByIndex(index) {
+    const game = (this.lookupFetchedGames || [])[index];
+    if (!game) {
+      return;
+    }
+    const text = game.pgn || game.moves || "";
+    if (!text) {
+      return;
+    }
+    this.$lookupInput.val(text);
+    this.runLookup();
+    if (this.$lookupResults && this.$lookupResults.length) {
+      this.$lookupResults[0].scrollIntoView({ block: "nearest" });
+    }
   },
   configureSuggestionInboxFromUrl() {
     let params;
@@ -5697,6 +5774,100 @@ function extractFenFromInput(raw) {
   const candidate = lines[0].replace(/^fen[:\s]+/i, "").trim();
   const fenPattern = /^([pnbrqkPNBRQK1-8]+\/){7}[pnbrqkPNBRQK1-8]+\s+[wb]\s+[KQkqA-Ha-h-]+\s+(-|[a-h][1-8])(\s+\d+\s+\d+)?$/;
   return fenPattern.test(candidate) ? candidate : "";
+}
+
+function describeChessComResult(raw) {
+  if (!raw) {
+    return "";
+  }
+  if (raw === "win") {
+    return "Won";
+  }
+  const drawResults = ["agreed", "repetition", "stalemate", "insufficient", "50move", "timevsinsufficient"];
+  if (drawResults.includes(raw)) {
+    return "Draw";
+  }
+  return "Lost";
+}
+
+function fetchChessComGames(username) {
+  const trimmed = username.trim();
+  const lowerUser = trimmed.toLowerCase();
+  const encodedUser = encodeURIComponent(trimmed);
+  return fetch(`https://api.chess.com/pub/player/${encodedUser}/games/archives`)
+    .then((res) => (res.ok ? res.json() : Promise.reject(new Error("Player not found on Chess.com."))))
+    .then((data) => {
+      const archives = data.archives || [];
+      if (!archives.length) {
+        return [];
+      }
+      const lastUrl = archives[archives.length - 1];
+      return fetch(lastUrl)
+        .then((res) => (res.ok ? res.json() : { games: [] }))
+        .then((page) => {
+          const games = page.games || [];
+          if (games.length >= 10 || archives.length < 2) {
+            return games;
+          }
+          const prevUrl = archives[archives.length - 2];
+          return fetch(prevUrl)
+            .then((res) => (res.ok ? res.json() : { games: [] }))
+            .then((prevPage) => games.concat(prevPage.games || []));
+        });
+    })
+    .then((games) => {
+      games.sort((a, b) => (b.end_time || 0) - (a.end_time || 0));
+      return games.slice(0, 15).map((game) => {
+        const whiteName = (game.white && game.white.username) || "?";
+        const blackName = (game.black && game.black.username) || "?";
+        const userSide = whiteName.toLowerCase() === lowerUser ? "white" : (blackName.toLowerCase() === lowerUser ? "black" : "");
+        const rawResult = userSide === "white" ? (game.white && game.white.result) : userSide === "black" ? (game.black && game.black.result) : "";
+        return {
+          pgn: game.pgn || "",
+          white: whiteName,
+          black: blackName,
+          userSide,
+          resultLabel: describeChessComResult(rawResult),
+          date: game.end_time ? new Date(game.end_time * 1000) : null,
+          timeClass: game.time_class || ""
+        };
+      });
+    });
+}
+
+function fetchLichessGames(username) {
+  const trimmed = username.trim();
+  const lowerUser = trimmed.toLowerCase();
+  const encodedUser = encodeURIComponent(trimmed);
+  const url = `https://lichess.org/api/games/user/${encodedUser}?max=15&sort=dateDesc`;
+  return fetch(url, { headers: { Accept: "application/x-ndjson" } })
+    .then((res) => (res.ok ? res.text() : Promise.reject(new Error("Player not found on Lichess."))))
+    .then((text) => {
+      const lines = text.split("\n").map((line) => line.trim()).filter(Boolean);
+      return lines.map((line) => {
+        const game = JSON.parse(line);
+        const whiteUser = game.players && game.players.white && game.players.white.user;
+        const blackUser = game.players && game.players.black && game.players.black.user;
+        const whiteName = whiteUser ? whiteUser.name : "AI";
+        const blackName = blackUser ? blackUser.name : "AI";
+        const userSide = whiteName.toLowerCase() === lowerUser ? "white" : (blackName.toLowerCase() === lowerUser ? "black" : "");
+        let resultLabel = "";
+        if (game.status === "draw" || game.status === "stalemate") {
+          resultLabel = "Draw";
+        } else if (game.winner && userSide) {
+          resultLabel = game.winner === userSide ? "Won" : "Lost";
+        }
+        return {
+          moves: game.moves || "",
+          white: whiteName,
+          black: blackName,
+          userSide,
+          resultLabel,
+          date: game.createdAt ? new Date(game.createdAt) : null,
+          timeClass: game.speed || game.perf || ""
+        };
+      });
+    });
 }
 
 function getSideFromFen(fen) {

@@ -917,6 +917,78 @@ body {
   resize: vertical;
 }
 
+.lookup-username-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.lookup-username-row select {
+  flex: 0 0 auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.9rem;
+}
+
+.lookup-username-row input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.9rem;
+}
+
+.lookup-divider {
+  text-align: center;
+  margin-top: 14px;
+}
+
+.lookup-games-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.lookup-game-row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 10px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.lookup-game-row:hover {
+  border-color: var(--accent);
+}
+
+.lookup-game-main {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.lookup-game-meta {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
 .lookup-results {
   display: flex;
   flex-direction: column;

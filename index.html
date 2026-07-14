@@ -161,7 +161,18 @@
         <strong id="lookupTitle">Find Matching Openings</strong>
         <button id="lookupClose" class="icon-button" type="button" aria-label="Close">×</button>
       </header>
-      <p class="lookup-help">Paste a FEN position, or a game (PGN / move list) exported from chess.com or lichess.</p>
+      <p class="lookup-help">Look up a player's recent games, or paste a FEN / game directly below.</p>
+      <div class="lookup-username-row">
+        <select id="lookupSite" aria-label="Site">
+          <option value="chesscom">Chess.com</option>
+          <option value="lichess">Lichess</option>
+        </select>
+        <input id="lookupUsername" type="text" placeholder="Username" autocomplete="off" />
+        <button id="lookupFetchGames" class="ghost" type="button">Fetch recent games</button>
+      </div>
+      <p id="lookupGamesStatus" class="lookup-summary"></p>
+      <div id="lookupGamesList" class="lookup-games-list"></div>
+      <p class="lookup-help lookup-divider">— or paste a FEN / game below —</p>
       <textarea id="lookupInput" class="lookup-input" rows="6" placeholder="1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 …&#10;or a FEN: rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2"></textarea>
       <div class="suggestion-actions">
         <button id="lookupClear" class="ghost" type="button">Clear</button>
