@@ -894,6 +894,97 @@ body {
   font-size: 0.9rem;
 }
 
+.lookup-card {
+  width: min(560px, 100%);
+}
+
+.lookup-help {
+  margin: 0 0 10px;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.lookup-input {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.95rem;
+  resize: vertical;
+}
+
+.lookup-results {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.lookup-empty {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.lookup-lichess-link {
+  display: inline-block;
+  color: var(--accent);
+  font-size: 0.85rem;
+  text-decoration: none;
+}
+
+.lookup-lichess-link:hover {
+  text-decoration: underline;
+}
+
+.lookup-summary {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.lookup-match {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: var(--surface);
+}
+
+.lookup-match-best {
+  border-color: var(--accent, #4a7dfc);
+}
+
+.lookup-match-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.lookup-match-title {
+  font-weight: 600;
+}
+
+.lookup-match-badge {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.lookup-match-meta {
+  margin: 4px 0 8px;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.lookup-match-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .icon-button {
   display: inline-flex;
   align-items: center;

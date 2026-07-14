@@ -384,6 +384,14 @@ const App = {
     this.$suggestionSaveDraft = $("#suggestionSaveDraft");
     this.$suggestionSubmit = $("#suggestionSubmit");
     this.$suggestionStatus = $("#suggestionStatus");
+    this.$lookupBtn = $("#lookupBtn");
+    this.$lookupModal = $("#lookupModal");
+    this.$lookupClose = $("#lookupClose");
+    this.$lookupInput = $("#lookupInput");
+    this.$lookupClear = $("#lookupClear");
+    this.$lookupSubmit = $("#lookupSubmit");
+    this.$lookupStatus = $("#lookupStatus");
+    this.$lookupResults = $("#lookupResults");
     this.$engineEval = $("#engineEval");
     this.$overlay = $("#loadingOverlay");
     this.$strengthField = $("#strengthField");
@@ -467,6 +475,19 @@ const App = {
     this.$suggestionClear.on("click", () => this.clearSuggestionForm());
     this.$suggestionSaveDraft.on("click", () => this.saveSuggestionDraftFromForm());
     this.$suggestionSubmit.on("click", () => this.submitSuggestion());
+    this.$lookupBtn.on("click", () => this.openLookupModal());
+    this.$lookupClose.on("click", () => this.closeLookupModal());
+    this.$lookupModal.on("click", (event) => {
+      if (event.target === this.$lookupModal[0]) {
+        this.closeLookupModal();
+      }
+    });
+    this.$lookupClear.on("click", () => this.clearLookupForm());
+    this.$lookupSubmit.on("click", () => this.runLookup());
+    this.$lookupResults.on("click", "button[data-lookup-action='load']", (event) => {
+      const $button = $(event.currentTarget);
+      this.loadLineFromLookup($button.attr("data-opening-id"), $button.attr("data-line-id"));
+    });
     this.$boardZoomIn.on("click", () => this.adjustBoardSize(1));
     this.$boardZoomOut.on("click", () => this.adjustBoardSize(-1));
     this.$comment.on("click", "#winProbPill", (event) => {
@@ -603,6 +624,222 @@ const App = {
     this.$suggestionContact.val("");
     this.$suggestionStatus.text("");
     this.$suggestionLineName.trigger("focus");
+  },
+  openLookupModal() {
+    if (!this.$lookupModal || !this.$lookupModal.length) {
+      return;
+    }
+    this.$lookupStatus.text("");
+    this.$lookupResults.empty();
+    this.$lookupModal.removeClass("hidden");
+    this.$lookupInput.trigger("focus");
+  },
+  closeLookupModal() {
+    if (this.$lookupModal && this.$lookupModal.length) {
+      this.$lookupModal.addClass("hidden");
+    }
+  },
+  clearLookupForm() {
+    this.$lookupInput.val("");
+    this.$lookupStatus.text("");
+    this.$lookupResults.empty();
+    this.$lookupInput.trigger("focus");
+  },
+  runLookup() {
+    const raw = (this.$lookupInput.val() || "").trim();
+    if (!raw) {
+      this.$lookupStatus.text("Paste a FEN or a game first.");
+      this.$lookupResults.empty();
+      return;
+    }
+    const fenGuess = extractFenFromInput(raw);
+    try {
+      if (fenGuess) {
+        this.runPositionLookup(fenGuess);
+      } else {
+        this.runGameLookup(raw);
+      }
+    } catch (error) {
+      this.$lookupStatus.text(error.message || "Could not read that input.");
+      this.$lookupResults.empty();
+    }
+  },
+  runPositionLookup(fenInput) {
+    const chess = new Chess();
+    if (!loadFenForChess(chess, padFenFields(fenInput))) {
+      this.$lookupStatus.text("That FEN could not be read.");
+      this.$lookupResults.empty();
+      return;
+    }
+    const fullFen = chess.fen();
+    const fenKey = normalizeFen(fullFen);
+    const nodes = this.getNodesForFenKey(fenKey);
+    const matches = this.summarizeNodesByLine(nodes);
+    matches.sort((a, b) =>
+      a.openingName.localeCompare(b.openingName, undefined, { sensitivity: "base" }) ||
+      a.lineName.localeCompare(b.lineName, undefined, { sensitivity: "base" })
+    );
+    this.renderLookupPositionResults(fullFen, matches);
+  },
+  runGameLookup(rawText) {
+    let parsed;
+    try {
+      parsed = parseStudyLineMoves(rawText, "auto", "start");
+    } catch (error) {
+      this.$lookupStatus.text(error.message || "Could not read those moves.");
+      this.$lookupResults.empty();
+      return;
+    }
+    if (!parsed.moves.length) {
+      this.$lookupStatus.text("No moves found.");
+      this.$lookupResults.empty();
+      return;
+    }
+    const matches = this.findLineMatchesForMoves(parsed.moves);
+    matches.sort((a, b) => b.contiguousFromStart - a.contiguousFromStart || b.matchedPlies - a.matchedPlies);
+    this.renderLookupGameResults(parsed.moves, matches);
+  },
+  summarizeNodesByLine(nodes) {
+    const byLine = {};
+    (nodes || []).forEach((node) => {
+      const lineId = node.line_id;
+      if (!lineId) {
+        return;
+      }
+      const depth = node._depth || 0;
+      if (!byLine[lineId] || depth < byLine[lineId].depth) {
+        const line = this.data.linesById[lineId] || {};
+        byLine[lineId] = {
+          lineId,
+          lineName: line.line_name || lineId,
+          openingId: node.opening_id || line.opening_id || "",
+          openingName: this.lookupOpeningName(node.opening_id || line.opening_id) || node.opening_id || "",
+          depth
+        };
+      }
+    });
+    return Object.values(byLine);
+  },
+  findLineMatchesForMoves(moves) {
+    const byLine = {};
+    moves.forEach((move, index) => {
+      const fenKey = normalizeFen(move.fenBefore);
+      const candidates = this.getNodesForFenKey(fenKey);
+      const playedUci = normalizeUci(move.uci);
+      candidates.forEach((node) => {
+        const lineId = node.line_id;
+        if (!lineId) {
+          return;
+        }
+        if (!byLine[lineId]) {
+          const line = this.data.linesById[lineId] || {};
+          byLine[lineId] = {
+            lineId,
+            lineName: line.line_name || lineId,
+            openingId: node.opening_id || line.opening_id || "",
+            openingName: this.lookupOpeningName(node.opening_id || line.opening_id) || node.opening_id || "",
+            matchedPlies: 0,
+            contiguousFromStart: 0
+          };
+        }
+        const entry = byLine[lineId];
+        if (normalizeUci(node.move_uci) === playedUci) {
+          entry.matchedPlies += 1;
+          if (entry.contiguousFromStart === index) {
+            entry.contiguousFromStart = index + 1;
+          }
+        }
+      });
+    });
+    return Object.values(byLine);
+  },
+  renderLookupPositionResults(fullFen, matches) {
+    this.$lookupResults.empty();
+    const encodedFen = encodeURIComponent(fullFen).replace(/%2F/g, "/");
+    const $summary = $("<p>").addClass("lookup-summary").text(
+      matches.length
+        ? `${matches.length} line${matches.length === 1 ? "" : "s"} reach this exact position.${matches.length > 30 ? " Showing the first 30." : ""}`
+        : "No lines in the library reach this exact position."
+    );
+    this.$lookupStatus.text("");
+    this.$lookupResults.append($summary);
+    this.$lookupResults.append(
+      $("<a>").attr({ href: `https://lichess.org/analysis/${encodedFen}`, target: "_blank", rel: "noopener" })
+        .addClass("lookup-lichess-link").text("Open this position on Lichess")
+    );
+    matches.slice(0, 30).forEach((match) => {
+      this.$lookupResults.append(this.buildLookupMatchCard({
+        openingName: match.openingName,
+        lineName: match.lineName,
+        openingId: match.openingId,
+        lineId: match.lineId,
+        metaText: `Occurs at move ${Math.ceil(match.depth / 2)}${match.depth % 2 === 1 ? " (White)" : " (Black)"} in this line.`
+      }));
+    });
+  },
+  renderLookupGameResults(moves, matches) {
+    this.$lookupResults.empty();
+    this.$lookupStatus.text("");
+    this.$lookupResults.append(
+      $("<p>").addClass("lookup-summary").text(`Parsed ${moves.length} move${moves.length === 1 ? "" : "s"} from your game.`)
+    );
+    if (!matches.length) {
+      this.$lookupResults.append(
+        $("<p>").addClass("lookup-empty").text("No positions from this game were found in the library.")
+      );
+      return;
+    }
+    matches.slice(0, 8).forEach((match, index) => {
+      const total = moves.length;
+      const followed = match.contiguousFromStart;
+      let metaText = `Follows book for ${followed} of ${total} move${total === 1 ? "" : "s"}.`;
+      if (followed < total) {
+        const divergeFenKey = normalizeFen(moves[followed].fenBefore);
+        const bookNode = this.getNodesForFenKey(divergeFenKey).find((node) => node.line_id === match.lineId);
+        const playedSan = moves[followed].san;
+        if (bookNode && bookNode._san) {
+          metaText += ` Diverges at move ${Math.ceil((followed + 1) / 2)}: you played ${playedSan}, the line continues ${bookNode._san}.`;
+        }
+      } else {
+        metaText += " Matches this line all the way through.";
+      }
+      const $card = this.buildLookupMatchCard({
+        openingName: match.openingName,
+        lineName: match.lineName,
+        openingId: match.openingId,
+        lineId: match.lineId,
+        metaText,
+        best: index === 0
+      });
+      this.$lookupResults.append($card);
+    });
+  },
+  buildLookupMatchCard(options) {
+    const $card = $("<article>").addClass("lookup-match").toggleClass("lookup-match-best", !!options.best);
+    const $header = $("<div>").addClass("lookup-match-header");
+    $header.append($("<span>").addClass("lookup-match-title").text(`${options.openingName} — ${options.lineName}`));
+    if (options.best) {
+      $header.append($("<span>").addClass("lookup-match-badge").text("Best match"));
+    }
+    $card.append($header);
+    $card.append($("<p>").addClass("lookup-match-meta").text(options.metaText || ""));
+    const $actions = $("<div>").addClass("lookup-match-actions");
+    $actions.append(
+      $("<button>").attr({ type: "button", "data-lookup-action": "load", "data-opening-id": options.openingId, "data-line-id": options.lineId })
+        .addClass("ghost").text("Load line")
+    );
+    $card.append($actions);
+    return $card;
+  },
+  loadLineFromLookup(openingId, lineId) {
+    if (!lineId) {
+      return;
+    }
+    this.closeLookupModal();
+    if (openingId && openingId !== this.state.openingId) {
+      this.onOpeningChange(openingId);
+    }
+    this.onLineChange(lineId);
   },
   configureSuggestionInboxFromUrl() {
     let params;
@@ -5440,6 +5677,26 @@ function normalizeFen(fen) {
     return fen.trim();
   }
   return parts.slice(0, 4).join(" ");
+}
+
+function padFenFields(fen) {
+  const parts = String(fen || "").trim().split(/\s+/);
+  if (parts.length === 4) {
+    parts.push("0", "1");
+  } else if (parts.length === 5) {
+    parts.push("1");
+  }
+  return parts.join(" ");
+}
+
+function extractFenFromInput(raw) {
+  const lines = String(raw || "").split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  if (lines.length !== 1) {
+    return "";
+  }
+  const candidate = lines[0].replace(/^fen[:\s]+/i, "").trim();
+  const fenPattern = /^([pnbrqkPNBRQK1-8]+\/){7}[pnbrqkPNBRQK1-8]+\s+[wb]\s+[KQkqA-Ha-h-]+\s+(-|[a-h][1-8])(\s+\d+\s+\d+)?$/;
+  return fenPattern.test(candidate) ? candidate : "";
 }
 
 function getSideFromFen(fen) {
