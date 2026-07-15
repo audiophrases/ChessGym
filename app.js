@@ -712,7 +712,11 @@ const App = {
       return;
     }
     const matches = this.findLineMatchesForMoves(parsed.moves);
-    matches.sort((a, b) => b.contiguousFromStart - a.contiguousFromStart || b.matchedPlies - a.matchedPlies);
+    matches.sort((a, b) =>
+      b.deepestDepth - a.deepestDepth ||
+      b.contiguousFromStart - a.contiguousFromStart ||
+      b.matchedPlies - a.matchedPlies
+    );
     this.renderLookupGameResults(parsed.moves, matches);
   },
   summarizeNodesByLine(nodes) {
@@ -738,27 +742,48 @@ const App = {
   },
   findLineMatchesForMoves(moves) {
     const byLine = {};
+    const ensureEntry = (node) => {
+      const lineId = node.line_id;
+      if (!lineId) {
+        return null;
+      }
+      if (!byLine[lineId]) {
+        const line = this.data.linesById[lineId] || {};
+        byLine[lineId] = {
+          lineId,
+          lineName: line.line_name || lineId,
+          openingId: node.opening_id || line.opening_id || "",
+          openingName: this.lookupOpeningName(node.opening_id || line.opening_id) || node.opening_id || "",
+          matchedPlies: 0,
+          contiguousFromStart: 0,
+          positionsMatched: 0,
+          deepestDepth: 0,
+          deepestGamePly: 0,
+          _seenPositions: new Set()
+        };
+      }
+      return byLine[lineId];
+    };
+    const recordPosition = (entry, fenKey, node, gamePly) => {
+      if (!entry._seenPositions.has(fenKey)) {
+        entry._seenPositions.add(fenKey);
+        entry.positionsMatched += 1;
+      }
+      const depth = node._depth || 0;
+      if (depth > entry.deepestDepth) {
+        entry.deepestDepth = depth;
+        entry.deepestGamePly = gamePly;
+      }
+    };
     moves.forEach((move, index) => {
-      const fenKey = normalizeFen(move.fenBefore);
-      const candidates = this.getNodesForFenKey(fenKey);
+      const fenKey = move.fenKey || normalizeFen(move.fenBefore);
       const playedUci = normalizeUci(move.uci);
-      candidates.forEach((node) => {
-        const lineId = node.line_id;
-        if (!lineId) {
+      this.getNodesForFenKey(fenKey).forEach((node) => {
+        const entry = ensureEntry(node);
+        if (!entry) {
           return;
         }
-        if (!byLine[lineId]) {
-          const line = this.data.linesById[lineId] || {};
-          byLine[lineId] = {
-            lineId,
-            lineName: line.line_name || lineId,
-            openingId: node.opening_id || line.opening_id || "",
-            openingName: this.lookupOpeningName(node.opening_id || line.opening_id) || node.opening_id || "",
-            matchedPlies: 0,
-            contiguousFromStart: 0
-          };
-        }
-        const entry = byLine[lineId];
+        recordPosition(entry, fenKey, node, index);
         if (normalizeUci(node.move_uci) === playedUci) {
           entry.matchedPlies += 1;
           if (entry.contiguousFromStart === index) {
@@ -767,7 +792,22 @@ const App = {
         }
       });
     });
-    return Object.values(byLine);
+    const lastMove = moves[moves.length - 1];
+    if (lastMove) {
+      const finalFenKey = lastMove.fenAfterKey || normalizeFen(lastMove.fenAfter);
+      this.getNodesForFenKey(finalFenKey).forEach((node) => {
+        const entry = ensureEntry(node);
+        if (entry) {
+          recordPosition(entry, finalFenKey, node, moves.length);
+        }
+      });
+    }
+    return Object.values(byLine)
+      .filter((entry) => entry.matchedPlies > 0 || entry.deepestDepth > 1)
+      .map((entry) => {
+        delete entry._seenPositions;
+        return entry;
+      });
   },
   renderLookupPositionResults(fullFen, matches) {
     this.$lookupResults.empty();
@@ -797,7 +837,7 @@ const App = {
     this.$lookupResults.empty();
     this.$lookupStatus.text("");
     this.$lookupResults.append(
-      $("<p>").addClass("lookup-summary").text(`Parsed ${moves.length} move${moves.length === 1 ? "" : "s"} from your game.`)
+      $("<p>").addClass("lookup-summary").text(`Parsed ${moves.length} move${moves.length === 1 ? "" : "s"} from your game. Lines are matched by position, so transpositions are detected too.`)
     );
     if (!matches.length) {
       this.$lookupResults.append(
@@ -808,16 +848,26 @@ const App = {
     matches.slice(0, 8).forEach((match, index) => {
       const total = moves.length;
       const followed = match.contiguousFromStart;
-      let metaText = `Follows book for ${followed} of ${total} move${total === 1 ? "" : "s"}.`;
-      if (followed < total) {
-        const divergeFenKey = normalizeFen(moves[followed].fenBefore);
-        const bookNode = this.getNodesForFenKey(divergeFenKey).find((node) => node.line_id === match.lineId);
-        const playedSan = moves[followed].san;
-        if (bookNode && bookNode._san) {
-          metaText += ` Diverges at move ${Math.ceil((followed + 1) / 2)}: you played ${playedSan}, the line continues ${bookNode._san}.`;
+      let metaText;
+      if (match.deepestDepth > followed + 1) {
+        const gamePlies = match.deepestGamePly;
+        const linePlies = match.deepestDepth - 1;
+        metaText = `Transposition: after ${gamePlies} move${gamePlies === 1 ? "" : "s"} your game reaches the position this line has after ${linePlies} move${linePlies === 1 ? "" : "s"} — different move order, ${match.positionsMatched} shared position${match.positionsMatched === 1 ? "" : "s"}.`;
+        if (followed > 0) {
+          metaText = `Follows book for ${followed} of ${total} moves. ${metaText}`;
         }
       } else {
-        metaText += " Matches this line all the way through.";
+        metaText = `Follows book for ${followed} of ${total} move${total === 1 ? "" : "s"}.`;
+        if (followed < total) {
+          const divergeFenKey = normalizeFen(moves[followed].fenBefore);
+          const bookNode = this.getNodesForFenKey(divergeFenKey).find((node) => node.line_id === match.lineId);
+          const playedSan = moves[followed].san;
+          if (bookNode && bookNode._san) {
+            metaText += ` Diverges at move ${Math.ceil((followed + 1) / 2)}: you played ${playedSan}, the line continues ${bookNode._san}.`;
+          }
+        } else {
+          metaText += " Matches this line all the way through.";
+        }
       }
       const $card = this.buildLookupMatchCard({
         openingName: match.openingName,
