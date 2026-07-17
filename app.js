@@ -982,6 +982,24 @@ const App = {
       this.$lookupResults[0].scrollIntoView({ block: "nearest" });
     }
   },
+  // Deep link: ?lookup=<moves or FEN> opens the Lookup modal prefilled and
+  // runs the line matching once the dataset is loaded. Used by the yourlines
+  // suite ("Train this line" from a weak spot), but works for any shared URL.
+  openLookupFromUrl() {
+    let params;
+    try {
+      params = new URLSearchParams(window.location.search);
+    } catch (error) {
+      return;
+    }
+    const query = (params.get("lookup") || "").trim();
+    if (!query) {
+      return;
+    }
+    this.openLookupModal();
+    this.$lookupInput.val(query);
+    this.runLookup();
+  },
   configureSuggestionInboxFromUrl() {
     let params;
     try {
@@ -2410,6 +2428,7 @@ const App = {
         this.showLoading(false);
         this.renderCoachComment();
         this.refreshAdminPanel();
+        this.openLookupFromUrl();
       })
       .catch((error) => {
         console.error(error);
