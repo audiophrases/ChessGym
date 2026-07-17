@@ -6198,3 +6198,7 @@ function formatModeLabel(mode) {
 $(document).ready(() => {
   App.init();
 });
+
+// Expose the current board position to the yourlines suite ("Play" in the
+// suite nav opens the analysis board at this position). Harmless standalone.
+window.SuiteBoardContext = () => ({ fen: App.chess ? App.chess.fen() : "" });
