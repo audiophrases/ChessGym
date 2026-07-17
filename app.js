@@ -919,7 +919,14 @@ const App = {
     this.$lookupGamesStatus.text("Loading recent games…");
     this.state.lookupRequestId = (this.state.lookupRequestId || 0) + 1;
     const requestId = this.state.lookupRequestId;
-    const request = site === "lichess" ? fetchLichessGames(username) : fetchChessComGames(username);
+    const request = fetchSuiteCachedGames(site, username).then((cachedGames) => {
+      if (cachedGames) {
+        this.lookupGamesSource = "cache";
+        return cachedGames;
+      }
+      this.lookupGamesSource = "api";
+      return site === "lichess" ? fetchLichessGames(username) : fetchChessComGames(username);
+    });
     request
       .then((games) => {
         if (requestId !== this.state.lookupRequestId) {
@@ -941,8 +948,15 @@ const App = {
       this.$lookupGamesStatus.text(`No recent games found for "${username}" on ${site === "lichess" ? "Lichess" : "Chess.com"}.`);
       return;
     }
-    this.$lookupGamesStatus.text(`${games.length} recent game${games.length === 1 ? "" : "s"} — click one to find matching lines.`);
-    games.forEach((game, index) => {
+    const fromCache = this.lookupGamesSource === "cache";
+    const shown = games.slice(0, 100);
+    const countLabel = games.length > shown.length ? `latest ${shown.length} of ${games.length}` : `${games.length}`;
+    this.$lookupGamesStatus.text(
+      fromCache
+        ? `${countLabel} game${games.length === 1 ? "" : "s"} from your Lines import — click one to find matching lines.`
+        : `${games.length} recent game${games.length === 1 ? "" : "s"} — click one to find matching lines.`
+    );
+    shown.forEach((game, index) => {
       const $row = $("<button>").attr({ type: "button", "data-lookup-game-index": index }).addClass("lookup-game-row");
       const dateLabel = game.date ? game.date.toLocaleDateString() : "";
       const sideLabel = game.userSide ? `You: ${game.userSide === "white" ? "White" : "Black"}` : "";
@@ -5918,6 +5932,47 @@ function fetchLichessGames(username) {
         };
       });
     });
+}
+
+// When running inside the yourlines suite, the bridge (window.YourlinesSuite)
+// exposes the full game history the user already imported in Lines. Prefer it
+// over re-fetching a handful of games from the public APIs; resolve null when
+// the bridge or a matching cached profile is unavailable so callers fall back.
+function fetchSuiteCachedGames(site, username) {
+  const bridge = window.YourlinesSuite;
+  if (!bridge || typeof bridge.listProfiles !== "function") {
+    return Promise.resolve(null);
+  }
+  const key = `${site}:${username.trim().toLowerCase()}`;
+  return bridge
+    .listProfiles()
+    .then((profiles) => {
+      const match = (profiles || []).find((profile) => profile.key === key);
+      if (!match) {
+        return null;
+      }
+      return bridge.getGames(match.key).then((games) => {
+        if (!games || !games.length) {
+          return null;
+        }
+        const mapped = games.map((game) => {
+          const opponent = game.opponent || "?";
+          const isWhite = game.userColor === "white";
+          return {
+            moves: (game.moves || []).join(" "),
+            white: isWhite ? match.username : opponent,
+            black: isWhite ? opponent : match.username,
+            userSide: game.userColor || "",
+            resultLabel: game.result === "win" ? "Won" : game.result === "loss" ? "Lost" : "Draw",
+            date: game.date ? new Date(game.date) : null,
+            timeClass: game.timeClass || ""
+          };
+        });
+        mapped.sort((a, b) => (b.date ? b.date.getTime() : 0) - (a.date ? a.date.getTime() : 0));
+        return mapped;
+      });
+    })
+    .catch(() => null);
 }
 
 function getSideFromFen(fen) {
