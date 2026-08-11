@@ -16,7 +16,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut }
   from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
-import { initializeFirestore, persistentLocalCache, doc, setDoc, onSnapshot }
+import { initializeFirestore, persistentLocalCache, doc, getDoc, setDoc, onSnapshot }
   from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 
 /* Public identifiers, not secrets: they say which project to talk to, and the
@@ -49,6 +49,25 @@ function push(payload) {
     .catch(e => console.warn("[sync] write refused: " + e.message));
 }
 
+/* This app briefly wrote its `gym` field into the shared users/{uid}
+   document. It has its own document now, so that every app gets its own
+   1 MiB rather than sharing one — and so that a write here stops waking
+   the other apps' listeners for a change that is none of their business.
+
+   Nothing is copied by hand. The old field is read once and handed to the
+   very same merge the live listener uses, and the app's own next push
+   carries it into the new home. The old document is left exactly as it is,
+   which makes this reversible: it is still a complete backup. */
+async function liftLegacy(uid) {
+  try {
+    const snap = await getDoc(doc(db, "users", uid));
+    const data = snap.exists() ? snap.data() : null;
+    if (data && data.gym) cloud.merge(data.gym);
+  } catch (e) {
+    console.warn("[sync] legacy read skipped: " + e.message);
+  }
+}
+
 function paint(user) {
   const who = $("who"), btn = $("signin");
   if (who) {
@@ -61,11 +80,14 @@ function paint(user) {
   }
 }
 
-onAuthStateChanged(auth, user => {
+onAuthStateChanged(auth, async user => {
   if (unsub) { unsub(); unsub = null; }
   paint(user);
   if (!user) { ref = null; cloud.setPusher(null); return; }
-  ref = doc(db, "users", user.uid);
+  ref = doc(db, "users", user.uid, "apps", "gym");
+  /* before the pusher, so the one write that signing in triggers already
+     carries anything lifted out of the old shared document */
+  await liftLegacy(user.uid);
   cloud.setPusher(push);
   unsub = onSnapshot(ref,
     snap => { const d = snap.data(); if (d && d.gym) cloud.merge(d.gym); },
