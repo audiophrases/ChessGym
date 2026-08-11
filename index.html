@@ -30,6 +30,11 @@
           <button id="flipBtn" class="ghost hidden" title="Flip the board orientation (Free mode).">Flip</button>
           <button id="lichessBtn" class="ghost">Lich</button>
           <button id="lookupBtn" class="ghost" type="button" title="Find openings/lines matching a FEN or a game (PGN) from chess.com or lichess.">Lookup</button>
+          <span id="who" class="account-who hidden"></span>
+          <!-- enabled by sync.js once Firebase is up; if it never loads the
+               button stays visibly out of action rather than doing nothing -->
+          <button id="signin" class="ghost" type="button" disabled
+                  title="Google sign-in — your practice record follows you to any device">Sign in</button>
         </div>
       </div>
       <div class="footer-prompt">
@@ -370,5 +375,7 @@
   <script src="libs/chess.min.js"></script>
   <script src="libs/chessboard-1.0.0.min.js"></script>
   <script src="app.js"></script>
+  <!-- A module, so it runs after app.js above has defined window.GymCloud. -->
+  <script type="module" src="sync.js"></script>
 </body>
 </html>

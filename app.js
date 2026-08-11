@@ -5701,6 +5701,12 @@ function needsPromotion(from, to, chess) {
 
 const SR_STORAGE_KEY = "sr_data_v1";
 let srMemoryStore = {};
+/* Cloud sync state — the block under updateSR() explains the merge, and
+   sync.js owns the Firestore end. Declared here, beside the store they
+   mirror, so saveSR() can reach them however early it first runs. */
+let srCloudPush = null;
+let srPushTimer = null;
+let srMerging = false;
 
 function getLineKey(openingId, lineId) {
   return `sr_${openingId}_${lineId}`;
@@ -5725,6 +5731,7 @@ function saveSR(data) {
   } catch (error) {
     // Fallback to in-memory storage when localStorage is unavailable.
   }
+  srSchedulePush();
 }
 
 function ensureSRDefaults(sr) {
@@ -5800,6 +5807,108 @@ function updateSR(lineKey, quality, details) {
   data[lineKey] = sr;
   saveSR(data);
 }
+
+/* ============================================================
+   Cloud sync — your spaced-repetition record follows you.
+
+   Of everything this app keeps, the SR record is the one thing that
+   cannot be rebuilt from anything else: the lines themselves live in
+   data/, but how you personally answered them, accumulated over months,
+   exists only here. sync.js signs you in and owns the Firestore end;
+   this block owns the merge.
+
+   Every reader above calls loadSR() fresh rather than holding a copy, so
+   a merge that lands mid-session is picked up by the next render on its
+   own — there is nothing cached to go stale.
+   ============================================================ */
+
+/* Firestore map keys are field names, so they get the same scrubbing the
+   puzzles app gives its game ids; the real key rides inside the entry. */
+function srCloudKey(key) {
+  return String(key).replace(/[^A-Za-z0-9_-]/g, "_");
+}
+
+function srCloudPayload() {
+  const data = loadSR() || {};
+  const out = {};
+  Object.keys(data).forEach((key) => {
+    if (data[key]) out[srCloudKey(key)] = { k: key, v: data[key] };
+  });
+  return { sr: out, at: Date.now() };
+}
+
+/* A session finishes several lines in a row; send one write, not six. */
+function srSchedulePush() {
+  if (!srCloudPush || srPushTimer || srMerging) return;
+  srPushTimer = setTimeout(() => {
+    srPushTimer = null;
+    if (srCloudPush) srCloudPush(srCloudPayload());
+  }, 700);
+}
+
+/* Two devices that practised the same line arrive holding two different
+   schedules, and there is no averaging them: the more recent practice
+   simply *is* the state of that line, and the other device's idea of
+   when it next falls due is out of date. So the scheduling fields move
+   together, as one, decided by lastPracticedISO.
+
+   The lifetime tallies underneath take the larger of the two instead.
+   That never walks a count backwards, and re-merging the same snapshot
+   cannot inflate it — which matters, because onSnapshot hands us the
+   same document again on every reconnect. */
+function srMergeCloud(remote) {
+  if (!remote || !remote.sr) return;
+  const local = loadSR() || {};
+  let changed = false;
+
+  Object.keys(remote.sr).forEach((slot) => {
+    const ent = remote.sr[slot];
+    if (!ent || !ent.k || !ent.v) return;
+    const key = ent.k;
+    const incoming = ent.v;
+    const mine = local[key];
+    if (!mine) {
+      local[key] = incoming;
+      changed = true;
+      return;
+    }
+    const remoteIsNewer = (incoming.lastPracticedISO || "") > (mine.lastPracticedISO || "");
+    const merged = Object.assign({}, remoteIsNewer ? incoming : mine);
+    const ls = mine.stats || {};
+    const rs = incoming.stats || {};
+    merged.stats = {
+      completed: Math.max(ls.completed || 0, rs.completed || 0),
+      learned: Math.max(ls.learned || 0, rs.learned || 0),
+      perfect: Math.max(ls.perfect || 0, rs.perfect || 0),
+      totalMistakes: Math.max(ls.totalMistakes || 0, rs.totalMistakes || 0),
+      totalAttempts: Math.max(ls.totalAttempts || 0, rs.totalAttempts || 0)
+    };
+    if (JSON.stringify(merged) !== JSON.stringify(mine)) {
+      local[key] = merged;
+      changed = true;
+    }
+  });
+
+  if (!changed) return;
+  /* write the merged record without letting it bounce straight back up;
+     whatever this device knows that the cloud does not went up already,
+     on the one push that sign-in triggers */
+  srMerging = true;
+  try {
+    saveSR(local);
+  } finally {
+    srMerging = false;
+  }
+}
+
+/* What sync.js needs, and nothing else. */
+window.GymCloud = {
+  merge: srMergeCloud,
+  setPusher(fn) {
+    srCloudPush = fn;
+    if (fn) srSchedulePush();
+  }
+};
 
 function weightedPick(lines, weightFn) {
   if (!lines.length) {
